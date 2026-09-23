@@ -1,29 +1,35 @@
 "use client";
 
 import { useActionState } from "react";
-import { createAccountAction, type CreateAccountState } from "./actions";
+import type { Account } from "@/lib/accounts/types";
+import { updateAccountAction, type UpdateAccountState } from "./actions";
 import { AccountFields } from "./account-fields";
 import styles from "./contas.module.css";
 
-const INITIAL_STATE: CreateAccountState = { status: "idle" };
+const INITIAL_STATE: UpdateAccountState = { status: "idle" };
 
-export function AccountForm() {
+interface Props {
+  account: Account;
+  onClose: () => void;
+}
+
+export function AccountEditForm({ account, onClose }: Props) {
   const [state, formAction, pending] = useActionState(
-    createAccountAction,
+    updateAccountAction.bind(null, account.id, account),
     INITIAL_STATE,
   );
 
   const fieldErrors = state.status === "invalid" ? state.fieldErrors : undefined;
 
   return (
-    <form action={formAction} className={styles.form}>
-      <AccountFields fieldErrors={fieldErrors} />
+    <form action={formAction} className={`${styles.form} ${styles.inlinePanel}`}>
+      <AccountFields defaults={account} fieldErrors={fieldErrors} />
 
       {state.status === "duplicate" ? (
         <div className={styles.notice}>
           <p>
             Ja existe conta conectada com nome, tipo e instituicao equivalentes. Confirme
-            se esta conta manual deve existir separadamente.
+            se esta conta manual deve continuar separada.
           </p>
           <ul className={styles.candidates}>
             {state.candidates.map((candidate) => (
@@ -33,7 +39,6 @@ export function AccountForm() {
               </li>
             ))}
           </ul>
-          {/* Reenvia o mesmo formulario com a confirmacao exigida pelo contrato. */}
           <button
             className={styles.submit}
             type="submit"
@@ -41,22 +46,32 @@ export function AccountForm() {
             value="true"
             disabled={pending}
           >
-            Criar assim mesmo
+            Salvar assim mesmo
           </button>
         </div>
       ) : null}
 
-      {state.status === "error" ? (
-        <p className={`${styles.notice} ${styles.noticeError}`}>{state.message}</p>
+      {state.status === "unchanged" ? (
+        <p className={styles.notice}>Nenhuma alteracao para salvar.</p>
       ) : null}
 
-      {state.status === "success" ? (
-        <p className={styles.notice}>Conta criada.</p>
+      {state.status === "error" ? (
+        <p className={`${styles.notice} ${styles.noticeError}`} role="alert">
+          {state.message}
+        </p>
       ) : null}
 
       <div className={styles.formFooter}>
         <button className={styles.submit} type="submit" disabled={pending}>
-          {pending ? "Criando..." : "Criar conta"}
+          {pending ? "Salvando..." : "Salvar alteracoes"}
+        </button>
+        <button
+          className={styles.secondary}
+          type="button"
+          onClick={onClose}
+          disabled={pending}
+        >
+          Cancelar
         </button>
       </div>
     </form>
