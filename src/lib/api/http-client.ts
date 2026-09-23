@@ -1,17 +1,5 @@
 import { apiBaseUrl } from "./config";
 
-/**
- * Provedor do token de acesso. A fase 3 (S1-04) liga este ponto ao Auth0.
- * Ate la retorna undefined e nenhuma requisicao vai autenticada.
- */
-export type TokenProvider = () => string | undefined | Promise<string | undefined>;
-
-let tokenProvider: TokenProvider = () => undefined;
-
-export function setTokenProvider(provider: TokenProvider): void {
-  tokenProvider = provider;
-}
-
 export interface ApiErrorShape {
   status: number;
   code: string;
@@ -36,22 +24,27 @@ export class ApiRequestError extends Error {
 export interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   query?: Record<string, string | number | boolean | undefined>;
+  /**
+   * Token da requisicao em curso. E explicito de proposito: um provedor guardado
+   * em modulo seria compartilhado entre requisicoes concorrentes do servidor e
+   * poderia enviar o token de um usuario na requisicao de outro.
+   */
+  accessToken?: string;
 }
 
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { body, query, headers, ...rest } = options;
+  const { body, query, headers, accessToken, ...rest } = options;
 
-  const token = await tokenProvider();
   const finalHeaders = new Headers(headers);
   finalHeaders.set("accept", "application/json");
   if (body !== undefined) {
     finalHeaders.set("content-type", "application/json");
   }
-  if (token) {
-    finalHeaders.set("authorization", `Bearer ${token}`);
+  if (accessToken) {
+    finalHeaders.set("authorization", `Bearer ${accessToken}`);
   }
 
   const response = await fetch(`${apiBaseUrl}${path}${buildQuery(query)}`, {

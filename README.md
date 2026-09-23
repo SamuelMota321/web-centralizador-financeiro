@@ -4,10 +4,12 @@ Cliente web (Next.js, App Router, TypeScript) do MVP acadêmico. Aplicação ind
 da mobile: não compartilha componentes, navegação nem código-fonte. Consome o contrato
 OpenAPI do backend sob `/api/v1`.
 
-Esta fase (S1-02 + parcial S1-03) cobre a fundação: bootstrap, configuração de ambiente,
-wrapper HTTP e camada de dados provisória alinhada ao contrato. Autenticação Auth0 e as
-telas de contas pertencem a fases posteriores — hoje a aplicação sobe com a página
-inicial padrão do Next.
+Esta fase (S1-04 + S1-05) cobre login Auth0, área protegida, logout e as telas de criar
+e listar contas.
+
+O access token nunca chega ao navegador: a listagem roda em Server Component e a criação
+em Server Action, então quem chama o backend é o servidor Next. Por isso o backend não
+precisa de CORS para este cliente.
 
 ## Requisitos
 
@@ -95,6 +97,30 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3100/api/v1
 O `.env` é ignorado pelo git. Nunca coloque credenciais reais nele nem no
 `.env.example`.
 
+### 4.1. Configurar o Auth0
+
+No painel do Auth0, registre uma aplicação do tipo **Regular Web Application** e
+configure nela:
+
+| Campo | Valor |
+|---|---|
+| Allowed Callback URLs | `http://localhost:3001/auth/callback` |
+| Allowed Logout URLs | `http://localhost:3001` |
+
+Preencha no `.env`:
+
+```bash
+AUTH0_DOMAIN=seu-tenant.us.auth0.com
+AUTH0_CLIENT_ID=...
+AUTH0_CLIENT_SECRET=...
+AUTH0_AUDIENCE=...            # idêntico ao AUTH0_AUDIENCE do backend
+APP_BASE_URL=http://localhost:3001
+AUTH0_SECRET=                 # gere com: openssl rand -hex 32
+```
+
+`AUTH0_AUDIENCE` precisa ser exatamente o mesmo do backend — se divergir, o backend
+recusa o token com 401.
+
 ### 5. Iniciar o servidor de desenvolvimento
 
 ```bash
@@ -110,16 +136,16 @@ Saída esperada:
 ```
 
 Este cliente usa a **porta 3001** (a 3000 é do backend). Abra
-**http://localhost:3001** — você verá a página inicial padrão do Next.js.
+**http://localhost:3001**.
 
 Parar: `Ctrl+C`.
 
 ### 6. Verificar que está tudo certo
 
-```bash
-curl -o /dev/null -w "%{http_code}\n" http://localhost:3001
-# esperado: 200
-```
+1. `http://localhost:3001` mostra a página pública com o botão **Entrar**.
+2. `http://localhost:3001/contas` sem estar logado redireciona para o Auth0.
+3. Depois de entrar, `/contas` lista suas contas e permite criar.
+4. **Sair** encerra a sessão e `/contas` volta a redirecionar.
 
 ## Checagens de qualidade
 
@@ -154,13 +180,19 @@ pnpm start          # serve o build na porta 3001
 
 | Caminho | Responsabilidade |
 |---|---|
-| `src/app/` | rotas e páginas (App Router) |
+| `src/app/page.tsx` | página pública com o acesso ao login |
+| `src/app/contas/` | área protegida: listagem, formulário, estados de carga e erro |
+| `src/proxy.ts` | fronteira de autenticação (convenção do Next 16; era `middleware.ts`) |
+| `src/lib/auth0.ts` | instância do `Auth0Client` |
 | `src/lib/api/config.ts` | base URL da API a partir do ambiente |
-| `src/lib/api/http-client.ts` | wrapper `fetch` (JSON, injeção de token, erros normalizados) |
+| `src/lib/api/http-client.ts` | wrapper `fetch` (JSON, token por requisição, erros normalizados) |
 | `src/lib/api/CONTRACT.md` | estado do contrato OpenAPI e opções de gerador |
-| `src/lib/accounts/` | tipos e Zod de borda **provisórios** para contas |
+| `src/lib/accounts/` | tipos e Zod de borda para contas |
 
 ## Ambiente
 
-`NEXT_PUBLIC_API_BASE_URL` é obrigatória. Segredos do Auth0 entram na fase 3 e nunca
-são versionados. `.env.example` não contém credenciais.
+Todas as variáveis do `.env.example` são obrigatórias. Nenhuma credencial é versionada:
+`.env` é ignorado pelo git e `.env.example` só tem placeholders.
+
+O token de acesso fica exclusivamente no servidor — o endpoint `/auth/access-token` do
+SDK está desabilitado de propósito, para que nenhum script da página consiga lê-lo.
