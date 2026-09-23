@@ -154,7 +154,7 @@ Rode antes de commitar:
 
 ```bash
 pnpm lint          # ESLint
-pnpm typecheck     # tsc --noEmit
+pnpm typecheck     # next typegen (tipos de rota) + tsc --noEmit
 pnpm test          # Vitest
 pnpm build         # build de produção (o que a Vercel faz)
 ```
