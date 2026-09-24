@@ -54,6 +54,9 @@ export async function apiRequest<T>(
 
   const response = await fetch(`${apiBaseUrl}${path}${buildQuery(query)}`, {
     ...rest,
+    // Dados autenticados nunca entram em cache compartilhado. O Next 16 já não cacheia
+    // fetch por padrão; declarar evita que config ou `use cache` futuros mudem isso sem aviso.
+    cache: "no-store",
     headers: finalHeaders,
     body: body === undefined ? undefined : JSON.stringify(body),
   });

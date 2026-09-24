@@ -25,6 +25,13 @@ describe("apiRequest", () => {
     expect(lastRequest(fetchMock).headers.has("authorization")).toBe(false);
   });
 
+  it("nunca permite cache da resposta autenticada", async () => {
+    const fetchMock = stubFetch(200, {});
+    await apiRequest("/transactions", { accessToken: "token-ficticio", cache: "force-cache" });
+    const [, init] = fetchMock.mock.calls.at(-1) as unknown as [string, RequestInit];
+    expect(init.cache).toBe("no-store");
+  });
+
   it("monta a URL com a base e ignora parametros indefinidos", async () => {
     const fetchMock = stubFetch(200, {});
     await apiRequest("/accounts", { query: { page: 2, pageSize: undefined } });
