@@ -30,13 +30,15 @@ export interface RequestOptions extends Omit<RequestInit, "body"> {
    * poderia enviar o token de um usuario na requisicao de outro.
    */
   accessToken?: string;
+  /** Enviada no header `Idempotency-Key` (POST de movimentacoes). */
+  idempotencyKey?: string;
 }
 
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { body, query, headers, accessToken, ...rest } = options;
+  const { body, query, headers, accessToken, idempotencyKey, ...rest } = options;
 
   const finalHeaders = new Headers(headers);
   finalHeaders.set("accept", "application/json");
@@ -45,6 +47,9 @@ export async function apiRequest<T>(
   }
   if (accessToken) {
     finalHeaders.set("authorization", `Bearer ${accessToken}`);
+  }
+  if (idempotencyKey) {
+    finalHeaders.set("idempotency-key", idempotencyKey);
   }
 
   const response = await fetch(`${apiBaseUrl}${path}${buildQuery(query)}`, {
