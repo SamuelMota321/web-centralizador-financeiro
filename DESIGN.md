@@ -187,7 +187,7 @@ Raios médios e consistentes: 9px em controles (botões, campos, itens de navega
 ## Components
 
 - **Botões:** primário (verde), secundário (superfície com borda), perigo (negativo) e link. Estados: hover, pressionado (escala 0,98), foco visível (anel de 2px no verde), desabilitado (opacidade 0,55) e carregando (texto de ação no gerúndio). Altura 40px.
-- **Campos:** rótulo acima, ajuda abaixo, erro associado por `aria-describedby`, borda `input-border`, foco com anel verde.
+- **Campos:** rótulo acima, ajuda abaixo, erro associado por `aria-describedby`, borda `input-border`, foco com anel verde. Datas são texto DD/MM/AAAA com máscara e teclado numérico, nunca o seletor nativo (que segue o idioma do navegador).
 - **Etiqueta de status:** ponto colorido de 7px + texto, como o bloco "Estado dos dados" do guia. A cor nunca aparece sozinha.
 - **Aviso:** ícone + texto + ação opcional; variantes sucesso, informação, atenção e erro.
 - **Estado vazio:** ícone, frase que explica o que é aquela área e a ação que a inicia.

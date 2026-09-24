@@ -3,6 +3,7 @@
 import { useId } from "react";
 import { errorProps, FieldError, ui } from "@/components/ui";
 import { ACCOUNT_TYPES, type Account } from "@/lib/accounts/types";
+import { formatCivilDate, maskBrazilianDate } from "@/lib/civil-date";
 import { TYPE_LABELS } from "./account-type-labels";
 
 export type FieldErrors = Record<string, string[] | undefined>;
@@ -97,8 +98,15 @@ export function AccountFields({ defaults, fieldErrors }: Props) {
           className={`${ui.input} tabular`}
           id={`${id}-initialBalanceAsOf`}
           name="initialBalanceAsOf"
-          type="date"
-          defaultValue={defaults?.initialBalanceAsOf}
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="DD/MM/AAAA"
+          maxLength={10}
+          // Texto DD/MM/AAAA: o seletor nativo seguiria o idioma do navegador (MM/DD/AAAA).
+          onInput={(event) => {
+            event.currentTarget.value = maskBrazilianDate(event.currentTarget.value);
+          }}
+          defaultValue={defaults ? formatCivilDate(defaults.initialBalanceAsOf) : undefined}
           required
           {...errorProps(`${id}-initialBalanceAsOf-error`, error("initialBalanceAsOf"))}
         />

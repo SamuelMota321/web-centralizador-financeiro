@@ -75,7 +75,7 @@ function movementForm(overrides: Record<string, string> = {}) {
     accountId: ACCOUNT_A,
     type: "expense",
     amount: "1.234,56",
-    occurredOn: "2026-09-20",
+    occurredOn: "20/09/2026",
     description: "  Mercado  ",
     ...overrides,
   };
@@ -90,7 +90,7 @@ function transferForm(overrides: Record<string, string> = {}) {
     fromAccountId: ACCOUNT_A,
     toAccountId: ACCOUNT_B,
     amount: "50",
-    occurredOn: "2026-09-20",
+    occurredOn: "20/09/2026",
     description: "",
     ...overrides,
   };
@@ -148,7 +148,7 @@ describe("createTransactionAction", () => {
   it("usa mensagens em pt-BR para tipo, conta e data inválidos", async () => {
     const state = await createTransactionAction(
       IDLE,
-      movementForm({ type: "transfer", accountId: "", occurredOn: "2026-02-29" }),
+      movementForm({ type: "transfer", accountId: "", occurredOn: "29/02/2026" }),
     );
 
     expect(state).toMatchObject({
@@ -156,7 +156,7 @@ describe("createTransactionAction", () => {
       fieldErrors: {
         type: ["Escolha receita ou despesa."],
         accountId: ["Escolha uma conta."],
-        occurredOn: ["Informe uma data válida."],
+        occurredOn: ["Informe uma data válida no formato DD/MM/AAAA."],
       },
     });
   });
@@ -243,7 +243,7 @@ describe("createTransactionAction", () => {
     expect(state).toMatchObject({
       status: "invalid",
       idempotencyKey: KEY,
-      fieldErrors: { occurredOn: ["Informe uma data válida."] },
+      fieldErrors: { occurredOn: ["Informe uma data válida no formato DD/MM/AAAA."] },
     });
   });
 

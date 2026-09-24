@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { errorProps, FieldError, Notice, ui } from "@/components/ui";
-import { todayCivilDate } from "@/lib/civil-date";
+import { formatCivilDate, maskBrazilianDate, todayCivilDate } from "@/lib/civil-date";
 import type { MovementFormState } from "./actions";
 
 export type FieldErrors = Record<string, string[] | undefined>;
@@ -12,8 +12,9 @@ export function firstError(errors: FieldErrors | undefined, field: string): stri
 }
 
 /**
- * Data civil de hoje no calendario do navegador, preenchida apos montar: o servidor
- * pode estar em outro fuso e o HTML inicial nao pode divergir do cliente.
+ * Data em texto DD/MM/AAAA: o seletor nativo segue o idioma do navegador (MM/DD/AAAA em
+ * inglês), não o da página. Hoje é preenchido após montar, no calendário do navegador:
+ * o servidor pode estar em outro fuso e o HTML inicial não pode divergir do cliente.
  */
 export function DateInput({
   id,
@@ -26,7 +27,9 @@ export function DateInput({
 }) {
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (ref.current && ref.current.value === "") ref.current.value = todayCivilDate();
+    if (ref.current && ref.current.value === "") {
+      ref.current.value = formatCivilDate(todayCivilDate());
+    }
   }, []);
 
   return (
@@ -39,7 +42,13 @@ export function DateInput({
         className={`${ui.input} tabular`}
         id={`${id}-occurredOn`}
         name="occurredOn"
-        type="date"
+        inputMode="numeric"
+        autoComplete="off"
+        placeholder="DD/MM/AAAA"
+        maxLength={10}
+        onInput={(event) => {
+          event.currentTarget.value = maskBrazilianDate(event.currentTarget.value);
+        }}
         defaultValue={defaultValue}
         required
         {...errorProps(`${id}-occurredOn-error`, error)}

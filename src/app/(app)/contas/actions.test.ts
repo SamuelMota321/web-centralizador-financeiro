@@ -60,7 +60,8 @@ function form(overrides: Record<string, string> = {}): FormData {
     type: original.type,
     institutionName: original.institutionName ?? "",
     initialBalance: original.initialBalance,
-    initialBalanceAsOf: original.initialBalanceAsOf,
+    // O campo é texto DD/MM/AAAA; a action converte para o contrato.
+    initialBalanceAsOf: "10/09/2026",
     ...overrides,
   };
   for (const [key, value] of Object.entries(values)) data.set(key, value);
@@ -87,6 +88,30 @@ beforeEach(() => {
 });
 
 describe("createAccountAction", () => {
+  it.each(["09/10/2026x", "31/02/2026", "2026/09/10"])(
+    "recusa a data %j com a mensagem do formato digitado",
+    async (initialBalanceAsOf) => {
+      const state = await createAccountAction({ status: "idle" }, form({ initialBalanceAsOf }));
+
+      expect(createAccount).not.toHaveBeenCalled();
+      expect(state).toMatchObject({
+        status: "invalid",
+        fieldErrors: { initialBalanceAsOf: ["Informe uma data válida no formato DD/MM/AAAA."] },
+      });
+    },
+  );
+
+  it("converte DD/MM/AAAA para o contrato", async () => {
+    vi.mocked(createAccount).mockResolvedValue(original);
+
+    await createAccountAction({ status: "idle" }, form());
+
+    expect(createAccount).toHaveBeenCalledWith(
+      expect.objectContaining({ initialBalanceAsOf: "2026-09-10" }),
+      expect.anything(),
+    );
+  });
+
   it("retorna erros de campo sem chamar a API", async () => {
     const state = await createAccountAction(idle, form({ name: "", initialBalance: "abc" }));
     expect(state.status).toBe("invalid");

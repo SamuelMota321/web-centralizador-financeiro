@@ -31,3 +31,23 @@ export function formatCivilDate(value: string): string {
   const match = ISO_CIVIL_DATE.exec(value);
   return match ? `${match[3]}/${match[2]}/${match[1]}` : value;
 }
+
+/**
+ * "20/09/2026" -> "2026-09-20". Os campos de data do web são texto DD/MM/AAAA: o seletor
+ * nativo segue o idioma do navegador (MM/DD/AAAA em inglês) e não o da página.
+ * Retorna null para formato inválido ou data inexistente.
+ */
+export function parseBrazilianDate(raw: string): string | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(raw.trim());
+  if (!match) return null;
+  const value = `${match[3]}-${match[2]}-${match[1]}`;
+  return isRealCivilDate(value) ? value : null;
+}
+
+/** Máscara de digitação: mantém só dígitos (até 8) e insere as barras de DD/MM/AAAA. */
+export function maskBrazilianDate(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}

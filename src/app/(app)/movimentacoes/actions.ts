@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { PROBLEM_CODES, ProblemDetailsError } from "@/lib/api/errors";
 import { mustRotateIdempotencyKey, newIdempotencyKey } from "@/lib/idempotency";
+import { parseBrazilianDate } from "@/lib/civil-date";
 import { parseMoneyInput } from "@/lib/money";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
 import {
@@ -56,6 +57,7 @@ export type MovementFormState =
     };
 
 const AMOUNT_MESSAGE = "Informe um valor maior que zero, com até duas casas decimais.";
+const DATE_MESSAGE = "Informe uma data válida no formato DD/MM/AAAA.";
 
 // O backend responde `errors[].path` com o nome do campo e mensagem tecnica em ingles.
 const FIELD_MESSAGES: Record<string, string> = {
@@ -64,7 +66,7 @@ const FIELD_MESSAGES: Record<string, string> = {
   toAccountId: "Escolha a conta de destino.",
   type: "Escolha receita ou despesa.",
   amount: AMOUNT_MESSAGE,
-  occurredOn: "Informe uma data válida.",
+  occurredOn: DATE_MESSAGE,
   description: "Revise a descrição.",
 };
 
@@ -76,9 +78,15 @@ export async function createTransactionAction(
   const idempotencyKey = readIdempotencyKey(formData, previous);
 
   const amount = parseMoneyInput(values.amount);
-  const parsed = createTransactionInputSchema.safeParse({ ...values, amount: amount ?? "" });
-  if (!parsed.success || amount === null) {
-    return invalid(idempotencyKey, values, parsed.success ? [] : parsed.error.issues, amount);
+  // O campo é texto DD/MM/AAAA; o contrato recebe AAAA-MM-DD.
+  const occurredOn = parseBrazilianDate(values.occurredOn);
+  const parsed = createTransactionInputSchema.safeParse({
+    ...values,
+    amount: amount ?? "",
+    occurredOn: occurredOn ?? "",
+  });
+  if (!parsed.success || amount === null || occurredOn === null) {
+    return invalid(idempotencyKey, values, parsed.success ? [] : parsed.error.issues, amount, occurredOn);
   }
 
   const token = await accessTokenOrNull();
@@ -120,9 +128,15 @@ export async function createTransferAction(
   const idempotencyKey = readIdempotencyKey(formData, previous);
 
   const amount = parseMoneyInput(values.amount);
-  const parsed = createTransferInputSchema.safeParse({ ...values, amount: amount ?? "" });
-  if (!parsed.success || amount === null) {
-    return invalid(idempotencyKey, values, parsed.success ? [] : parsed.error.issues, amount);
+  // O campo é texto DD/MM/AAAA; o contrato recebe AAAA-MM-DD.
+  const occurredOn = parseBrazilianDate(values.occurredOn);
+  const parsed = createTransferInputSchema.safeParse({
+    ...values,
+    amount: amount ?? "",
+    occurredOn: occurredOn ?? "",
+  });
+  if (!parsed.success || amount === null || occurredOn === null) {
+    return invalid(idempotencyKey, values, parsed.success ? [] : parsed.error.issues, amount, occurredOn);
   }
 
   const token = await accessTokenOrNull();
@@ -178,6 +192,7 @@ function invalid(
   values: FormValues,
   issues: readonly z.core.$ZodIssue[],
   amount: string | null,
+  occurredOn: string | null,
 ): MovementFormState {
   // Refinements (`custom`) ja trazem mensagem propria em pt-BR; as demais mensagens do
   // Zod sao genericas e em ingles, entao cada campo usa a sua.
@@ -190,6 +205,7 @@ function invalid(
     ];
   }
   if (amount === null) fieldErrors.amount = [AMOUNT_MESSAGE];
+  if (occurredOn === null) fieldErrors.occurredOn = [DATE_MESSAGE];
   return { status: "invalid", idempotencyKey, values, fieldErrors };
 }
 

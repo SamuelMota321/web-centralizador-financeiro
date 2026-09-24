@@ -15,6 +15,7 @@ import {
   isAccountUnavailable,
 } from "@/lib/accounts/messages";
 import { buildAccountPatch } from "@/lib/accounts/patch";
+import { parseBrazilianDate } from "@/lib/civil-date";
 import {
   accountIdSchema,
   accountSchema,
@@ -52,10 +53,7 @@ export async function createAccountAction(
   const parsed = manualAccountInputSchema.safeParse(readAccountForm(formData));
 
   if (!parsed.success) {
-    return {
-      status: "invalid",
-      fieldErrors: parsed.error.flatten().fieldErrors,
-    };
+    return { status: "invalid", fieldErrors: withDateMessage(formData, parsed.error.flatten().fieldErrors) };
   }
 
   try {
@@ -89,7 +87,7 @@ export async function updateAccountAction(
 
   const parsed = manualAccountInputSchema.safeParse(readAccountForm(formData));
   if (!parsed.success) {
-    return { status: "invalid", fieldErrors: parsed.error.flatten().fieldErrors };
+    return { status: "invalid", fieldErrors: withDateMessage(formData, parsed.error.flatten().fieldErrors) };
   }
 
   const patch = buildAccountPatch(source.data, parsed.data);
@@ -143,14 +141,27 @@ export async function deactivateAccountAction(
 }
 
 function readAccountForm(formData: FormData) {
+  const rawDate = formData.get("initialBalanceAsOf");
   return {
     name: formData.get("name"),
     type: formData.get("type"),
     institutionName: formData.get("institutionName"),
     initialBalance: formData.get("initialBalance"),
-    initialBalanceAsOf: formData.get("initialBalanceAsOf"),
+    // O campo é texto DD/MM/AAAA; o contrato recebe AAAA-MM-DD.
+    initialBalanceAsOf: typeof rawDate === "string" ? (parseBrazilianDate(rawDate) ?? rawDate) : rawDate,
     confirmPossibleDuplicate: formData.get("confirmPossibleDuplicate") === "true",
   };
+}
+
+const DATE_MESSAGE = "Informe uma data válida no formato DD/MM/AAAA.";
+
+/** Data que não converteu recebe a mensagem do formato digitado, não a do contrato. */
+function withDateMessage(formData: FormData, fieldErrors: FieldErrors): FieldErrors {
+  const rawDate = formData.get("initialBalanceAsOf");
+  const unparsable = typeof rawDate !== "string" || parseBrazilianDate(rawDate) === null;
+  return unparsable && fieldErrors.initialBalanceAsOf
+    ? { ...fieldErrors, initialBalanceAsOf: [DATE_MESSAGE] }
+    : fieldErrors;
 }
 
 function serverFailure(

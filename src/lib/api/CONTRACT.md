@@ -118,7 +118,7 @@ a mesma mensagem.
   transferencia.
 - Valor: `parseMoneyInput()` aceita `1.234,56`, `1234,56`, `1234.56` e `1234`, sem `Number`;
   `formatMoney()` exibe `R$ 1.234,56`. Direcao sempre indicada por texto ou sinal, nao so cor.
-- Data: `<input type="date">` (AAAA-MM-DD); hoje via `todayCivilDate()`, nunca `toISOString()`.
+- Data: campo de texto DD/MM/AAAA com máscara (`maskBrazilianDate`), convertido para AAAA-MM-DD por `parseBrazilianDate` na Server Action; hoje via `todayCivilDate()`, nunca `toISOString()`. O `<input type="date">` foi abandonado porque exibe o formato do idioma do navegador (MM/DD/AAAA em inglês), não o da página.
 - Rotas: `/movimentacoes`, `/categorias` e `/regras`, protegidas pelo `proxy.ts`.
 - `fetch` nao e cacheado por padrao no Next 16 e o projeto nao usa `use cache`: dados
   autenticados nao sao compartilhados entre usuarios.
