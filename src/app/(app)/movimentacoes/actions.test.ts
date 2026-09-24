@@ -300,6 +300,26 @@ describe("createTransferAction", () => {
     });
   });
 
+  it("mantém a mesma chave após falha de rede, para o reenvio ser um replay", async () => {
+    vi.mocked(createTransfer).mockRejectedValue(new TypeError("fetch failed"));
+
+    const state = await createTransferAction(IDLE, transferForm());
+
+    expect(state).toMatchObject({ status: "error", idempotencyKey: KEY, values: { amount: "50" } });
+  });
+
+  it.each(["IDEMPOTENCY_KEY_REUSED", "IDEMPOTENCY_KEY_EXPIRED"])(
+    "gera chave nova quando o backend recusa a chave da transferência (%s)",
+    async (code) => {
+      vi.mocked(createTransfer).mockRejectedValue(problem(409, code));
+
+      const state = await createTransferAction(IDLE, transferForm());
+
+      expect(state.status).toBe("error");
+      expect(state.idempotencyKey).not.toBe(KEY);
+    },
+  );
+
   it("TRANSFER_ACCOUNTS_MUST_DIFFER do backend vira erro no destino", async () => {
     vi.mocked(createTransfer).mockRejectedValue(problem(400, "TRANSFER_ACCOUNTS_MUST_DIFFER"));
 

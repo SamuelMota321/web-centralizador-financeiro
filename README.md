@@ -8,6 +8,12 @@ A Sprint 1 (S1-04 a S1-07) cobre login Auth0, área protegida, logout e a manute
 contas manuais: criar, listar, editar e desativar (com confirmação), além do isolamento de
 dados entre sessões.
 
+A Sprint 2 (S2-04 a S2-07) acrescenta movimentações (receita, despesa e transferência
+contábil entre contas próprias, com Idempotency-Key), categorias pessoais, categorização
+manual com estados incerto e não reconhecido, regras pessoais de categorização com
+precedência explicada e o isolamento de estado entre sessões. A interface segue o Style
+Guide 1.0, documentado em `PRODUCT.md` e `DESIGN.md`.
+
 O access token nunca chega ao navegador: a listagem roda em Server Component e as mutações
 (criar, editar, desativar) em Server Actions, então quem chama o backend é o servidor Next.
 Por isso o backend não precisa de CORS para este cliente.
@@ -56,6 +62,10 @@ cd ../backend-centralizador-financeiro
 cp .env.example .env          # troque cada replace_me por uma senha local qualquer
 docker compose up -d --wait   # requer Docker Desktop rodando
 ```
+
+> O backend usa **npm**, não pnpm. Se for rodá-lo fora do Docker, use `npm ci` e
+> `npm run start:dev` na pasta dele. Um `pnpm install` no backend cria `pnpm-lock.yaml` e
+> `pnpm-workspace.yaml` e falha com `ERR_PNPM_IGNORED_BUILDS` (Prisma e esbuild sem build).
 
 Confirme:
 
@@ -143,10 +153,11 @@ Parar: `Ctrl+C`.
 
 ### 6. Verificar que está tudo certo
 
-1. `http://localhost:3001` mostra a página pública com o botão **Entrar**.
-2. `http://localhost:3001/contas` sem estar logado redireciona para o Auth0.
-3. Depois de entrar, `/contas` lista suas contas e permite criar, editar e desativar.
-4. **Sair** encerra a sessão e `/contas` volta a redirecionar.
+1. `http://localhost:3001` mostra a página de entrada com o botão **Entrar**.
+2. `/movimentacoes`, `/contas`, `/categorias` e `/regras` sem estar logado redirecionam para o Auth0.
+3. Depois de entrar, o app abre em **Movimentações**, com a navegação lateral para Contas,
+   Categorias e Regras. Datas são digitadas em DD/MM/AAAA.
+4. **Sair** encerra a sessão e as rotas do app voltam a redirecionar.
 
 ## Checagens de qualidade
 
@@ -168,15 +179,20 @@ Next são simulados. Os arquivos `*.test.ts` ficam ao lado do código testado.
 
 | Arquivo | O que garante |
 |---|---|
-| `src/lib/accounts/patch.test.ts` | PATCH só com campos alterados; saldo e data sempre juntos; comparação de valores sem `Number` |
-| `src/lib/accounts/schema.test.ts` | validação de borda da criação e da edição espelhando o contrato |
-| `src/lib/accounts/messages.test.ts` | mensagens em pt-BR por código; 404 e conta arquivada indistinguíveis; `detail` do backend nunca exibido |
-| `src/lib/api/http-client.test.ts` | bearer só com token, URL, corpo JSON e normalização de erros |
-| `src/lib/accounts/api.test.ts` | rotas, métodos e corpo de update/deactivate; UUID inválido não chega à API; resposta fora do contrato falha |
-| `src/app/contas/actions.test.ts` | Server Actions: sem alteração, id adulterado, sucesso, indisponível, duplicidade, erros de campo |
-| `src/app/contas/notices.test.ts` | avisos da página restritos a uma lista fechada |
-| `src/proxy.test.ts` | `/contas` sem sessão redireciona ao login; `/auth/*` e a página pública não exigem sessão |
-| `src/lib/api/contract.test.ts` | operações de contas do cliente existem no `openapi.snapshot.json` com os mesmos campos |
+| `src/lib/money.test.ts` | entrada pt-BR normalizada e formatação em BRL sem `Number` (sem erro de ponto flutuante) |
+| `src/lib/civil-date.test.ts` | data civil sem fuso, anos bissextos, datas inexistentes, DD/MM/AAAA e máscara de digitação |
+| `src/lib/idempotency.test.ts` | chave UUID nova e quando trocá-la (`REUSED`/`EXPIRED`) |
+| `src/lib/api/http-client.test.ts` | bearer só com token, `cache: "no-store"` sempre, URL, corpo JSON e normalização de erros |
+| `src/lib/api/pagination.test.ts` | leitura de todas as páginas para seletores, com aviso de truncamento |
+| `src/lib/api/contract.test.ts` | operações existem no `openapi.snapshot.json`; fixtures de cada resposta validadas contra o snapshot e contra o Zod; enums iguais aos do contrato |
+| `src/lib/accounts/*.test.ts` | contas: schema, PATCH só com alterações, mensagens, chamadas da API |
+| `src/lib/transactions/*.test.ts` | movimentações: schemas de entrada (valor, data, transferência entre contas distintas, categorização), chamadas com Idempotency-Key, mensagens |
+| `src/lib/categories/api.test.ts`, `src/lib/category-rules/*.test.ts` | categorias e regras: chamadas, gramática da condição e limites de prioridade |
+| `src/app/(app)/movimentacoes/*.test.ts` | Server Actions de receita, despesa, transferência e categorização (chave mantida em falha e trocada após sucesso ou recusa); rótulos e sinais |
+| `src/app/(app)/contas/*.test.ts` | Server Actions de contas e avisos restritos a uma lista fechada |
+| `src/app/(app)/categorias/*.test.ts` | criar, renomear e arquivar; nome repetido recusado antes da API |
+| `src/app/(app)/regras/*.test.ts` | criar, editar só o que mudou, ativar, desativar e remover; frase da regra e gramática |
+| `src/proxy.test.ts` | rotas do app sem sessão redirecionam ao login; `/auth/*` e a página pública não exigem sessão |
 
 Os fluxos de tela (login real no Auth0, confirmação visual, logout pelo navegador) são
 verificados pelo roteiro de demonstração abaixo.
@@ -194,6 +210,7 @@ pnpm start          # serve o build na porta 3001
 |---|---|---|
 | `pnpm: command not found` | corepack não habilitado | `corepack enable` (passo 1) |
 | `Error: NEXT_PUBLIC_API_BASE_URL nao definido` | falta o `.env` | passo 4 |
+| toda página responde 500 com `DomainResolutionError` / `Missing: domain` | variáveis do Auth0 vazias (o `.env.example` vem sem valores) | preencha `AUTH0_*` no `.env` (passo 4.1) e reinicie o `pnpm dev` |
 | chamadas à API falham / timeout | backend não está no ar ou porta errada | passo 3; confira a URL no `.env` |
 | `curl localhost:3000` conecta mas trava | outro processo na porta 3000 | use `compose.override.yaml` (passo 3) |
 | porta 3001 ocupada | outra instância rodando | `pnpm dev -- -p 3002` e abra a porta nova |
@@ -203,14 +220,22 @@ pnpm start          # serve o build na porta 3001
 
 | Caminho | Responsabilidade |
 |---|---|
-| `src/app/page.tsx` | página pública com o acesso ao login |
-| `src/app/contas/` | área protegida: listagem, criação, edição, desativação com confirmação, avisos, estados de carga e erro |
+| `PRODUCT.md`, `DESIGN.md` | produto e sistema visual (tokens, tipografia, componentes) derivados do Style Guide |
+| `src/app/page.tsx` | página de entrada com o acesso ao login |
+| `src/app/(app)/layout.tsx` | estrutura do app: barra superior, navegação lateral (`side-nav.tsx`) e área principal |
+| `src/app/(app)/movimentacoes/` | histórico em colunas, registro de receita, despesa e transferência, categorização |
+| `src/app/(app)/contas/` | contas manuais: criar, editar, desativar com confirmação |
+| `src/app/(app)/categorias/` | categorias pessoais: criar, renomear, arquivar |
+| `src/app/(app)/regras/` | regras pessoais: formulário guiado, ciclo de vida e explicação da precedência |
+| `src/components/` | ícones SVG, símbolo da marca e peças de interface compartilhadas pelas telas |
 | `src/proxy.ts` | fronteira de autenticação (convenção do Next 16; era `middleware.ts`) |
 | `src/lib/auth0.ts` | instância do `Auth0Client` |
 | `src/lib/api/config.ts` | base URL da API a partir do ambiente |
 | `src/lib/api/http-client.ts` | wrapper `fetch` (JSON, token por requisição, erros normalizados) |
 | `src/lib/api/CONTRACT.md` | estado do contrato OpenAPI e opções de gerador |
 | `src/lib/accounts/` | tipos, Zod de borda, funções da API, diff do PATCH e mensagens por código |
+| `src/lib/transactions/`, `categories/`, `category-rules/` | clientes tipados de Transactions, com Zod de borda e mensagens |
+| `src/lib/session.ts` | token da sessão no servidor e detecção de falha de autenticação |
 | `vitest.config.mts` | configuração dos testes (alias `@`, variáveis fictícias) |
 
 ## Demonstração da Sprint 1
@@ -225,13 +250,19 @@ usuários de teste (A e B) do mesmo tenant Auth0. Não mostre `.env`, tokens nem
 | 3 | Criar "Conta principal" e "Reserva" | ambas aparecem na lista, com aviso "Conta criada." |
 | 4 | Criar conta com saldo `abc` ou data futura | erro no próprio campo, nada é criado |
 | 5 | **Editar** "Reserva", mudar o nome, salvar | aviso "Conta atualizada." e nome novo na lista |
-| 6 | **Editar** e salvar sem mudar nada | "Nenhuma alteracao para salvar." sem chamada à API |
+| 6 | **Editar** e salvar sem mudar nada | "Nenhuma alteração para salvar." sem chamada à API |
 | 7 | **Editar** e mudar só a data de referência | salva: saldo e data vão juntos |
 | 8 | **Desativar** → **Cancelar** | nada muda |
 | 9 | **Desativar** → **Confirmar desativação** | conta some; aviso de desativação com histórico preservado |
-| 10 | Duas abas em `/contas`: desativar na primeira, editar a mesma conta na segunda | "Esta conta nao foi encontrada ou nao esta mais disponivel." e lista recarregada |
+| 10 | Duas abas em `/contas`: desativar na primeira, editar a mesma conta na segunda | "Esta conta não foi encontrada ou não está mais disponível." e lista recarregada |
 | 11 | **Sair** e usar o botão voltar do navegador | nenhuma conta visível; `/contas` pede login |
 | 12 | Entrar como B | nenhuma conta de A aparece |
+
+## Demonstração da Sprint 2
+
+O roteiro completo (web e mobile, usuários A e B, precedência de regras, reenvio sem
+duplicar e isolamento) está em
+`documentacao-centralizador-financeiro/prompts/sprint2/dev2/roteiro-demonstracao-sprint-2.md`.
 
 ## Ambiente
 
