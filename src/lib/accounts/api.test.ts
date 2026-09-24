@@ -54,7 +54,7 @@ describe("updateAccount", () => {
     expect(result.name).toBe("Reserva");
   });
 
-  it("recusa id que nao e UUID sem chamar a API", async () => {
+  it("recusa id que não é UUID sem chamar a API", async () => {
     const fetchMock = stubFetch(200, accountView);
     await expect(updateAccount("../1", { name: "x" }, context)).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
@@ -80,7 +80,7 @@ describe("updateAccount", () => {
     expect((error as PossibleDuplicateAccountError).candidates).toHaveLength(1);
   });
 
-  it("converte 404 em ProblemDetailsError com o codigo do contrato", async () => {
+  it("converte 404 em ProblemDetailsError com o código do contrato", async () => {
     stubFetch(404, problemBody(404, "ACCOUNT_NOT_FOUND"));
     const error = await updateAccount(ACCOUNT_ID, { name: "x" }, context).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ProblemDetailsError);
@@ -94,7 +94,7 @@ describe("updateAccount", () => {
 });
 
 describe("deactivateAccount", () => {
-  it("envia POST sem corpo para a rota de desativacao", async () => {
+  it("envia POST sem corpo para a rota de desativação", async () => {
     const fetchMock = stubFetch(200, { ...accountView, archivedAt: "2026-09-12T10:00:00.000Z" });
     const result = await deactivateAccount(ACCOUNT_ID, context);
 
@@ -107,7 +107,7 @@ describe("deactivateAccount", () => {
 });
 
 describe("listAccounts", () => {
-  it("usa a paginacao padrao e valida a pagina", async () => {
+  it("usa a paginação padrão e valida a página", async () => {
     const fetchMock = stubFetch(200, { items: [accountView], page: 1, pageSize: 20, total: 1 });
     const page = await listAccounts({}, context);
     expect(lastCall(fetchMock).url).toBe("http://api.test.local/api/v1/accounts?page=1&pageSize=20");

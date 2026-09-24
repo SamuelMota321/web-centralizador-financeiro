@@ -1,0 +1,163 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Colunas: movimentação | categoria | valor (style guide, "Atividade recente"). */
+.listHead,
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.1fr) minmax(7.5rem, auto);
+  column-gap: 20px;
+}
+
+.listHead {
+  padding: 0 20px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.listHead > :last-child {
+  text-align: right;
+}
+
+.row {
+  align-items: center;
+  row-gap: 10px;
+  padding: 14px 20px;
+  transition: background-color var(--duration) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .row:hover {
+    background: var(--surface-soft);
+  }
+}
+
+.row:first-child {
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+}
+
+.row:last-child {
+  border-radius: 0 0 var(--radius-panel) var(--radius-panel);
+}
+
+.rowMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rowIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.rowIcon[data-direction="in"] {
+  background: var(--primary-tint);
+  color: var(--primary-hover);
+}
+
+.rowText {
+  min-width: 0;
+}
+
+.rowTitle,
+.rowTitleMuted {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowTitleMuted {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.rowMeta {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowCategory {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  min-width: 0;
+}
+
+.rowAmount {
+  font-weight: 750;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* O sinal (+/−) carrega a direção; a cor é só reforço. */
+.rowAmount[data-direction="in"] {
+  color: var(--positive);
+}
+
+.rowPanel {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+}
+
+/* Telas estreitas: descrição e valor na primeira linha, categoria embaixo. */
+@media (max-width: 40rem) {
+  .listHead {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px 16px;
+  }
+
+  .rowCategory {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding-left: 44px;
+  }
+
+  .rowAmount {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+/* ---------- Esqueleto ---------- */
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.skeletonText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+}

@@ -1,0 +1,80 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(9rem, auto);
+  align-items: center;
+  gap: 10px 20px;
+  padding: 14px 20px;
+}
+
+.rowMain {
+  min-width: 0;
+}
+
+.rowTitle {
+  overflow: hidden;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* Arquivada fica secundária, mas legível; o status também aparece em texto. */
+.row[data-archived] .rowTitle {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.rowMeta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.rowActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.rowPanel {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 40rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px 16px;
+  }
+
+  .rowActions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}

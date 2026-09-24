@@ -1,51 +1,128 @@
 .page {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: 24px clamp(16px, 5vw, 64px);
+}
+
+.header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
+  height: 48px;
 }
 
-.card {
+.main {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(32px, 6vw, 96px);
   width: 100%;
-  max-width: 34rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 48px 0;
+}
+
+.intro {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 2.5rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  align-items: flex-start;
+  gap: 20px;
 }
 
-.brand {
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
+/* Voz institucional: única aplicação de Newsreader na interface. */
 .title {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  max-width: 14ch;
+  font-family: var(--font-newsreader), Georgia, serif;
+  font-size: clamp(2.5rem, 5vw, 3.75rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
 }
 
 .lead {
-  color: var(--muted);
-  line-height: 1.6;
+  max-width: 52ch;
+  color: var(--body-text);
+  font-size: 1.0625rem;
+  line-height: 1.65;
 }
 
 .action {
-  align-self: flex-start;
-  padding: 0.75rem 1.5rem;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-foreground);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 11px 22px;
+  border-radius: var(--radius-control);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-weight: 700;
+  transition:
+    background-color var(--duration) var(--ease-out),
+    transform 120ms var(--ease-out);
 }
 
-.signOut {
-  align-self: flex-start;
-  font-size: 0.875rem;
+@media (hover: hover) {
+  .action:hover {
+    background: var(--primary-hover);
+  }
+}
+
+.action:active {
+  transform: scale(0.98);
+}
+
+.areas {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+}
+
+.area {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 22px;
+}
+
+.area + .area {
+  border-top: 1px solid var(--line);
+}
+
+.areaIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-control);
+  background: var(--primary-tint);
+  color: var(--primary-hover);
+}
+
+.areaTitle {
+  font-size: 1rem;
+}
+
+.areaText {
+  margin-top: 2px;
   color: var(--muted);
-  text-decoration: underline;
+  font-size: 0.875rem;
+}
+
+.footer {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+@media (max-width: 52rem) {
+  .main {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    padding: 32px 0;
+  }
 }

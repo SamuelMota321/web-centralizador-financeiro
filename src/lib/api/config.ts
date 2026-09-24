@@ -2,7 +2,7 @@ const rawBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 if (!rawBaseUrl) {
   throw new Error(
-    "NEXT_PUBLIC_API_BASE_URL nao definido. Copie .env.example para .env e ajuste o valor.",
+    "NEXT_PUBLIC_API_BASE_URL não definido. Copie .env.example para .env e ajuste o valor.",
   );
 }
 

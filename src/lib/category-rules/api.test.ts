@@ -48,7 +48,7 @@ const base: CategoryRuleInput = {
 };
 
 describe("createCategoryRule", () => {
-  it("envia a condicao normalizada", async () => {
+  it("envia a condição normalizada", async () => {
     const fetchMock = stubFetch(201, view());
     await createCategoryRule(base, context);
     expect(lastCall(fetchMock).body).toEqual({ ...base, conditionValue: "mercado central" });
@@ -100,7 +100,7 @@ describe("updateCategoryRule", () => {
     });
   });
 
-  it("recusa PATCH vazio e condicao incompativel", async () => {
+  it("recusa PATCH vazio e condição incompatível", async () => {
     const fetchMock = stubFetch(200, view());
     await expect(updateCategoryRule(RULE_ID, {}, context)).rejects.toThrow();
     await expect(

@@ -1,4 +1,4 @@
-/* Paleta Coinciente — style-guide.html 1.0. */
+/* Coinciente — Style Guide 1.0. Tokens documentados em DESIGN.md. */
 :root {
   --confianca: #10251f;
   --consciencia: #087a55;
@@ -7,33 +7,76 @@
 
   --background: var(--respiro);
   --surface: #ffffff;
-  --foreground: var(--confianca);
-  --muted: #5b6f68;
-  --border: #dbe5e1;
-  --accent: var(--consciencia);
-  --accent-foreground: #ffffff;
-  --danger: #9b2226;
+  --surface-soft: #f7faf8;
+  --foreground: #14231e;
+  --body-text: #354a42;
+  --muted: #60736b;
+  --line: rgba(53, 74, 66, 0.14);
+  --input-border: #7a8f86;
+
+  --primary: var(--consciencia);
+  --primary-hover: #056746;
+  --primary-tint: color-mix(in srgb, var(--primary) 10%, transparent);
+  --on-primary: #ffffff;
+
+  --positive: #087a55;
+  --negative: #b5473f;
+  --warning: #a86512;
+  --info: #2b6f89;
+
+  --shadow-overlay: 0 12px 32px rgba(25, 54, 44, 0.07);
+
+  --radius-control: 9px;
+  --radius-panel: 13px;
+  --radius-frame: 20px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration: 180ms;
+
+  /* Nomes da Sprint 1, mantidos como apelidos dos tokens do guia. */
+  --border: var(--line);
+  --accent: var(--primary);
+  --accent-foreground: var(--on-primary);
+  --danger: var(--negative);
+
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #07140f;
-    --surface: var(--confianca);
-    --foreground: var(--respiro);
-    --muted: #9db3ab;
-    --border: #24413a;
-    --accent: var(--clareza);
-    --accent-foreground: #07140f;
-    --danger: #f08c8c;
-  }
+    --background: #0c1714;
+    --surface: #13231e;
+    --surface-soft: #192c26;
+    --foreground: #edf6f2;
+    --body-text: #d0dfd8;
+    --muted: #a6b9b0;
+    --line: rgba(196, 222, 211, 0.14);
+    --input-border: #5f7a70;
 
-  html {
+    --primary: var(--clareza);
+    --primary-hover: #7ce8bd;
+    --on-primary: #07140f;
+
+    --positive: #55d6a4;
+    --negative: #ff9188;
+    --warning: #f3b866;
+    --info: #75c4df;
+
+    --shadow-overlay: 0 18px 46px rgba(0, 0, 0, 0.28);
+
     color-scheme: dark;
   }
 }
 
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
 html {
   height: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 html,
@@ -49,22 +92,27 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-manrope), system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+  caret-color: var(--primary);
+  accent-color: var(--primary);
 }
 
 h1,
 h2,
 h3 {
-  font-family: var(--font-newsreader), Georgia, serif;
-  font-weight: 500;
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  font-weight: 700;
   line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 a {
@@ -72,7 +120,50 @@ a {
   text-decoration: none;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--primary) 24%, transparent);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Barras de rolagem acompanham a paleta em vez do padrao do sistema. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent;
+}
+
 /* Dados financeiros comparados em coluna usam alinhamento tabular. */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

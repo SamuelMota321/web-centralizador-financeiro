@@ -1,0 +1,177 @@
+.shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.skipLink {
+  position: fixed;
+  top: -4rem;
+  left: 16px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--foreground);
+  font-weight: 700;
+  box-shadow: var(--shadow-overlay);
+}
+
+.skipLink:focus {
+  top: 12px;
+}
+
+/* ---------- Barra superior ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 64px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: saturate(1.4) blur(10px);
+}
+
+.brand {
+  display: inline-flex;
+  border-radius: var(--radius-control);
+  color: var(--foreground);
+}
+
+.user {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.userName {
+  max-width: 28ch;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userMeta {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+/* ---------- Corpo: navegacao lateral + conteudo ---------- */
+.body {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 208px minmax(0, 1fr);
+}
+
+.sidebar {
+  position: sticky;
+  top: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  height: calc(100dvh - 64px);
+  padding: 16px 12px;
+  border-right: 1px solid var(--line);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navItem,
+.signOut {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 650;
+  transition:
+    background-color var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out);
+}
+
+.navItem[aria-current="page"] {
+  background: var(--primary-tint);
+  color: var(--primary-hover);
+  font-weight: 750;
+}
+
+@media (hover: hover) {
+  .navItem:hover:not([aria-current="page"]),
+  .signOut:hover {
+    background: var(--surface);
+    color: var(--foreground);
+  }
+}
+
+.main {
+  min-width: 0;
+  padding: 32px 32px 64px;
+}
+
+.main:focus {
+  outline: none;
+}
+
+.main > * {
+  max-width: 72rem;
+}
+
+/* ---------- Telas estreitas: navegacao vira faixa horizontal ---------- */
+@media (max-width: 52rem) {
+  .topbar {
+    padding: 0 16px;
+  }
+
+  .userMeta {
+    display: none;
+  }
+
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 64px;
+    z-index: 15;
+    flex-direction: row;
+    align-items: center;
+    height: auto;
+    padding: 8px 12px;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    background: var(--background);
+  }
+
+  .nav {
+    flex-direction: row;
+  }
+
+  .navItem,
+  .signOut {
+    white-space: nowrap;
+  }
+
+  .main {
+    padding: 20px 16px 48px;
+  }
+}

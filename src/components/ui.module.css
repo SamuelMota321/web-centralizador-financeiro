@@ -1,0 +1,523 @@
+/* Vocabulario compartilhado das telas do app (DESIGN.md > Components). */
+
+/* ---------- Cabecalho de pagina ---------- */
+.pageHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+}
+
+.pageTitle {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.pageContext {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.pageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------- Botoes ---------- */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out),
+    transform 120ms var(--ease-out);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.button[aria-busy="true"] {
+  cursor: progress;
+}
+
+.primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.secondary {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--foreground);
+}
+
+.danger {
+  background: var(--negative);
+  color: var(--on-primary);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--body-text);
+}
+
+@media (hover: hover) {
+  .primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+
+  .secondary:hover:not(:disabled),
+  .ghost:hover:not(:disabled) {
+    background: var(--surface-soft);
+    border-color: color-mix(in srgb, var(--primary) 35%, var(--line));
+  }
+
+  .danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--negative) 88%, black);
+  }
+}
+
+.small {
+  min-height: 32px;
+  padding: 5px 10px;
+  font-size: 0.8125rem;
+}
+
+/* Acao textual dentro de linhas e avisos. */
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--primary-hover);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.linkButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.linkDanger {
+  color: var(--negative);
+}
+
+/* ---------- Paineis e formularios ---------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.panelTitle {
+  font-size: 1rem;
+}
+
+.panelDescription {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Painel que abre pela acao do cabecalho: entra de uma posicao ja visivel. */
+.reveal {
+  transition:
+    opacity 220ms var(--ease-out),
+    transform 220ms var(--ease-out);
+}
+
+@starting-style {
+  .reveal {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.label {
+  color: var(--body-text);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.optional {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.input,
+.select {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  transition:
+    border-color var(--duration) var(--ease-out),
+    box-shadow var(--duration) var(--ease-out);
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+.input:focus-visible,
+.select:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"] {
+  border-color: var(--negative);
+}
+
+.help {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.fieldError {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--negative);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.fieldError svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.formFooter {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding-top: 4px;
+}
+
+/* Alternador de modo (ex.: receita/despesa x transferencia). */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-panel);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+}
+
+.segment {
+  min-height: 34px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out);
+}
+
+.segment[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgba(20, 35, 30, 0.08);
+}
+
+/* ---------- Avisos ---------- */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--body-text);
+  font-size: 0.875rem;
+}
+
+.notice > svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.noticeBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.noticeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.notice[data-tone="success"] {
+  border-color: color-mix(in srgb, var(--positive) 35%, var(--line));
+  background: color-mix(in srgb, var(--positive) 6%, var(--surface));
+}
+
+.notice[data-tone="success"] > svg {
+  color: var(--positive);
+}
+
+.notice[data-tone="info"] > svg {
+  color: var(--info);
+}
+
+.notice[data-tone="warning"] {
+  border-color: color-mix(in srgb, var(--warning) 35%, var(--line));
+  background: color-mix(in srgb, var(--warning) 6%, var(--surface));
+}
+
+.notice[data-tone="warning"] > svg {
+  color: var(--warning);
+}
+
+.notice[data-tone="error"] {
+  border-color: color-mix(in srgb, var(--negative) 40%, var(--line));
+  background: color-mix(in srgb, var(--negative) 6%, var(--surface));
+  color: var(--foreground);
+}
+
+.notice[data-tone="error"] > svg {
+  color: var(--negative);
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+/* ---------- Etiqueta de status ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 8px 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--body-text);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.chipLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.chip[data-tone="positive"]::before {
+  background: var(--positive);
+}
+
+.chip[data-tone="warning"]::before {
+  background: var(--warning);
+}
+
+.chip[data-tone="info"]::before {
+  background: var(--info);
+}
+
+.chip[data-tone="neutral"]::before {
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+
+/* ---------- Lista em painel unico ---------- */
+.list {
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+.list > li + li {
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- Estado vazio ---------- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  border: 1px dashed color-mix(in srgb, var(--muted) 40%, transparent);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  text-align: center;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-panel);
+  background: var(--primary-tint);
+  color: var(--primary-hover);
+}
+
+.emptyTitle {
+  font-size: 1rem;
+}
+
+.emptyText {
+  max-width: 42ch;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.emptyAction {
+  margin-top: 6px;
+}
+
+/* ---------- Esqueleto ---------- */
+.skeleton {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--muted) 12%, transparent) 0%,
+    color-mix(in srgb, var(--muted) 22%, transparent) 50%,
+    color-mix(in srgb, var(--muted) 12%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* ---------- Paginacao ---------- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.pageLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.pageLinkNext {
+  padding: 5px 6px 5px 10px;
+}
+
+@media (hover: hover) {
+  .pageLink:hover {
+    background: var(--surface-soft);
+  }
+}
+
+.inlineLink {
+  color: var(--primary-hover);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}

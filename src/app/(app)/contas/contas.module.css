@@ -1,0 +1,88 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Colunas: conta | origem | saldo inicial | ações. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) auto minmax(9rem, 1fr) minmax(8.5rem, auto);
+  align-items: center;
+  gap: 10px 20px;
+  padding: 14px 20px;
+}
+
+.rowMain {
+  min-width: 0;
+}
+
+.rowTitle {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.rowBalance {
+  text-align: right;
+}
+
+.balance {
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.rowPanel {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 48rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px 16px;
+  }
+
+  .rowBalance {
+    grid-column: 1;
+    text-align: left;
+  }
+
+  .rowActions {
+    grid-column: 2;
+    align-self: end;
+  }
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}

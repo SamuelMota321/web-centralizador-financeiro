@@ -58,14 +58,14 @@ describe("fieldErrorsFromProblem", () => {
       ],
     });
     expect(fieldErrorsFromProblem(error)).toEqual({
-      initialBalance: "Informe saldo inicial e data de referencia juntos.",
+      initialBalance: "Informe saldo inicial e data de referência juntos.",
       name: "Valor fora do limite permitido.",
-      origin: "Este campo nao pode ser alterado.",
-      type: "Valor invalido.",
+      origin: "Este campo não pode ser alterado.",
+      type: "Valor inválido.",
     });
   });
 
-  it("mantem o primeiro erro de cada campo", () => {
+  it("mantém o primeiro erro de cada campo", () => {
     const error = problem({
       errors: [
         { path: "name", code: "OUT_OF_RANGE", message: "a" },
@@ -75,7 +75,7 @@ describe("fieldErrorsFromProblem", () => {
     expect(fieldErrorsFromProblem(error)).toEqual({ name: "Valor fora do limite permitido." });
   });
 
-  it("retorna vazio quando nao ha erros de campo", () => {
+  it("retorna vazio quando não há erros de campo", () => {
     expect(fieldErrorsFromProblem(problem({}))).toEqual({});
     expect(fieldErrorsFromProblem(new Error("x"))).toEqual({});
   });

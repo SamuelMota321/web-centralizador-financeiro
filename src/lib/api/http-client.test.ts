@@ -31,7 +31,7 @@ describe("apiRequest", () => {
     expect(lastRequest(fetchMock).url).toBe("http://api.test.local/api/v1/accounts?page=2");
   });
 
-  it("serializa o corpo como JSON e so define content-type quando ha corpo", async () => {
+  it("serializa o corpo como JSON e só define content-type quando há corpo", async () => {
     const fetchMock = stubFetch(200, {});
     await apiRequest("/accounts", { method: "POST", body: { name: "Conta" } });
     const withBody = lastRequest(fetchMock);
@@ -57,7 +57,7 @@ describe("apiRequest", () => {
     expect(error).toMatchObject({ status: 404, code: "ACCOUNT_NOT_FOUND" });
   });
 
-  it("normaliza erro sem corpo com codigo sintetico", async () => {
+  it("normaliza erro sem corpo com código sintético", async () => {
     stubFetch(502);
     const error = await apiRequest("/accounts").catch((e: unknown) => e);
     expect(error).toMatchObject({ status: 502, code: "http_502" });

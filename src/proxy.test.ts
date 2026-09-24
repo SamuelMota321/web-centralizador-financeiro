@@ -22,29 +22,29 @@ beforeEach(() => {
 });
 
 describe("proxy", () => {
-  it.each(["/contas", "/contas/qualquer", "/movimentacoes", "/movimentacoes/qualquer", "/categorias"])("redireciona %s sem sessao para o login", async (path) => {
+  it.each(["/contas", "/contas/qualquer", "/movimentacoes", "/movimentacoes/qualquer", "/categorias"])("redireciona %s sem sessão para o login", async (path) => {
     vi.mocked(auth0.getSession).mockResolvedValue(null);
     const response = await proxy(request(path));
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost:3001/auth/login");
   });
 
-  it.each(["/contas", "/movimentacoes", "/categorias"])("libera %s com sessao", async (path) => {
+  it.each(["/contas", "/movimentacoes", "/categorias"])("libera %s com sessão", async (path) => {
     vi.mocked(auth0.getSession).mockResolvedValue({ user: { sub: "auth0|ficticio" } } as never);
     expect(await proxy(request(path))).toBe(sdkResponse);
   });
 
-  it("nao confunde prefixo parecido com rota protegida", async () => {
+  it("não confunde prefixo parecido com rota protegida", async () => {
     expect(await proxy(request("/movimentacoes-publicas"))).toBe(sdkResponse);
     expect(auth0.getSession).not.toHaveBeenCalled();
   });
 
-  it("delega /auth/* ao SDK sem consultar sessao", async () => {
+  it("delega /auth/* ao SDK sem consultar sessão", async () => {
     expect(await proxy(request("/auth/login"))).toBe(sdkResponse);
     expect(auth0.getSession).not.toHaveBeenCalled();
   });
 
-  it("nao protege a pagina publica", async () => {
+  it("não protege a página publica", async () => {
     expect(await proxy(request("/"))).toBe(sdkResponse);
     expect(auth0.getSession).not.toHaveBeenCalled();
   });
