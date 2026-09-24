@@ -22,14 +22,14 @@ beforeEach(() => {
 });
 
 describe("proxy", () => {
-  it.each(["/contas", "/contas/qualquer", "/movimentacoes", "/movimentacoes/qualquer", "/categorias"])("redireciona %s sem sessão para o login", async (path) => {
+  it.each(["/contas", "/contas/qualquer", "/movimentacoes", "/movimentacoes/qualquer", "/categorias", "/regras"])("redireciona %s sem sessão para o login", async (path) => {
     vi.mocked(auth0.getSession).mockResolvedValue(null);
     const response = await proxy(request(path));
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost:3001/auth/login");
   });
 
-  it.each(["/contas", "/movimentacoes", "/categorias"])("libera %s com sessão", async (path) => {
+  it.each(["/contas", "/movimentacoes", "/categorias", "/regras"])("libera %s com sessão", async (path) => {
     vi.mocked(auth0.getSession).mockResolvedValue({ user: { sub: "auth0|ficticio" } } as never);
     expect(await proxy(request(path))).toBe(sdkResponse);
   });

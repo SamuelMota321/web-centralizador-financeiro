@@ -1,0 +1,107 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Colunas: frase da regra | status | ações. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(13rem, auto);
+  align-items: center;
+  gap: 10px 20px;
+  padding: 14px 20px;
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sentence {
+  overflow-wrap: anywhere;
+}
+
+.sentence strong {
+  font-weight: 750;
+}
+
+.arrow {
+  color: var(--muted);
+}
+
+/* Removida fica secundária, mas legível; o status também aparece em texto. */
+.row[data-removed] .sentence {
+  color: var(--muted);
+}
+
+.rowMeta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 16px;
+}
+
+.rowPanel {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.875rem;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px dashed color-mix(in srgb, var(--primary) 40%, var(--line));
+  border-radius: var(--radius-control);
+  background: var(--primary-tint);
+  font-weight: 650;
+}
+
+.previewLabel {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+@media (max-width: 48rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px 16px;
+  }
+
+  .rowActions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}

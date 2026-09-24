@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth0 } from "./lib/auth0";
 
-const PROTECTED_PREFIXES = ["/contas", "/movimentacoes", "/categorias"];
+const PROTECTED_PREFIXES = ["/contas", "/movimentacoes", "/categorias", "/regras"];
 
 export async function proxy(request: NextRequest) {
   const authResponse = await auth0.middleware(request);

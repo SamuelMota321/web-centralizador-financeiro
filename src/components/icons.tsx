@@ -113,3 +113,11 @@ export const IconChevronRight = (p: IconProps) => (
     <path d="m9.5 6 6 6-6 6" />
   </Icon>
 );
+
+export const IconRules = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 6h9M4 12h6M4 18h9" />
+    <path d="m15.5 10.5 2.2 2.2 3.8-4.2" />
+    <path d="M16 18h4" />
+  </Icon>
+);
