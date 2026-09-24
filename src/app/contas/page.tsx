@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth0 } from "@/lib/auth0";
 import { listAccounts } from "@/lib/accounts/api";
+import { AppNav } from "../app-nav";
 import { AccountForm } from "./account-form";
 import { AccountItem } from "./account-item";
 import { isNoticeKey, NOTICES } from "./notices";
@@ -21,9 +22,7 @@ export default async function ContasPage({
     <div className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.title}>Suas contas</h1>
-        <a className={styles.signOut} href="/auth/logout">
-          Sair
-        </a>
+        <AppNav current="contas" />
       </header>
 
       {notice ? (

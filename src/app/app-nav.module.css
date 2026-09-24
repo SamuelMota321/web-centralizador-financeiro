@@ -1,0 +1,31 @@
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.25rem;
+  font-size: 0.9375rem;
+}
+
+.link {
+  padding: 0.25rem 0;
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+}
+
+.link[aria-current="page"] {
+  color: var(--foreground);
+  border-bottom-color: var(--accent);
+}
+
+.link:focus-visible,
+.signOut:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.signOut {
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-decoration: underline;
+}

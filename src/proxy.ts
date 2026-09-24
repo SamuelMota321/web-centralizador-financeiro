@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth0 } from "./lib/auth0";
 
-const PROTECTED_PREFIX = "/contas";
+const PROTECTED_PREFIXES = ["/contas", "/movimentacoes", "/categorias"];
 
 export async function proxy(request: NextRequest) {
   const authResponse = await auth0.middleware(request);
@@ -11,7 +11,10 @@ export async function proxy(request: NextRequest) {
     return authResponse;
   }
 
-  if (pathname === PROTECTED_PREFIX || pathname.startsWith(`${PROTECTED_PREFIX}/`)) {
+  const isProtected = PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  if (isProtected) {
     const session = await auth0.getSession(request);
     if (!session) {
       return NextResponse.redirect(new URL("/auth/login", request.url));

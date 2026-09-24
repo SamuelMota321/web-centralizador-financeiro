@@ -1,0 +1,325 @@
+.page {
+  flex: 1;
+  width: 100%;
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.75rem;
+}
+
+.panelTitle {
+  font-size: 1.25rem;
+}
+
+.switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.switch {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switch[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.input,
+.select {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.input:focus-visible,
+.select:focus-visible,
+.submit:focus-visible,
+.switch:focus-visible,
+.retry:focus-visible,
+.inlineLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.fieldError {
+  font-size: 0.8125rem;
+  color: var(--danger);
+}
+
+.helper {
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.formFooter {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.submit {
+  padding: 0.6875rem 1.5rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.notice {
+  grid-column: 1 / -1;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  background: var(--surface);
+}
+
+.noticeError {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.summaryList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-left: 1.25rem;
+}
+
+.inlineLink {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.listSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Um unico painel com linhas separadas por borda discreta (style guide: "bordas
+   discretas substituem excesso de cartoes"). */
+.list {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.item {
+  padding: 0.875rem 1.25rem;
+}
+
+.item + .item {
+  border-top: 1px solid var(--border);
+}
+
+.itemRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.itemMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  flex: 1 1 18rem;
+}
+
+.itemName,
+.itemNameMuted {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.itemNameMuted {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.itemMeta {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.amount {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* A cor reforca o sinal (+/-) do texto; nunca e o unico indicador de direcao. */
+.amountIn {
+  color: var(--accent);
+}
+
+.amountOut {
+  color: var(--foreground);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.retry {
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.categorize {
+  margin-top: 0.5rem;
+}
+
+.linkButton {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.inlinePanel {
+  margin-top: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.secondary {
+  padding: 0.6875rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary:disabled,
+.linkButton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.secondary:focus-visible,
+.linkButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
