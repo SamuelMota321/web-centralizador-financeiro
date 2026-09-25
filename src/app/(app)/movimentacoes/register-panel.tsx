@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { IconClose } from "@/components/icons";
+import { SegmentedControl } from "@/components/interactive";
+import { PanelSection } from "@/components/panel";
 import { ui } from "@/components/ui";
 import { MovementForm } from "./movement-form";
 import type { AccountOption } from "./presentation";
@@ -10,56 +11,31 @@ import { TransferForm } from "./transfer-form";
 
 type Mode = "movement" | "transfer";
 
+const MODES = [
+  { value: "movement", label: "Receita ou despesa" },
+  { value: "transfer", label: "Transferência entre contas" },
+] as const;
+
 interface Props {
   accounts: AccountOption[];
   movementKey: string;
   transferKey: string;
-  /** Destino do botão fechar: a mesma página sem o painel aberto. */
-  closeHref: string;
+  /** Sem nenhum lançamento o painel fica aberto: é a próxima ação óbvia. */
+  forceOpen: boolean;
 }
 
-export function RegisterPanel({ accounts, movementKey, transferKey, closeHref }: Props) {
+export function RegisterPanel({ accounts, movementKey, transferKey, forceOpen }: Props) {
   const [mode, setMode] = useState<Mode>("movement");
 
   return (
-    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby="registrar-titulo">
-      <div className={ui.panelHeader}>
-        <div>
-          <h2 className={ui.panelTitle} id="registrar-titulo">
-            Registrar
-          </h2>
-          <p className={ui.panelDescription}>
-            A movimentação aparece no histórico assim que o registro é confirmado.
-          </p>
-        </div>
-        <Link
-          className={`${ui.button} ${ui.ghost} ${ui.small}`}
-          href={closeHref}
-          scroll={false}
-          aria-label="Fechar o painel de registro"
-        >
-          <IconClose size={16} />
-        </Link>
-      </div>
-
-      <div className={ui.segmented} role="group" aria-label="Tipo de registro">
-        <button
-          className={ui.segment}
-          type="button"
-          aria-pressed={mode === "movement"}
-          onClick={() => setMode("movement")}
-        >
-          Receita ou despesa
-        </button>
-        <button
-          className={ui.segment}
-          type="button"
-          aria-pressed={mode === "transfer"}
-          onClick={() => setMode("transfer")}
-        >
-          Transferência entre contas
-        </button>
-      </div>
+    <PanelSection
+      flag="registrar"
+      forceOpen={forceOpen}
+      title="Registrar"
+      description="A movimentação aparece no histórico assim que o registro é confirmado."
+      closeLabel="Fechar o painel de registro"
+    >
+      <SegmentedControl label="Tipo de registro" options={MODES} value={mode} onChange={setMode} />
 
       {/* Os dois formulários ficam montados: trocar de aba não perde a chave nem o que foi digitado. */}
       <div hidden={mode !== "movement"}>
@@ -70,7 +46,7 @@ export function RegisterPanel({ accounts, movementKey, transferKey, closeHref }:
           <p className={ui.help}>
             Para registrar uma transferência entre contas, é preciso ter ao menos duas contas
             ativas.{" "}
-            <Link className={ui.inlineLink} href="/contas">
+            <Link className={ui.inlineLink} href="/contas?nova=1">
               Criar outra conta
             </Link>
           </p>
@@ -78,6 +54,6 @@ export function RegisterPanel({ accounts, movementKey, transferKey, closeHref }:
           <TransferForm accounts={accounts} initialKey={transferKey} />
         )}
       </div>
-    </section>
+    </PanelSection>
   );
 }

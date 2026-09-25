@@ -1,7 +1,13 @@
+/*
+ * Casca do app. Três arranjos:
+ *   >= 64rem  lateral completa de 248px (marca, atalho, grupos, conta)
+ *   40–64rem  trilho de 112px com ícone e rótulo
+ *   <  40rem  barra superior translúcida + abas inferiores
+ */
 .shell {
-  display: flex;
+  display: grid;
   flex: 1;
-  flex-direction: column;
+  grid-template-columns: 248px minmax(0, 1fr);
   min-height: 100dvh;
 }
 
@@ -22,38 +28,223 @@
   top: 12px;
 }
 
-/* ---------- Barra superior ---------- */
-.topbar {
+/* ---------- Lateral institucional ---------- */
+.sidebar {
+  --brand-accent: var(--nav-accent);
+
   position: sticky;
   top: 0;
-  z-index: 20;
+  align-self: start;
+  z-index: var(--z-nav);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  height: 64px;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  backdrop-filter: saturate(1.4) blur(10px);
+  flex-direction: column;
+  gap: var(--space-6);
+  height: 100dvh;
+  padding: 20px 14px 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--nav-bg);
+  box-shadow: inset -1px 0 0 var(--nav-line);
+  color: var(--nav-fg);
+  /* Foco visível sobre o fundo escuro. */
+  --primary: var(--nav-accent);
 }
 
 .brand {
   display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 4px 6px;
   border-radius: var(--radius-control);
-  color: var(--foreground);
 }
 
-.user {
+.brandFull {
+  display: inline-flex;
+}
+
+.brandCompact {
+  display: none;
+}
+
+/* Atalho global: o verde Clareza marca a única ação primária da estrutura. */
+.register {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 42px;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  background: var(--nav-accent);
+  color: var(--nav-on-accent);
+  font-size: 0.875rem;
+  font-weight: 750;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration) ease,
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.register:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .register:hover {
+    background: color-mix(in srgb, var(--nav-accent) 86%, white);
+  }
+}
+
+.nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.navGroup {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  gap: 4px;
+}
+
+.navGroupLabel {
+  padding: 0 12px;
+  color: var(--nav-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+}
+
+/* Navegação é usada dezenas de vezes por dia: troca de cor, sem movimento. */
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border-radius: var(--radius-control);
+  color: var(--nav-muted);
+  font-size: 0.875rem;
+  font-weight: 650;
+  transition:
+    background-color var(--duration) ease,
+    color var(--duration) ease;
+}
+
+.navItem > svg {
+  flex: none;
+}
+
+.navItem[aria-current="page"] {
+  background: var(--nav-active-bg);
+  color: var(--nav-fg);
+  font-weight: 750;
+}
+
+/* Barra Clareza à esquerda: onde você está, sem depender só da cor de fundo. */
+.navItem[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  left: -14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--nav-accent);
+}
+
+.navItem[aria-current="page"] > svg {
+  color: var(--nav-accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .navItem:hover:not([aria-current="page"]) {
+    background: var(--nav-hover);
+    color: var(--nav-fg);
+  }
+}
+
+.sidebarFooter {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--nav-line);
+}
+
+.accountRail {
+  display: none;
+}
+
+/* ---------- Conta ---------- */
+.accountTrigger,
+.accountTriggerCompact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration) ease;
+}
+
+.accountTrigger {
+  width: 100%;
+  min-height: 52px;
+  padding: 8px;
+}
+
+.accountTriggerCompact {
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .accountTrigger:hover,
+  .accountTriggerCompact:hover {
+    background: var(--nav-hover);
+  }
+}
+
+.accountTrigger[data-popup-open] {
+  background: var(--nav-hover);
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--nav-accent) 18%, transparent);
+  color: var(--nav-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.accountText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-width: 0;
   line-height: 1.3;
 }
 
-.userName {
-  max-width: 28ch;
+.accountName {
   overflow: hidden;
   font-size: 0.8125rem;
   font-weight: 700;
@@ -61,117 +252,262 @@
   white-space: nowrap;
 }
 
-.userMeta {
+.accountMeta {
+  color: var(--nav-muted);
+  font-size: 0.75rem;
+}
+
+.accountChevron {
+  flex: none;
+  color: var(--nav-muted);
+}
+
+.menuIdentity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 16rem;
+  padding: 8px 10px 6px;
+}
+
+.menuIdentityName {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuIdentityMeta {
   color: var(--muted);
   font-size: 0.75rem;
 }
 
-/* ---------- Corpo: navegacao lateral + conteudo ---------- */
-.body {
-  display: grid;
-  flex: 1;
-  grid-template-columns: 208px minmax(0, 1fr);
-}
-
-.sidebar {
-  position: sticky;
-  top: 64px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
-  height: calc(100dvh - 64px);
-  padding: 16px 12px;
-  border-right: 1px solid var(--line);
-}
-
-.nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.navItem,
-.signOut {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 40px;
-  padding: 9px 12px;
-  border-radius: var(--radius-control);
-  color: var(--muted);
-  font-size: 0.875rem;
-  font-weight: 650;
-  transition:
-    background-color var(--duration) var(--ease-out),
-    color var(--duration) var(--ease-out);
-}
-
-.navItem[aria-current="page"] {
-  background: var(--primary-tint);
-  color: var(--primary-hover);
-  font-weight: 750;
-}
-
-@media (hover: hover) {
-  .navItem:hover:not([aria-current="page"]),
-  .signOut:hover {
-    background: var(--surface);
-    color: var(--foreground);
-  }
-}
-
+/* ---------- Conteúdo ---------- */
 .main {
   min-width: 0;
-  padding: 32px 32px 64px;
+  padding: 40px 48px 96px;
 }
 
 .main:focus {
   outline: none;
 }
 
-.main > * {
-  max-width: 72rem;
+.content {
+  max-width: 70rem;
+  margin: 0 auto;
 }
 
-/* ---------- Telas estreitas: navegacao vira faixa horizontal ---------- */
-@media (max-width: 52rem) {
-  .topbar {
-    padding: 0 16px;
-  }
+.mobileBar,
+.tabBar {
+  display: none;
+}
 
-  .userMeta {
-    display: none;
-  }
-
-  .body {
-    grid-template-columns: minmax(0, 1fr);
+/* ---------- Tablet: trilho de ícones ---------- */
+@media (max-width: 64rem) {
+  .shell {
+    grid-template-columns: 112px minmax(0, 1fr);
   }
 
   .sidebar {
-    position: sticky;
-    top: 64px;
-    z-index: 15;
-    flex-direction: row;
     align-items: center;
-    height: auto;
-    padding: 8px 12px;
-    overflow-x: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-    background: var(--background);
+    gap: var(--space-5);
+    padding: 16px 8px 12px;
+  }
+
+  .brand {
+    align-self: center;
+  }
+
+  .brandFull,
+  .registerLabel,
+  .navGroupLabel,
+  .accountFull {
+    display: none;
+  }
+
+  .brandCompact,
+  .accountRail {
+    display: flex;
+  }
+
+  .register {
+    width: 44px;
+    height: 44px;
+    min-height: 0;
+    padding: 0;
   }
 
   .nav {
-    flex-direction: row;
+    gap: var(--space-4);
   }
 
-  .navItem,
-  .signOut {
-    white-space: nowrap;
+  /* Os grupos continuam separados por uma linha, já que o rótulo some. */
+  .navGroup + .navGroup {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--nav-line);
+  }
+
+  .navItem {
+    flex-direction: column;
+    gap: 4px;
+    width: 96px;
+    min-height: 58px;
+    padding: 8px 2px;
+    font-size: 0.6875rem;
+    text-align: center;
+  }
+
+  .navItem[aria-current="page"]::before {
+    left: -8px;
+  }
+
+  .navLabel {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sidebarFooter {
+    display: flex;
+    justify-content: center;
+    width: 100%;
   }
 
   .main {
-    padding: 20px 16px 48px;
+    padding: 32px 32px 80px;
+  }
+}
+
+/* ---------- Celular: barra superior + abas inferiores ---------- */
+@media (max-width: 40rem) {
+  .shell {
+    display: flex;
+    flex-direction: column;
+    --sticky-top: 60px;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .mobileBar {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-topbar);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    height: 60px;
+    padding: 0 12px 0 16px;
+    padding-top: env(safe-area-inset-top);
+    background: color-mix(in srgb, var(--background) 82%, transparent);
+    backdrop-filter: saturate(1.6) blur(16px);
+  }
+
+  .mobileActions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mobileRegister {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--on-primary);
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  .mobileRegister:active {
+    transform: scale(0.94);
+  }
+
+  .mobileBar .avatar {
+    background: var(--primary-tint);
+    color: var(--primary-hover);
+  }
+
+  .main {
+    flex: 1;
+    padding: 12px 16px calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .tabBar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: var(--z-nav);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--nav-bg) 94%, transparent);
+    backdrop-filter: saturate(1.4) blur(16px);
+  }
+
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 52px;
+    border-radius: var(--radius-control);
+    color: var(--nav-muted);
+    font-size: 0.6875rem;
+    font-weight: 650;
+    transition: color var(--duration) ease;
+  }
+
+  .tab[aria-current="page"] {
+    color: var(--nav-fg);
+    font-weight: 750;
+  }
+
+  .tab[aria-current="page"] > svg {
+    color: var(--nav-accent);
+  }
+
+  .tab:focus-visible {
+    outline-color: var(--nav-accent);
+    outline-offset: -2px;
+  }
+}
+
+/* Sombra da barra superior só aparece quando o conteúdo rola por baixo dela. */
+@supports (animation-timeline: scroll()) {
+  @media (max-width: 40rem) {
+    .mobileBar {
+      animation: bar-edge linear both;
+      animation-range: 0 24px;
+      animation-timeline: scroll(root);
+    }
+  }
+}
+
+@keyframes bar-edge {
+  from {
+    box-shadow: none;
+  }
+
+  to {
+    box-shadow: var(--shadow-scroll);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .mobileBar {
+    background: var(--background);
+    backdrop-filter: none;
+  }
+
+  .tabBar {
+    background: var(--nav-bg);
+    backdrop-filter: none;
   }
 }

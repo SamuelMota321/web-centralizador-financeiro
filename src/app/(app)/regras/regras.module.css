@@ -1,22 +1,43 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
-/* Colunas: frase da regra | status | ações. */
+/* Colunas: frase da regra | prioridade | status | ações. */
+.listHead,
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(13rem, auto);
+  grid-template-columns: minmax(0, 1fr) 6.5rem 7.5rem 7.5rem;
+  column-gap: var(--space-5);
+}
+
+.listHead {
+  padding: 0 20px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.listHead > :nth-child(2) {
+  text-align: right;
+}
+
+.row {
   align-items: center;
-  gap: 10px 20px;
+  row-gap: var(--space-3);
   padding: 14px 20px;
+  transition: background-color var(--duration) ease;
+}
+
+.row[data-open] {
+  background: var(--surface-soft);
 }
 
 .rowMain {
@@ -27,10 +48,22 @@
 }
 
 .sentence {
+  color: var(--body-text);
   overflow-wrap: anywhere;
 }
 
-.sentence strong {
+/* O valor comparado e a categoria são o que distingue uma regra da outra. */
+.value {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  color: var(--foreground);
+  font-weight: 700;
+  box-decoration-break: clone;
+}
+
+.category {
+  color: var(--foreground);
   font-weight: 750;
 }
 
@@ -39,7 +72,9 @@
 }
 
 /* Removida fica secundária, mas legível; o status também aparece em texto. */
-.row[data-removed] .sentence {
+.row[data-removed] .sentence,
+.row[data-removed] .category,
+.row[data-removed] .value {
   color: var(--muted);
 }
 
@@ -48,25 +83,27 @@
   font-size: 0.8125rem;
 }
 
-.rowActions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px 16px;
+/* A etiqueta de status ocupa só o próprio texto, não a coluna. */
+.row > :nth-child(3) {
+  justify-self: start;
 }
 
-.rowPanel {
-  grid-column: 1 / -1;
-  padding: 16px;
-  border-radius: var(--radius-control);
-  background: var(--surface-soft);
+.priority {
+  color: var(--foreground);
+  font-weight: 750;
+  text-align: right;
 }
 
-.confirm {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  font-size: 0.875rem;
+/* O rótulo "Prioridade" fica só para leitores de tela enquanto a coluna tem cabeçalho. */
+.priorityLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .preview {
@@ -86,15 +123,45 @@
   font-weight: 700;
 }
 
-@media (max-width: 48rem) {
+@media (max-width: 52rem) {
+  .listHead {
+    display: none;
+  }
+
   .row {
     grid-template-columns: minmax(0, 1fr) auto;
     padding: 14px 16px;
   }
 
-  .rowActions {
+  .row > .rowMain {
     grid-column: 1 / -1;
-    justify-content: flex-start;
+  }
+
+  .priority {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 0.8125rem;
+    text-align: left;
+  }
+
+  .priorityLabel {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
+  /* Status e ações dividem a última linha. */
+  .row > :nth-child(3) {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start;
+  }
+
+  .row > :nth-child(4) {
+    grid-column: 2;
+    grid-row: 2 / span 2;
   }
 }
 

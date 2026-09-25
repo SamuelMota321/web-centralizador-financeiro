@@ -51,3 +51,51 @@ export function maskBrazilianDate(raw: string): string {
   if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
+
+function civilToUtc(value: string): Date | null {
+  const match = ISO_CIVIL_DATE.exec(value);
+  if (!match || !isRealCivilDate(value)) return null;
+  const date = new Date(Date.UTC(2000, Number(match[2]) - 1, Number(match[3])));
+  date.setUTCFullYear(Number(match[1]));
+  return date;
+}
+
+// UTC nos dois lados: a data civil é formatada como está, sem conversão de fuso.
+const LONG_DATE = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  timeZone: "UTC",
+});
+const LONG_DATE_WITH_YEAR = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/**
+ * "2026-09-22" -> "terça-feira, 22 de setembro". O ano só aparece quando difere do
+ * ano de referência. Valores fora do formato voltam intactos.
+ */
+export function formatLongCivilDate(value: string, referenceYear?: number): string {
+  const date = civilToUtc(value);
+  if (!date) return value;
+  const format =
+    referenceYear === undefined || date.getUTCFullYear() === referenceYear
+      ? LONG_DATE
+      : LONG_DATE_WITH_YEAR;
+  return format.format(date);
+}
+
+/** "Hoje" ou "Ontem" em relação a `today` (AAAA-MM-DD); null para as demais datas. */
+export function relativeCivilDay(value: string, today: string): "Hoje" | "Ontem" | null {
+  const date = civilToUtc(value);
+  const reference = civilToUtc(today);
+  if (!date || !reference) return null;
+  const days = Math.round((reference.getTime() - date.getTime()) / 86_400_000);
+  if (days === 0) return "Hoje";
+  if (days === 1) return "Ontem";
+  return null;
+}

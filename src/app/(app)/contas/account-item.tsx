@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useState } from "react";
+import { IconPause } from "@/components/icons";
+import { ActionMenu, ConfirmDialog } from "@/components/interactive";
 import { Notice, StatusChip, ui } from "@/components/ui";
 import { formatCivilDate } from "@/lib/civil-date";
 import { formatMoney } from "@/lib/money";
@@ -12,19 +14,17 @@ import styles from "./contas.module.css";
 
 const INITIAL_STATE: DeactivateAccountState = { status: "idle" };
 
-type Panel = "none" | "edit" | "deactivate";
-
 export function AccountItem({ account }: { account: Account }) {
-  const [panel, setPanel] = useState<Panel>("none");
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [state, deactivate, pending] = useActionState(
     deactivateAccountAction.bind(null, account.id),
     INITIAL_STATE,
   );
-  const confirmTextId = useId();
   const isManual = account.origin === "manual";
 
   return (
-    <li className={styles.row}>
+    <li className={styles.row} data-open={editing || undefined}>
       <div className={styles.rowMain}>
         <p className={styles.rowTitle}>{account.name}</p>
         <p className={styles.rowMeta}>
@@ -47,70 +47,47 @@ export function AccountItem({ account }: { account: Account }) {
         </p>
       </div>
 
-      <div className={styles.rowActions}>
+      <div className={ui.rowActions}>
         {isManual ? (
           <button
-            className={ui.linkButton}
+            className={`${ui.button} ${ui.ghost} ${ui.small}`}
             type="button"
-            aria-expanded={panel === "edit"}
-            onClick={() => setPanel(panel === "edit" ? "none" : "edit")}
+            aria-expanded={editing}
+            onClick={() => setEditing(!editing)}
           >
             Editar<span className="visually-hidden"> {account.name}</span>
           </button>
         ) : null}
-        <button
-          className={`${ui.linkButton} ${ui.linkDanger}`}
-          type="button"
-          aria-expanded={panel === "deactivate"}
-          onClick={() => setPanel(panel === "deactivate" ? "none" : "deactivate")}
-        >
-          Desativar<span className="visually-hidden"> {account.name}</span>
-        </button>
+        <ActionMenu
+          label={`Mais ações para ${account.name}`}
+          items={[
+            {
+              label: "Desativar conta",
+              icon: <IconPause size={17} />,
+              tone: "danger",
+              onSelect: () => setConfirming(true),
+            },
+          ]}
+        />
       </div>
 
-      {panel === "edit" ? (
-        <div className={styles.rowPanel}>
-          <AccountEditForm account={account} onClose={() => setPanel("none")} />
+      {editing ? (
+        <div className={`${ui.rowPanel} ${ui.reveal}`}>
+          <AccountEditForm account={account} onClose={() => setEditing(false)} />
         </div>
       ) : null}
 
-      {panel === "deactivate" ? (
-        <div className={styles.rowPanel}>
-          <form
-            action={deactivate}
-            className={`${styles.confirm} ${ui.reveal}`}
-            aria-describedby={confirmTextId}
-          >
-            <p id={confirmTextId}>
-              Desativar &ldquo;{account.name}&rdquo;? Ela deixa de aparecer na lista e não
-              poderá ser editada nem reativada. O histórico é preservado.
-            </p>
-
-            {state.status === "error" ? <Notice tone="error">{state.message}</Notice> : null}
-
-            <div className={ui.formFooter}>
-              {/* Foco inicial na opção segura: a ação destrutiva exige escolha explícita. */}
-              <button
-                className={`${ui.button} ${ui.secondary} ${ui.small}`}
-                type="button"
-                onClick={() => setPanel("none")}
-                disabled={pending}
-                autoFocus
-              >
-                Cancelar
-              </button>
-              <button
-                className={`${ui.button} ${ui.danger} ${ui.small}`}
-                type="submit"
-                disabled={pending}
-                aria-busy={pending}
-              >
-                {pending ? "Desativando…" : "Desativar conta"}
-              </button>
-            </div>
-          </form>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={`Desativar “${account.name}”?`}
+        description="Ela deixa de aparecer na lista e não poderá ser editada nem reativada. O histórico é preservado."
+        confirmLabel="Desativar conta"
+        pendingLabel="Desativando…"
+        action={deactivate}
+        pending={pending}
+        error={state.status === "error" ? <Notice tone="error">{state.message}</Notice> : null}
+      />
     </li>
   );
 }

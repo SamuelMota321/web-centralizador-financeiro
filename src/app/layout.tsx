@@ -5,7 +5,7 @@ import "./globals.css";
 const newsreader = Newsreader({
   variable: "--font-newsreader",
   subsets: ["latin"],
-  weight: ["500", "600"],
+  weight: ["400", "500"],
 });
 
 const manrope = Manrope({
@@ -21,7 +21,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={`${newsreader.variable} ${manrope.variable}`}>
-      <body>{children}</body>
+      <body>
+        <div className="root">{children}</div>
+      </body>
     </html>
   );
 }

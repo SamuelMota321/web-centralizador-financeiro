@@ -4,6 +4,13 @@
   flex-direction: column;
   min-height: 100dvh;
   padding: 24px clamp(16px, 5vw, 64px);
+  background:
+    radial-gradient(
+      80% 60% at 100% 0%,
+      color-mix(in srgb, var(--clareza) 14%, transparent) 0%,
+      transparent 60%
+    ),
+    var(--background);
 }
 
 .header {
@@ -12,117 +19,213 @@
   height: 48px;
 }
 
+/* Composição assimétrica: a mensagem à esquerda, o produto real à direita. */
 .main {
   display: grid;
   flex: 1;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
   align-items: center;
-  gap: clamp(32px, 6vw, 96px);
+  gap: clamp(32px, 6vw, 88px);
   width: 100%;
-  max-width: 72rem;
+  max-width: 76rem;
   margin: 0 auto;
-  padding: 48px 0;
+  padding: 48px 0 64px;
 }
 
 .intro {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 20px;
+  gap: 24px;
 }
 
 /* Voz institucional: única aplicação de Newsreader na interface. */
 .title {
-  max-width: 14ch;
+  max-width: 12ch;
   font-family: var(--font-newsreader), Georgia, serif;
-  font-size: clamp(2.5rem, 5vw, 3.75rem);
+  font-size: clamp(2.75rem, 5.4vw, 4.25rem);
   font-weight: 400;
-  line-height: 1.04;
-  letter-spacing: -0.03em;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
 }
 
 .lead {
-  max-width: 52ch;
+  max-width: 34ch;
   color: var(--body-text);
-  font-size: 1.0625rem;
-  line-height: 1.65;
+  font-size: 1.125rem;
+  line-height: 1.6;
 }
 
 .action {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  padding: 11px 22px;
+  min-height: 48px;
+  padding: 12px 28px;
   border-radius: var(--radius-control);
   background: var(--primary);
   color: var(--on-primary);
-  font-weight: 700;
+  font-weight: 750;
+  box-shadow: var(--shadow-raised);
   transition:
-    background-color var(--duration) var(--ease-out),
-    transform 120ms var(--ease-out);
+    background-color var(--duration) ease,
+    transform var(--duration-fast) var(--ease-out);
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .action:hover {
     background: var(--primary-hover);
   }
 }
 
 .action:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
-.areas {
+/* ---------- Prévia do produto ---------- */
+.preview {
   display: flex;
   flex-direction: column;
-  list-style: none;
+  gap: 14px;
+  min-width: 0;
+}
+
+.previewPanel {
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-frame);
   background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  /* Entrada única ao carregar: a prévia assenta no lugar (primeira visita). */
+  transition:
+    opacity 600ms var(--ease-out),
+    transform 600ms var(--ease-out);
 }
 
-.area {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 20px 22px;
+@starting-style {
+  .previewPanel {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
 
-.area + .area {
+.previewDay {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-soft);
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+
+.previewList {
+  list-style: none;
+}
+
+.previewRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 20px;
+}
+
+.previewRow + .previewRow {
   border-top: 1px solid var(--line);
 }
 
-.areaIcon {
+.previewIcon {
   display: grid;
-  flex: none;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-control);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface-sunken);
+  color: var(--muted);
+}
+
+.previewIcon[data-direction="in"] {
   background: var(--primary-tint);
   color: var(--primary-hover);
 }
 
-.areaTitle {
-  font-size: 1rem;
+.previewText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.areaText {
-  margin-top: 2px;
+.previewTitle {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewMeta {
   color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.previewAmount {
+  font-weight: 750;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.previewAmount[data-direction="in"] {
+  color: var(--positive);
+}
+
+.previewRule {
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--body-text);
   font-size: 0.875rem;
 }
 
-.footer {
+.previewValue {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.caption {
   color: var(--muted);
   font-size: 0.8125rem;
   text-align: center;
 }
 
-@media (max-width: 52rem) {
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 60rem) {
   .main {
     grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-    padding: 32px 0;
+    padding-top: 32px;
+  }
+
+  .previewChip {
+    display: none;
+  }
+
+  .previewRow {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 30rem) {
+  .previewRow {
+    padding: 12px 14px;
   }
 }

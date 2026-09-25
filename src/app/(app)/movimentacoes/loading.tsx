@@ -1,26 +1,30 @@
-import { SkeletonLine, ui } from "@/components/ui";
+import { SkeletonLine } from "@/components/ui";
 import styles from "./movimentacoes.module.css";
 
 export default function Loading() {
   return (
     <div className={styles.page} role="status" aria-label="Carregando suas movimentações">
       <div>
-        <SkeletonLine width="12rem" height={24} />
-        <div style={{ height: 8 }} />
+        <SkeletonLine width="13rem" height={28} />
+        <div style={{ height: 10 }} />
         <SkeletonLine width="18rem" />
       </div>
-      <ul className={ui.list} aria-hidden>
+      {/* Mesma forma do histórico: um dia e suas linhas. */}
+      <div className={styles.historyPanel} aria-hidden>
+        <div className={styles.skeletonDay}>
+          <SkeletonLine width="11rem" height={10} />
+        </div>
         {Array.from({ length: 6 }, (_, index) => (
-          <li key={index} className={styles.skeletonRow}>
-            <SkeletonLine width="32px" height={32} />
+          <div key={index} className={styles.skeletonRow}>
+            <SkeletonLine width="34px" height={34} />
             <span className={styles.skeletonText}>
               <SkeletonLine width={`${55 - index * 4}%`} />
               <SkeletonLine width="35%" height={10} />
             </span>
             <SkeletonLine width="5.5rem" />
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

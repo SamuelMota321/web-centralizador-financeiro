@@ -77,11 +77,23 @@ export function conditionValueLabel(
   }
 }
 
+/** Partes da frase, para a interface destacar o valor comparado sem mudar o texto. */
+export function ruleConditionParts(
+  rule: Pick<CategoryRule, "conditionField" | "conditionOperator" | "conditionValue">,
+  accounts: NamedOption[] | null,
+): { lead: string; value: string } {
+  return {
+    lead: `Se ${FIELD_SUBJECTS[rule.conditionField]} ${OPERATOR_LABELS[rule.conditionOperator]}`,
+    value: conditionValueLabel(rule, accounts),
+  };
+}
+
 export function ruleCondition(
   rule: Pick<CategoryRule, "conditionField" | "conditionOperator" | "conditionValue">,
   accounts: NamedOption[] | null,
 ): string {
-  return `Se ${FIELD_SUBJECTS[rule.conditionField]} ${OPERATOR_LABELS[rule.conditionOperator]} ${conditionValueLabel(rule, accounts)}`;
+  const { lead, value } = ruleConditionParts(rule, accounts);
+  return `${lead} ${value}`;
 }
 
 export function ruleCategory(

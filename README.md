@@ -14,6 +14,12 @@ manual com estados incerto e não reconhecido, regras pessoais de categorizaçã
 precedência explicada e o isolamento de estado entre sessões. A interface segue o Style
 Guide 1.0, documentado em `PRODUCT.md` e `DESIGN.md`.
 
+A reformulação da interface reorganizou a navegação (lateral em Confiança com grupos
+"Registros" e "Organização", trilho no tablet e abas no celular), trouxe histórico agrupado
+por dia, primeiros passos, menus de ações, diálogo de confirmação e toasts. Componentes
+interativos acessíveis vêm de `@base-ui/react` (menu e diálogo) e `sonner` (toasts),
+estilizados com os tokens do produto.
+
 O access token nunca chega ao navegador: a listagem roda em Server Component e as mutações
 (criar, editar, desativar) em Server Actions, então quem chama o backend é o servidor Next.
 Por isso o backend não precisa de CORS para este cliente.
@@ -155,9 +161,13 @@ Parar: `Ctrl+C`.
 
 1. `http://localhost:3001` mostra a página de entrada com o botão **Entrar**.
 2. `/movimentacoes`, `/contas`, `/categorias` e `/regras` sem estar logado redirecionam para o Auth0.
-3. Depois de entrar, o app abre em **Movimentações**, com a navegação lateral para Contas,
-   Categorias e Regras. Datas são digitadas em DD/MM/AAAA.
-4. **Sair** encerra a sessão e as rotas do app voltam a redirecionar.
+3. Depois de entrar, o app abre em **Movimentações**, com a navegação lateral agrupada
+   (Registros: Movimentações e Contas; Organização: Categorias e Regras) e o atalho
+   **Registrar movimentação** sempre à mão. Datas são digitadas em DD/MM/AAAA.
+4. Estreite a janela: abaixo de 64rem a lateral vira trilho de ícones; abaixo de 40rem,
+   barra superior e abas inferiores.
+5. **Sair** fica no menu da conta (pé da lateral ou avatar no celular) e encerra a sessão;
+   as rotas do app voltam a redirecionar.
 
 ## Checagens de qualidade
 
@@ -180,15 +190,17 @@ Next são simulados. Os arquivos `*.test.ts` ficam ao lado do código testado.
 | Arquivo | O que garante |
 |---|---|
 | `src/lib/money.test.ts` | entrada pt-BR normalizada e formatação em BRL sem `Number` (sem erro de ponto flutuante) |
-| `src/lib/civil-date.test.ts` | data civil sem fuso, anos bissextos, datas inexistentes, DD/MM/AAAA e máscara de digitação |
+| `src/lib/civil-date.test.ts` | data civil sem fuso, anos bissextos, datas inexistentes, DD/MM/AAAA, máscara de digitação, data por extenso e "Hoje"/"Ontem" |
 | `src/lib/idempotency.test.ts` | chave UUID nova e quando trocá-la (`REUSED`/`EXPIRED`) |
 | `src/lib/api/http-client.test.ts` | bearer só com token, `cache: "no-store"` sempre, URL, corpo JSON e normalização de erros |
+| `src/lib/page-window.test.ts` | páginas exibidas na paginação numerada (primeira, última, vizinhas e reticências) |
 | `src/lib/api/pagination.test.ts` | leitura de todas as páginas para seletores, com aviso de truncamento |
 | `src/lib/api/contract.test.ts` | operações existem no `openapi.snapshot.json`; fixtures de cada resposta validadas contra o snapshot e contra o Zod; enums iguais aos do contrato |
 | `src/lib/accounts/*.test.ts` | contas: schema, PATCH só com alterações, mensagens, chamadas da API |
 | `src/lib/transactions/*.test.ts` | movimentações: schemas de entrada (valor, data, transferência entre contas distintas, categorização), chamadas com Idempotency-Key, mensagens |
 | `src/lib/categories/api.test.ts`, `src/lib/category-rules/*.test.ts` | categorias e regras: chamadas, gramática da condição e limites de prioridade |
-| `src/app/(app)/movimentacoes/*.test.ts` | Server Actions de receita, despesa, transferência e categorização (chave mantida em falha e trocada após sucesso ou recusa); rótulos e sinais |
+| `src/app/(app)/movimentacoes/*.test.ts` | Server Actions de receita, despesa, transferência e categorização (chave mantida em falha e trocada após sucesso ou recusa); rótulos, sinais, agrupamento por dia e primeiros passos |
+| `src/app/(app)/account-menu.test.ts` | iniciais do avatar da conta |
 | `src/app/(app)/contas/*.test.ts` | Server Actions de contas e avisos restritos a uma lista fechada |
 | `src/app/(app)/categorias/*.test.ts` | criar, renomear e arquivar; nome repetido recusado antes da API |
 | `src/app/(app)/regras/*.test.ts` | criar, editar só o que mudou, ativar, desativar e remover; frase da regra e gramática |
@@ -222,12 +234,12 @@ pnpm start          # serve o build na porta 3001
 |---|---|
 | `PRODUCT.md`, `DESIGN.md` | produto e sistema visual (tokens, tipografia, componentes) derivados do Style Guide |
 | `src/app/page.tsx` | página de entrada com o acesso ao login |
-| `src/app/(app)/layout.tsx` | estrutura do app: barra superior, navegação lateral (`side-nav.tsx`) e área principal |
-| `src/app/(app)/movimentacoes/` | histórico em colunas, registro de receita, despesa e transferência, categorização |
+| `src/app/(app)/layout.tsx`, `app-frame.tsx` | sessão e estrutura do app: lateral, trilho ou abas (`side-nav.tsx`), menu da conta e atalho de registro (`account-menu.tsx`) |
+| `src/app/(app)/movimentacoes/` | histórico agrupado por dia, primeiros passos, registro de receita, despesa e transferência, categorização |
 | `src/app/(app)/contas/` | contas manuais: criar, editar, desativar com confirmação |
 | `src/app/(app)/categorias/` | categorias pessoais: criar, renomear, arquivar |
 | `src/app/(app)/regras/` | regras pessoais: formulário guiado, ciclo de vida e explicação da precedência |
-| `src/components/` | ícones SVG, símbolo da marca e peças de interface compartilhadas pelas telas |
+| `src/components/` | ícones SVG, símbolo da marca, peças de interface (`ui.tsx`), menu, diálogo, toasts e controle segmentado (`interactive.tsx`) e painel de criação (`panel.tsx`) |
 | `src/proxy.ts` | fronteira de autenticação (convenção do Next 16; era `middleware.ts`) |
 | `src/lib/auth0.ts` | instância do `Auth0Client` |
 | `src/lib/api/config.ts` | base URL da API a partir do ambiente |
@@ -247,15 +259,15 @@ usuários de teste (A e B) do mesmo tenant Auth0. Não mostre `.env`, tokens nem
 |---|---|---|
 | 1 | Abrir `http://localhost:3001/contas` sem login | redireciona para o Auth0 |
 | 2 | Entrar como A | volta para `/contas`, lista vazia com orientação |
-| 3 | Criar "Conta principal" e "Reserva" | ambas aparecem na lista, com aviso "Conta criada." |
+| 3 | Criar "Conta principal" e "Reserva" | ambas aparecem na lista, com aviso "Conta criada. Ela já pode receber movimentações." |
 | 4 | Criar conta com saldo `abc` ou data futura | erro no próprio campo, nada é criado |
 | 5 | **Editar** "Reserva", mudar o nome, salvar | aviso "Conta atualizada." e nome novo na lista |
 | 6 | **Editar** e salvar sem mudar nada | "Nenhuma alteração para salvar." sem chamada à API |
 | 7 | **Editar** e mudar só a data de referência | salva: saldo e data vão juntos |
-| 8 | **Desativar** → **Cancelar** | nada muda |
-| 9 | **Desativar** → **Confirmar desativação** | conta some; aviso de desativação com histórico preservado |
+| 8 | **Mais ações** (⋯) → **Desativar conta** → **Cancelar** | o diálogo fecha e nada muda |
+| 9 | **Mais ações** (⋯) → **Desativar conta** → **Desativar conta** no diálogo | conta some; aviso de desativação com histórico preservado |
 | 10 | Duas abas em `/contas`: desativar na primeira, editar a mesma conta na segunda | "Esta conta não foi encontrada ou não está mais disponível." e lista recarregada |
-| 11 | **Sair** e usar o botão voltar do navegador | nenhuma conta visível; `/contas` pede login |
+| 11 | Menu da conta → **Sair** e usar o botão voltar do navegador | nenhuma conta visível; `/contas` pede login |
 | 12 | Entrar como B | nenhuma conta de A aparece |
 
 ## Demonstração da Sprint 2

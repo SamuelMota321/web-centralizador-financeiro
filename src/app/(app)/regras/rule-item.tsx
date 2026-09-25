@@ -1,7 +1,9 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
-import { Notice, StatusChip, ui } from "@/components/ui";
+import { useActionState, useState, useTransition } from "react";
+import { IconPause, IconPlay, IconTrash } from "@/components/icons";
+import { ActionMenu, ConfirmDialog } from "@/components/interactive";
+import { Notice, PendingLabel, StatusChip, ui } from "@/components/ui";
 import type { CategoryRule } from "@/lib/category-rules/types";
 import {
   activateRuleAction,
@@ -17,15 +19,13 @@ import {
   isDirty,
   type NamedOption,
   ruleCategory,
-  ruleCondition,
+  ruleConditionParts,
   STATUS_LABELS,
   valuesFromRule,
 } from "./rule-logic";
 import styles from "./regras.module.css";
 
 const LIFECYCLE_INITIAL: RuleLifecycleState = { status: "idle" };
-
-type Panel = "none" | "edit" | "remove";
 
 interface Props {
   rule: CategoryRule;
@@ -35,7 +35,8 @@ interface Props {
 }
 
 export function RuleItem({ rule, categories, accounts }: Props) {
-  const [panel, setPanel] = useState<Panel>("none");
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [activateState, activate, activating] = useActionState(
     activateRuleAction.bind(null, rule.id),
     LIFECYCLE_INITIAL,
@@ -44,8 +45,14 @@ export function RuleItem({ rule, categories, accounts }: Props) {
     deactivateRuleAction.bind(null, rule.id),
     LIFECYCLE_INITIAL,
   );
+  const [removeState, remove, removing] = useActionState(
+    removeRuleAction.bind(null, rule.id),
+    LIFECYCLE_INITIAL,
+  );
+  const [, startTransition] = useTransition();
   const removed = rule.status === "removed";
   const category = ruleCategory(rule, categories);
+  const condition = ruleConditionParts(rule, accounts);
   const lifecycleError =
     activateState.status === "error"
       ? activateState
@@ -55,92 +62,109 @@ export function RuleItem({ rule, categories, accounts }: Props) {
   const activeCategories = (categories ?? []).filter((item) => item.status === "active");
   const busy = activating || deactivating;
 
+  // Ativar e desativar são reversíveis: executam direto do menu, sem confirmação.
+  const toggleStatus = () =>
+    startTransition(() => (rule.status === "active" ? deactivate() : activate()));
+
   return (
-    <li className={styles.row} data-removed={removed || undefined}>
+    <li
+      className={styles.row}
+      data-removed={removed || undefined}
+      data-open={editing || undefined}
+    >
       <div className={styles.rowMain}>
         <p className={styles.sentence}>
-          {ruleCondition(rule, accounts)}{" "}
+          {condition.lead} <span className={styles.value}>{condition.value}</span>{" "}
           <span className={styles.arrow} aria-label="aplica">
             →
           </span>{" "}
-          <strong>{category.name}</strong>
+          <strong className={styles.category}>{category.name}</strong>
           {category.archived ? " (arquivada)" : ""}
         </p>
-        <p className={styles.rowMeta}>
-          <span className="tabular">Prioridade {rule.priority}</span>
-          {category.archived && !removed
-            ? " · Não será aplicada enquanto a categoria estiver arquivada."
-            : ""}
-          {removed ? " · Somente leitura" : ""}
-        </p>
+        {category.archived && !removed ? (
+          <p className={styles.rowMeta}>
+            Não será aplicada enquanto a categoria estiver arquivada.
+          </p>
+        ) : null}
+        {removed ? <p className={styles.rowMeta}>Somente leitura</p> : null}
       </div>
 
+      <p className={`${styles.priority} tabular`}>
+        <span className={styles.priorityLabel}>Prioridade </span>
+        {rule.priority}
+      </p>
+
       <StatusChip tone={rule.status === "active" ? "positive" : "neutral"}>
-        {STATUS_LABELS[rule.status]}
+        {busy ? (activating ? "Ativando…" : "Desativando…") : STATUS_LABELS[rule.status]}
       </StatusChip>
 
-      <div className={styles.rowActions}>
+      <div className={ui.rowActions}>
         {removed ? null : (
           <>
             <button
-              className={ui.linkButton}
+              className={`${ui.button} ${ui.ghost} ${ui.small}`}
               type="button"
-              aria-expanded={panel === "edit"}
-              onClick={() => setPanel(panel === "edit" ? "none" : "edit")}
+              aria-expanded={editing}
+              onClick={() => setEditing(!editing)}
               disabled={busy}
             >
               Editar
             </button>
-            {rule.status === "active" ? (
-              <form action={deactivate}>
-                <button className={ui.linkButton} type="submit" disabled={busy} aria-busy={deactivating}>
-                  {deactivating ? "Desativando…" : "Desativar"}
-                </button>
-              </form>
-            ) : (
-              <form action={activate}>
-                <button className={ui.linkButton} type="submit" disabled={busy} aria-busy={activating}>
-                  {activating ? "Ativando…" : "Ativar"}
-                </button>
-              </form>
-            )}
-            <button
-              className={`${ui.linkButton} ${ui.linkDanger}`}
-              type="button"
-              aria-expanded={panel === "remove"}
-              onClick={() => setPanel(panel === "remove" ? "none" : "remove")}
+            <ActionMenu
+              label="Mais ações para esta regra"
               disabled={busy}
-            >
-              Remover
-            </button>
+              items={[
+                rule.status === "active"
+                  ? { label: "Desativar", icon: <IconPause size={17} />, onSelect: toggleStatus }
+                  : { label: "Ativar", icon: <IconPlay size={17} />, onSelect: toggleStatus },
+                {
+                  label: "Remover regra",
+                  icon: <IconTrash size={17} />,
+                  tone: "danger",
+                  onSelect: () => setConfirming(true),
+                },
+              ]}
+            />
           </>
         )}
       </div>
 
       {lifecycleError ? (
-        <div className={styles.rowPanel}>
+        <div className={ui.rowPanel}>
           <Notice tone="error" actions={lifecycleError.reauth ? <ReauthLink /> : undefined}>
             {lifecycleError.message}
           </Notice>
         </div>
       ) : null}
 
-      {panel === "edit" ? (
-        <div className={styles.rowPanel}>
+      {editing ? (
+        <div className={`${ui.rowPanel} ${ui.reveal}`}>
           <EditPanel
             rule={rule}
             categories={activeCategories}
             accounts={accounts ?? []}
-            onClose={() => setPanel("none")}
+            onClose={() => setEditing(false)}
           />
         </div>
       ) : null}
 
-      {panel === "remove" ? (
-        <div className={styles.rowPanel}>
-          <RemovePanel rule={rule} onClose={() => setPanel("none")} />
-        </div>
-      ) : null}
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Remover esta regra?"
+        description="Ela deixa de ser aplicada e continua visível como removida, mas não poderá ser reativada nem editada. As movimentações já categorizadas por ela não mudam."
+        confirmLabel="Remover regra"
+        pendingLabel="Removendo…"
+        action={remove}
+        pending={removing}
+        error={
+          removeState.status === "error" ? (
+            <Notice tone="error" actions={removeState.reauth ? <ReauthLink /> : undefined}>
+              {removeState.message}
+            </Notice>
+          ) : null
+        }
+      />
     </li>
   );
 }
@@ -182,7 +206,7 @@ function EditPanel({
   const [dirty, setDirty] = useState(() => isDirty(rule, initial));
 
   return (
-    <form action={formAction} className={`${ui.form} ${ui.reveal}`}>
+    <form action={formAction} className={ui.form}>
       <RuleFields
         key={attempt.version}
         initial={initial}
@@ -216,56 +240,12 @@ function EditPanel({
           disabled={pending || !dirty}
           aria-busy={pending}
         >
-          {pending ? "Salvando…" : "Salvar regra"}
+          <PendingLabel pending={pending} idle="Salvar regra" busy="Salvando…" />
         </button>
         <button className={ui.linkButton} type="button" onClick={onClose} disabled={pending}>
           Cancelar
         </button>
         {!dirty ? <span className={ui.help}>Altere algum campo para salvar.</span> : null}
-      </div>
-    </form>
-  );
-}
-
-function RemovePanel({ rule, onClose }: { rule: CategoryRule; onClose: () => void }) {
-  const [state, remove, pending] = useActionState(
-    removeRuleAction.bind(null, rule.id),
-    LIFECYCLE_INITIAL,
-  );
-  const textId = useId();
-
-  return (
-    <form action={remove} className={`${styles.confirm} ${ui.reveal}`} aria-describedby={textId}>
-      <p id={textId}>
-        Remover esta regra? Ela deixa de ser aplicada e continua visível como removida, mas não
-        poderá ser reativada nem editada. As movimentações já categorizadas por ela não mudam.
-      </p>
-
-      {state.status === "error" ? (
-        <Notice tone="error" actions={state.reauth ? <ReauthLink /> : undefined}>
-          {state.message}
-        </Notice>
-      ) : null}
-
-      <div className={ui.formFooter}>
-        {/* Foco inicial na opção segura: a ação definitiva exige escolha explícita. */}
-        <button
-          className={`${ui.button} ${ui.secondary} ${ui.small}`}
-          type="button"
-          onClick={onClose}
-          disabled={pending}
-          autoFocus
-        >
-          Cancelar
-        </button>
-        <button
-          className={`${ui.button} ${ui.danger} ${ui.small}`}
-          type="submit"
-          disabled={pending}
-          aria-busy={pending}
-        >
-          {pending ? "Removendo…" : "Remover regra"}
-        </button>
       </div>
     </form>
   );

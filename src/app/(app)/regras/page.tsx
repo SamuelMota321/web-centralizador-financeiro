@@ -1,12 +1,13 @@
 import Link from "next/link";
 import {
   IconCategories,
-  IconChevronLeft,
-  IconChevronRight,
+  IconInfo,
   IconPlus,
   IconRules,
 } from "@/components/icons";
-import { EmptyState, Notice, PageHeader, ui } from "@/components/ui";
+import { UrlNoticeToast } from "@/components/interactive";
+import { PanelToggle } from "@/components/panel";
+import { Disclosure, EmptyState, Notice, PageHeader, Pagination, ui } from "@/components/ui";
 import { auth0 } from "@/lib/auth0";
 import { listAccounts } from "@/lib/accounts/api";
 import { listAllPages } from "@/lib/api/pagination";
@@ -24,7 +25,7 @@ export default async function RegrasPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { aviso, pagina, nova } = await searchParams;
+  const { aviso, pagina } = await searchParams;
   const notice = isNoticeKey(aviso) ? NOTICES[aviso] : null;
   const page = parsePageParam(pagina);
 
@@ -52,12 +53,14 @@ export default async function RegrasPage({
   const activeCategories = (categories ?? []).filter((category) => category.status === "active");
   const canCreate = categories !== null && accounts !== null && activeCategories.length > 0;
   // Sem nenhuma regra, o painel já começa aberto: é a próxima ação óbvia.
-  const formOpen = canCreate && (nova === "1" || rules.total === 0);
+  const forceOpen = canCreate && rules.total === 0;
   const pages = totalPages(rules.total, PAGE_SIZE);
   const pageHref = (target: number) => `/regras?pagina=${target}`;
 
   return (
     <div className={styles.page}>
+      <UrlNoticeToast notice={notice} />
+
       <PageHeader
         title="Regras"
         context={
@@ -66,37 +69,30 @@ export default async function RegrasPage({
             : `${rules.total} ${rules.total === 1 ? "regra" : "regras"} · da maior para a menor prioridade`
         }
         actions={
-          canCreate && !formOpen ? (
-            <Link className={`${ui.button} ${ui.primary}`} href={`${pageHref(page)}&nova=1`} scroll={false}>
-              <IconPlus size={18} />
+          canCreate ? (
+            <PanelToggle flag="nova" forceOpen={forceOpen}>
               Nova regra
-            </Link>
+            </PanelToggle>
           ) : null
         }
       />
 
-      {notice ? (
-        <Notice
-          tone={notice.tone}
-          actions={
-            <Link className={ui.inlineLink} href={pageHref(page)} replace>
-              Fechar aviso
-            </Link>
-          }
-        >
-          {notice.text}
-        </Notice>
-      ) : null}
-
       {/* Explicação permanente da precedência (S2-06): a interface explica, o backend decide. */}
-      <Notice tone="info">
-        <p>
-          <strong>Como as regras são aplicadas.</strong> Quando uma movimentação nova combina com
-          mais de uma regra ativa, vale a de maior prioridade; em empate, a regra mais antiga. Sua
-          escolha manual de categoria sempre prevalece. As regras valem só para movimentações
-          novas e não alteram as já registradas.
-        </p>
-      </Notice>
+      <Disclosure
+        icon={<IconInfo size={18} />}
+        summary="Como as regras são aplicadas"
+        defaultOpen={rules.total === 0}
+      >
+        <ul>
+          <li>Uma regra categoriza as movimentações novas que combinarem com a condição.</li>
+          <li>
+            Quando uma movimentação combina com mais de uma regra ativa, vale a de maior
+            prioridade; em empate, a regra mais antiga.
+          </li>
+          <li>Sua escolha manual de categoria sempre prevalece.</li>
+          <li>As regras valem só para movimentações novas e não alteram as já registradas.</li>
+        </ul>
+      </Disclosure>
 
       {categories === null || accounts === null ? (
         <Notice
@@ -128,12 +124,8 @@ export default async function RegrasPage({
         </EmptyState>
       ) : null}
 
-      {formOpen && accounts ? (
-        <RuleCreatePanel
-          categories={activeCategories}
-          accounts={accounts}
-          closeHref={pageHref(page)}
-        />
+      {canCreate && accounts ? (
+        <RuleCreatePanel categories={activeCategories} accounts={accounts} forceOpen={forceOpen} />
       ) : null}
 
       {rules.total === 0 ? (
@@ -157,6 +149,12 @@ export default async function RegrasPage({
         </EmptyState>
       ) : (
         <section className={styles.list} aria-label="Suas regras">
+          <div className={styles.listHead} aria-hidden>
+            <span>Regra</span>
+            <span>Prioridade</span>
+            <span>Status</span>
+            <span />
+          </div>
           <ul className={ui.list}>
             {rules.items.map((rule) => (
               // `updatedAt` na chave remonta o item após editar, fechando o painel.
@@ -169,29 +167,7 @@ export default async function RegrasPage({
             ))}
           </ul>
 
-          {pages > 1 ? (
-            <nav className={ui.pagination} aria-label="Páginas de regras">
-              {page > 1 ? (
-                <Link className={ui.pageLink} href={pageHref(page - 1)}>
-                  <IconChevronLeft size={16} />
-                  Anterior
-                </Link>
-              ) : (
-                <span />
-              )}
-              <span className="tabular">
-                Página {page} de {pages}
-              </span>
-              {page < pages ? (
-                <Link className={`${ui.pageLink} ${ui.pageLinkNext}`} href={pageHref(page + 1)}>
-                  Próxima
-                  <IconChevronRight size={16} />
-                </Link>
-              ) : (
-                <span />
-              )}
-            </nav>
-          ) : null}
+          <Pagination page={page} pages={pages} href={pageHref} label="Páginas de regras" />
         </section>
       )}
     </div>

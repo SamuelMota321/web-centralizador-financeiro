@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   formatCivilDate,
+  formatLongCivilDate,
   isRealCivilDate,
   maskBrazilianDate,
   parseBrazilianDate,
+  relativeCivilDay,
   todayCivilDate,
 } from "./civil-date";
 
@@ -63,5 +65,41 @@ describe("maskBrazilianDate", () => {
     ["ab24c09", "24/09"],
   ])("%j -> %j", (raw, expected) => {
     expect(maskBrazilianDate(raw)).toBe(expected);
+  });
+});
+
+describe("formatLongCivilDate", () => {
+  it("escreve o dia da semana e o mês por extenso, sem o ano de referência", () => {
+    expect(formatLongCivilDate("2026-09-22", 2026)).toBe("terça-feira, 22 de setembro");
+  });
+
+  it("inclui o ano quando difere do ano de referência", () => {
+    expect(formatLongCivilDate("2025-12-31", 2026)).toBe("quarta-feira, 31 de dezembro de 2025");
+  });
+
+  it("não troca o dia por causa de fuso horário", () => {
+    expect(formatLongCivilDate("2026-01-01", 2026)).toBe("quinta-feira, 1 de janeiro");
+  });
+
+  it("devolve intacto o que não é data civil válida", () => {
+    expect(formatLongCivilDate("2026-02-30", 2026)).toBe("2026-02-30");
+    expect(formatLongCivilDate("ontem")).toBe("ontem");
+  });
+});
+
+describe("relativeCivilDay", () => {
+  it.each([
+    ["2026-09-24", "2026-09-24", "Hoje"],
+    ["2026-09-23", "2026-09-24", "Ontem"],
+    ["2026-02-28", "2026-03-01", "Ontem"],
+    ["2025-12-31", "2026-01-01", "Ontem"],
+    ["2026-09-22", "2026-09-24", null],
+    ["2026-09-25", "2026-09-24", null],
+  ])("%s em relação a %s → %s", (value, today, expected) => {
+    expect(relativeCivilDay(value, today)).toBe(expected);
+  });
+
+  it("ignora datas inválidas", () => {
+    expect(relativeCivilDay("2026-13-01", "2026-09-24")).toBeNull();
   });
 });

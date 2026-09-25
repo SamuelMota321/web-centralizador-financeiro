@@ -1,59 +1,103 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .history {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-3);
+}
+
+/* ---------- Histórico agrupado por dia, em um único painel ---------- */
+.historyPanel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-raised);
+}
+
+/* O dia fica preso ao topo enquanto suas movimentações rolam por baixo. */
+.dayHeader {
+  position: sticky;
+  top: var(--sticky-top);
+  z-index: var(--z-sticky);
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface-soft) 94%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.historyPanel > section:first-child .dayHeader {
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+}
+
+.historyPanel > section + section .dayHeader {
+  border-top: 1px solid var(--line);
+}
+
+.dayDetail {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.dayList {
+  list-style: none;
+}
+
+.dayList > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.historyPanel > section:last-child .dayList > li:last-child {
+  border-radius: 0 0 var(--radius-panel) var(--radius-panel);
 }
 
 /* Colunas: movimentação | categoria | valor (style guide, "Atividade recente"). */
-.listHead,
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.1fr) minmax(7.5rem, auto);
-  column-gap: 20px;
-}
-
-.listHead {
-  padding: 0 20px;
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.listHead > :last-child {
-  text-align: right;
-}
-
-.row {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(8rem, auto);
   align-items: center;
-  row-gap: 10px;
+  column-gap: var(--space-5);
+  row-gap: var(--space-3);
   padding: 14px 20px;
-  transition: background-color var(--duration) var(--ease-out);
+  transition: background-color var(--duration) ease;
 }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .row:hover {
     background: var(--surface-soft);
   }
 }
 
-.row:first-child {
-  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+.row[data-open] {
+  background: var(--surface-soft);
 }
 
-.row:last-child {
-  border-radius: 0 0 var(--radius-panel) var(--radius-panel);
+/* Linha recém-criada: tinta verde que se dissolve e mostra onde o registro entrou. */
+.row[data-recent] {
+  animation: arrived 1600ms var(--ease-out) both;
+}
+
+@keyframes arrived {
+  from {
+    background-color: color-mix(in srgb, var(--primary) 16%, var(--surface));
+  }
+
+  to {
+    background-color: transparent;
+  }
 }
 
 .rowMain {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
@@ -61,10 +105,10 @@
   display: grid;
   flex: none;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-control);
-  background: var(--surface-soft);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface-sunken);
   color: var(--muted);
 }
 
@@ -106,8 +150,11 @@
   min-width: 0;
 }
 
+/* O valor é o dado mais forte da linha. */
 .rowAmount {
+  font-size: 1rem;
   font-weight: 750;
+  letter-spacing: -0.01em;
   text-align: right;
   white-space: nowrap;
 }
@@ -117,19 +164,8 @@
   color: var(--positive);
 }
 
-.rowPanel {
-  grid-column: 1 / -1;
-  padding: 16px;
-  border-radius: var(--radius-control);
-  background: var(--surface-soft);
-}
-
 /* Telas estreitas: descrição e valor na primeira linha, categoria embaixo. */
-@media (max-width: 40rem) {
-  .listHead {
-    display: none;
-  }
-
+@media (max-width: 48rem) {
   .row {
     grid-template-columns: minmax(0, 1fr) auto;
     padding: 14px 16px;
@@ -138,21 +174,159 @@
   .rowCategory {
     grid-column: 1 / -1;
     grid-row: 2;
-    padding-left: 44px;
+    padding-left: 46px;
   }
 
   .rowAmount {
     grid-column: 2;
     grid-row: 1;
   }
+
+  .dayHeader {
+    padding: 10px 16px;
+  }
+}
+
+/* ---------- Primeiros passos ---------- */
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--line));
+  border-radius: var(--radius-panel);
+  background:
+    radial-gradient(
+      120% 140% at 100% 0%,
+      color-mix(in srgb, var(--primary) 9%, transparent) 0%,
+      transparent 55%
+    ),
+    var(--surface);
+}
+
+.onboardingHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.onboardingProgress {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.stepMarker {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.step[data-state="current"] .stepMarker {
+  border-color: var(--primary);
+  color: var(--primary-hover);
+  box-shadow: 0 0 0 4px var(--primary-tint);
+}
+
+/* Passo concluído: a marca chega com um pequeno assentamento (momento raro). */
+.step[data-state="done"] .stepMarker {
+  border-color: transparent;
+  background: var(--primary-tint);
+  color: var(--primary-hover);
+  transition:
+    transform 320ms var(--ease-out),
+    opacity 320ms var(--ease-out);
+}
+
+@starting-style {
+  .step[data-state="done"] .stepMarker {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.stepTitle {
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+}
+
+.step[data-state="done"] .stepTitle {
+  color: var(--muted);
+}
+
+.stepText {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.stepBody > a {
+  margin-top: 4px;
+}
+
+.onboardingHint {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  color: var(--body-text);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 52rem) {
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .onboarding {
+    padding: var(--space-5);
+  }
 }
 
 /* ---------- Esqueleto ---------- */
+.skeletonDay {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+
 .skeletonRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 16px 20px;
+}
+
+.skeletonRow + .skeletonRow {
+  border-top: 1px solid var(--line);
 }
 
 .skeletonText {
@@ -160,4 +334,11 @@
   flex: 1;
   flex-direction: column;
   gap: 8px;
+}
+
+/* Movimento reduzido não é zero: o destaque é só cor, sem deslocamento, e permanece. */
+@media (prefers-reduced-motion: reduce) {
+  .row[data-recent] {
+    animation-duration: 1600ms !important;
+  }
 }

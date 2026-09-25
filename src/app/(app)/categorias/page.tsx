@@ -1,11 +1,10 @@
 import Link from "next/link";
 import {
   IconCategories,
-  IconChevronLeft,
-  IconChevronRight,
-  IconPlus,
 } from "@/components/icons";
-import { EmptyState, Notice, PageHeader, ui } from "@/components/ui";
+import { UrlNoticeToast } from "@/components/interactive";
+import { PanelSection, PanelToggle } from "@/components/panel";
+import { EmptyState, PageHeader, Pagination, ui } from "@/components/ui";
 import { auth0 } from "@/lib/auth0";
 import { listCategories } from "@/lib/categories/api";
 import { PAGE_SIZE, parsePageParam, totalPages } from "../movimentacoes/presentation";
@@ -19,7 +18,7 @@ export default async function CategoriasPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { aviso, pagina, nova } = await searchParams;
+  const { aviso, pagina } = await searchParams;
   const notice = isNoticeKey(aviso) ? NOTICES[aviso] : null;
   const page = parsePageParam(pagina);
 
@@ -28,10 +27,12 @@ export default async function CategoriasPage({
   const pages = totalPages(categories.total, PAGE_SIZE);
   const pageHref = (target: number) => `/categorias?pagina=${target}`;
   // Sem nenhuma categoria, o painel já começa aberto: é a próxima ação óbvia.
-  const formOpen = nova === "1" || categories.total === 0;
+  const forceOpen = categories.total === 0;
 
   return (
     <div className={styles.page}>
+      <UrlNoticeToast notice={notice} />
+
       <PageHeader
         title="Categorias"
         context={
@@ -40,33 +41,21 @@ export default async function CategoriasPage({
             : `${categories.total} ${categories.total === 1 ? "categoria" : "categorias"} · ativas e arquivadas`
         }
         actions={
-          formOpen ? null : (
-            <Link
-              className={`${ui.button} ${ui.primary}`}
-              href={`/categorias?pagina=${page}&nova=1`}
-              scroll={false}
-            >
-              <IconPlus size={18} />
-              Nova categoria
-            </Link>
-          )
+          <PanelToggle flag="nova" forceOpen={forceOpen}>
+            Nova categoria
+          </PanelToggle>
         }
       />
 
-      {notice ? (
-        <Notice
-          tone={notice.tone}
-          actions={
-            <Link className={ui.inlineLink} href={pageHref(page)} replace>
-              Fechar aviso
-            </Link>
-          }
-        >
-          {notice.text}
-        </Notice>
-      ) : null}
-
-      {formOpen ? <CategoryForm closeHref={pageHref(page)} /> : null}
+      <PanelSection
+        flag="nova"
+        forceOpen={forceOpen}
+        title="Nova categoria"
+        description="Categorias são pessoais: nenhuma vem pronta. Use nomes que façam sentido para você."
+        closeLabel="Fechar o painel de nova categoria"
+      >
+        <CategoryForm />
+      </PanelSection>
 
       {categories.total === 0 ? (
         <EmptyState icon={<IconCategories size={22} />} title="Nenhuma categoria ainda">
@@ -94,29 +83,7 @@ export default async function CategoriasPage({
             ))}
           </ul>
 
-          {pages > 1 ? (
-            <nav className={ui.pagination} aria-label="Páginas de categorias">
-              {page > 1 ? (
-                <Link className={ui.pageLink} href={pageHref(page - 1)}>
-                  <IconChevronLeft size={16} />
-                  Anterior
-                </Link>
-              ) : (
-                <span />
-              )}
-              <span className="tabular">
-                Página {page} de {pages}
-              </span>
-              {page < pages ? (
-                <Link className={`${ui.pageLink} ${ui.pageLinkNext}`} href={pageHref(page + 1)}>
-                  Próxima
-                  <IconChevronRight size={16} />
-                </Link>
-              ) : (
-                <span />
-              )}
-            </nav>
-          ) : null}
+          <Pagination page={page} pages={pages} href={pageHref} label="Páginas de categorias" />
         </section>
       )}
     </div>

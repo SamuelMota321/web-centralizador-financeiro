@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useId } from "react";
-import { Notice, ui } from "@/components/ui";
+import { useActionState, useEffect, useId, useRef } from "react";
+import { showToast } from "@/components/interactive";
+import { PendingLabel, ui } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import { createTransferAction, type FormValues, type MovementFormState } from "./actions";
 import {
@@ -15,6 +16,7 @@ import {
   selectableAccount,
 } from "./form-parts";
 import { accountLabel, type AccountOption } from "./presentation";
+import { useRecentMovements } from "./recent";
 
 interface Props {
   accounts: AccountOption[];
@@ -30,6 +32,26 @@ export function TransferForm({ accounts, initialKey }: Props) {
 
   const values = "values" in state ? state.values : undefined;
   const fieldErrors = state.status === "invalid" ? state.fieldErrors : undefined;
+  const { markRecent } = useRecentMovements();
+  // Cada resposta é anunciada uma vez, mesmo que a lista de contas chegue de novo.
+  const announced = useRef<MovementFormState | null>(null);
+
+  useEffect(() => {
+    if (state.status !== "success" || state.summary.kind !== "transfer") return;
+    if (announced.current === state) return;
+    announced.current = state;
+    const { summary } = state;
+    markRecent(summary.transactionIds);
+    showToast(
+      "success",
+      <>
+        Registro contábil criado: saída de{" "}
+        <span className="tabular">{formatMoney(summary.amount)}</span> em{" "}
+        {accountLabel(summary.fromAccountId, accounts)} e entrada do mesmo valor em{" "}
+        {accountLabel(summary.toAccountId, accounts)}.
+      </>,
+    );
+  }, [state, accounts, markRecent]);
 
   return (
     <form action={formAction} className={ui.form}>
@@ -48,15 +70,6 @@ export function TransferForm({ accounts, initialKey }: Props) {
 
       <FormFailure state={state} />
 
-      {state.status === "success" && state.summary.kind === "transfer" ? (
-        <Notice tone="success" className={ui.fullWidth}>
-          Registro contábil criado: saída de{" "}
-          <span className="tabular">{formatMoney(state.summary.amount)}</span> em{" "}
-          {accountLabel(state.summary.fromAccountId, accounts)} e entrada do mesmo valor em{" "}
-          {accountLabel(state.summary.toAccountId, accounts)}.
-        </Notice>
-      ) : null}
-
       <div className={ui.formFooter}>
         <button
           className={`${ui.button} ${ui.primary}`}
@@ -64,7 +77,7 @@ export function TransferForm({ accounts, initialKey }: Props) {
           disabled={pending}
           aria-busy={pending}
         >
-          {pending ? "Registrando…" : "Registrar transferência"}
+          <PendingLabel pending={pending} idle="Registrar transferência" busy="Registrando…" />
         </button>
       </div>
     </form>

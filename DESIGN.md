@@ -38,10 +38,20 @@ colors:
 typography:
   page-title:
     fontFamily: "Manrope, system-ui, sans-serif"
-    fontSize: "1.5rem"
+    fontSize: "1.75rem"
     fontWeight: 700
-    lineHeight: 1.2
-    letterSpacing: "-0.02em"
+    lineHeight: 1.15
+    letterSpacing: "-0.025em"
+  panel-title:
+    fontFamily: "Manrope, system-ui, sans-serif"
+    fontSize: "1.0625rem"
+    fontWeight: 700
+    lineHeight: 1.3
+  dialog-title:
+    fontFamily: "Manrope, system-ui, sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 700
+    lineHeight: 1.3
   section-title:
     fontFamily: "Manrope, system-ui, sans-serif"
     fontSize: "1rem"
@@ -59,9 +69,14 @@ typography:
     lineHeight: 1.5
   lead:
     fontFamily: "Manrope, system-ui, sans-serif"
-    fontSize: "1.0625rem"
+    fontSize: "1.125rem"
     fontWeight: 500
-    lineHeight: 1.65
+    lineHeight: 1.6
+  nav-rail:
+    fontFamily: "Manrope, system-ui, sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 650
+    lineHeight: 1.3
   micro:
     fontFamily: "Manrope, system-ui, sans-serif"
     fontSize: "0.75rem"
@@ -84,11 +99,12 @@ typography:
     lineHeight: 1.3
   display:
     fontFamily: "Newsreader, Georgia, serif"
-    fontSize: "clamp(2.5rem, 5vw, 3.75rem)"
+    fontSize: "clamp(2.75rem, 5.4vw, 4.25rem)"
     fontWeight: 400
-    lineHeight: 1.08
-    letterSpacing: "-0.03em"
+    lineHeight: 1.02
+    letterSpacing: "-0.035em"
 rounded:
+  indicator: "3px"
   control: "9px"
   panel: "13px"
   frame: "20px"
@@ -101,6 +117,8 @@ spacing:
   lg: "16px"
   xl: "24px"
   2xl: "32px"
+  3xl: "40px"
+  4xl: "48px"
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -133,10 +151,15 @@ components:
     rounded: "{rounded.panel}"
     padding: "20px"
   nav-item-active:
-    backgroundColor: "{colors.surface-soft}"
-    textColor: "{colors.primary-hover}"
+    backgroundColor: "rgba(85, 214, 164, 0.12)"
+    textColor: "#edf6f2"
     rounded: "{rounded.control}"
-    padding: "10px 12px"
+    padding: "9px 12px"
+  nav-shortcut:
+    backgroundColor: "{colors.clareza}"
+    textColor: "#07140f"
+    rounded: "{rounded.control}"
+    height: "42px"
   status-chip:
     textColor: "{colors.body-text}"
     rounded: "{rounded.pill}"
@@ -145,56 +168,96 @@ components:
 
 # Coinciente — sistema visual do app web
 
-Fonte de verdade: Style Guide 1.0 (`documentacao-centralizador-financeiro/style-guide.html` e `assets/styles.css`). Este arquivo traduz o guia para a interface de produto; quando divergir do guia, o guia vence e este arquivo é corrigido.
+Fonte de verdade: Style Guide 1.0 (`documentacao-centralizador-financeiro/style-guide.html` e `assets/styles.css`). Este arquivo traduz o guia para a interface de produto; quando divergir do guia, o guia vence e este arquivo é corrigido. Divergência deliberada, aprovada na reformulação da interface: a navegação lateral usa o fundo Confiança (o guia mostra a lateral clara), para dar à estrutura o peso institucional da marca.
 
 ## Overview
 
-Interface de produto (modo "Operate"): o usuário está em uma tarefa curta e recorrente. Segura sem ser distante, clara por camadas e tranquila. A marca vive nos detalhes precisos — símbolo, verde de ação, tipografia editorial reservada para momentos institucionais — e nunca compete com os dados. Moderadamente densa, nunca apressada. Nada que lembre banco, promessa de rendimento ou estética de criptomoeda.
+Interface de produto (modo "Operate"): o usuário está em uma tarefa curta e recorrente. Segura sem ser distante, clara por camadas e tranquila. A marca vive na estrutura e nos detalhes precisos (lateral em Confiança, símbolo, verde de ação, tipografia editorial só na entrada) e nunca compete com os dados. Moderadamente densa, nunca apressada. Nada que lembre banco, promessa de rendimento ou estética de criptomoeda.
 
-Estrutura do app, como nos mockups do guia: barra superior com a assinatura (símbolo + "Coin**ciente**") e o usuário ("dados fictícios"); navegação lateral de ~200px com o item ativo em fundo verde suave; área principal com cabeçalho de página (título, linha de contexto, ação principal) e conteúdo. Em telas estreitas, a navegação vira uma faixa horizontal sob a barra.
+Referências de princípio, não de layout: Linear (navegação previsível, ação global sempre à mão), Mercury (sobriedade financeira, valor como dado mais forte) e Stripe Dashboard (listas densas, estados explícitos).
+
+## Estrutura e navegação
+
+Três arranjos, pela largura:
+
+| Largura | Estrutura |
+| --- | --- |
+| ≥ 64rem | Lateral de 248px em Confiança: assinatura, atalho **Registrar movimentação** (Clareza), grupos "Registros" (Movimentações, Contas) e "Organização" (Categorias, Regras), conta no pé. |
+| 40–64rem | Trilho de 112px: símbolo, atalho só com ícone, itens com ícone e rótulo curto, grupos separados por linha, conta como avatar. |
+| < 40rem | Barra superior translúcida (assinatura, atalho, avatar) e barra de abas inferior com os quatro destinos; a sombra da barra aparece só quando o conteúdo rola por baixo. |
+
+- Item atual: fundo Clareza a 12%, texto claro, ícone Clareza e barra de 3px à esquerda. Nunca só cor de fundo.
+- Conta: menu único com nome, aviso de dados fictícios e **Sair**.
+- Sem breadcrumbs: a hierarquia tem um nível só. Cada página responde onde estou (item atual + título), o que faço (uma ação primária no cabeçalho) e o próximo passo (primeiros passos, estados vazios com ação).
+- O atalho global abre o registro sem refazer a página quando já se está em Movimentações; no celular, some nessa tela porque o cabeçalho já tem a mesma ação.
 
 ## Colors
 
-Restrained: neutros esverdeados carregam a interface; o verde Consciência aparece só em ação primária, seleção atual e indicadores de estado. Verde expressa progresso consciente; o azul-marinho esverdeado (Confiança) sustenta a percepção institucional.
+Restrained: neutros esverdeados carregam o conteúdo; o verde Consciência aparece só em ação primária, seleção atual e indicadores de estado. Confiança sustenta a estrutura; Clareza marca o que está ativo sobre ela.
 
 - Positivo e negativo só significam algo junto de texto, sinal ou ícone. Valores de entrada usam o verde apenas como reforço do sinal "+"; saídas ficam na cor do texto.
-- Estados semânticos: `positive` (sucesso), `negative` (erro, ação destrutiva), `warning` (atenção), `info` (informação). Cada aviso leva ícone e texto.
-- Tema escuro não é preto: preserva temperatura, profundidade e hierarquia do claro (tokens `dark-*`), aplicado por `prefers-color-scheme`.
-- Contrastes medidos: texto secundário 4,63:1 sobre o fundo claro e 7,9:1 no escuro; verde de ação 5,35:1 sobre branco; borda de campo 3,44:1 (claro) e 3,5:1 (escuro).
+- Estados semânticos: `positive`, `negative`, `warning`, `info`. Cada aviso leva ícone e texto.
+- Tema escuro não é preto: preserva temperatura e hierarquia; a lateral fica mais funda que o fundo (`#081310`) para a estrutura continuar separada.
+- Contrastes medidos: texto secundário 4,63:1 sobre o fundo claro e 7,9:1 no escuro; verde de ação 5,35:1 sobre branco; borda de campo 3,44:1 (claro) e 3,5:1 (escuro). Na lateral Confiança: texto 14,6:1, texto secundário 7,8:1, Clareza 8,8:1, texto do atalho sobre Clareza 10,3:1.
 
 ## Typography
 
-- **Manrope** carrega toda a interface: navegação, títulos de página, rótulos, dados, botões. Escala fixa em rem (proporção ~1,2), sem tamanhos fluidos.
-- **Newsreader** fica para a voz institucional: a entrada do produto (página inicial, único tamanho fluido, por ser superfície de marca) e, no futuro, valores de patrimônio no dashboard. Nunca em rótulos, botões ou dados de lista.
-- Números comparados em coluna usam `font-variant-numeric: tabular-nums`. Caixa alta só em rótulos curtos, e com parcimônia.
-- Tracking mínimo -0.03em em títulos; corpo sem tracking negativo.
+- **Manrope** carrega toda a interface. Escala fixa em rem: 0,6875 (rótulo do trilho), 0,75, 0,8125, 0,875, 0,9375 (corpo), 1, 1,0625, 1,125 (título de diálogo), 1,75 (título de página).
+- **Newsreader** só na entrada do produto (título fluido da página inicial) e, no futuro, valores de patrimônio no dashboard. Nunca em rótulos, botões ou dados de lista.
+- Tracking por tamanho: títulos grandes negativos (-0,025em a -0,035em), corpo em 0.
+- Números comparados em coluna usam `tabular-nums`; o valor da linha é o dado mais forte (1rem, 750).
 
 ## Layout
 
-- Grade do app: barra superior de 64px; navegação lateral de 200px; conteúdo com largura máxima de 72rem e respiro de 32px (desktop) / 16px (celular).
-- Cabeçalho de página: título + linha de contexto à esquerda, ação principal à direita, alinhados pela base.
-- Listas de dados em colunas alinhadas no desktop (descrição, categoria, valor à direita); empilhadas no celular. Uma lista é um único painel com divisórias discretas entre linhas, nunca um cartão por item.
-- Formulários de criação abrem em painel na própria página (divulgação progressiva), acima da lista, pela ação principal do cabeçalho. Modal só quando a tarefa exige foco protegido.
+- Conteúdo com largura máxima de 70rem, centralizado; respiro de 48px (desktop), 32px (tablet) e 16px (celular).
+- Cabeçalho de página: título + contexto à esquerda, ação primária à direita, alinhados pela base.
+- Listas em um único painel com divisórias entre linhas e cabeçalho de colunas no desktop; empilhadas no celular. Nunca um cartão por item.
+- Histórico de movimentações agrupado por dia, com o dia preso ao topo ao rolar ("Hoje", "Ontem" ou a data por extenso). Sem totais por dia: saldos pertencem ao dashboard.
+- Formulários de criação abrem em painel na própria página, sem ida ao servidor, pela ação do cabeçalho (`?nova=1` e `?registrar=1` continuam funcionando como link direto). Lista vazia abre o painel sozinha.
 
 ## Elevation & Depth
 
-Elevação declarada uma vez: painéis e listas usam borda `line` de 1px, sem sombra. A única sombra é a da barra superior fixa ao rolar e a de menus sobrepostos (`0 12px 32px rgba(25, 54, 44, 0.07)` no claro).
+- Painéis e listas: borda `line` de 1px e sombra mínima `shadow-raised`.
+- Sobreposições (menu, diálogo, toast): `shadow-overlay`, tingida com a cor da marca.
+- Barra superior do celular: material translúcido com desfoque; `prefers-reduced-transparency` a torna sólida.
 
 ## Shapes
 
-Raios médios e consistentes: 9px em controles (botões, campos, itens de navegação), 13px em painéis e listas, 20px em molduras grandes. Pílula só para etiquetas de status pequenas.
+3px no indicador do item atual; 9px em controles; 13px em painéis, listas, menus e controle segmentado; 20px em diálogos e molduras grandes; pílula só em etiquetas de status.
+
+## Motion
+
+Critério (emil-design-eng): anima só o que acontece de vez em quando e ganha sentido com o movimento. Nada que se repete dezenas de vezes por dia se move.
+
+| Momento | Movimento | Por quê |
+| --- | --- | --- |
+| Botões | escala 0,97 ao pressionar, 120ms | resposta imediata |
+| Painel de criação e painéis de linha | opacidade + 6px a partir do topo, 240ms; sai em 120ms | de onde veio |
+| Menu de ações | escala 0,96 → 1 a partir do gatilho, 160ms; sai mais rápido | ancorado no gatilho |
+| Diálogo | centralizado, escala 0,96, 240ms; no celular, folha inferior com curva de gaveta | foco protegido |
+| Toast | entra e sai pela mesma borda (Sonner) | continuidade espacial |
+| Controle segmentado | indicador desliza, 240ms ease-in-out | de onde para onde a escolha mudou |
+| Linha recém-criada | tinta verde que se dissolve em 1,6s | causa e efeito |
+| Passo concluído (primeiros passos) | marca assenta com escala 0,8 → 1 | momento raro |
+
+Não se movem: navegação entre páginas, hover de linhas (só cor), valores. Curvas: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)`, `--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1)`, `--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1)`. Hover só com `(hover: hover) and (pointer: fine)`. Com `prefers-reduced-motion`, sai o deslocamento e ficam as mudanças de opacidade e cor.
 
 ## Components
 
-- **Botões:** primário (verde), secundário (superfície com borda), perigo (negativo) e link. Estados: hover, pressionado (escala 0,98), foco visível (anel de 2px no verde), desabilitado (opacidade 0,55) e carregando (texto de ação no gerúndio). Altura 40px.
-- **Campos:** rótulo acima, ajuda abaixo, erro associado por `aria-describedby`, borda `input-border`, foco com anel verde. Datas são texto DD/MM/AAAA com máscara e teclado numérico, nunca o seletor nativo (que segue o idioma do navegador).
-- **Etiqueta de status:** ponto colorido de 7px + texto, como o bloco "Estado dos dados" do guia. A cor nunca aparece sozinha.
-- **Aviso:** ícone + texto + ação opcional; variantes sucesso, informação, atenção e erro.
-- **Estado vazio:** ícone, frase que explica o que é aquela área e a ação que a inicia.
-- **Esqueleto:** blocos com a forma do conteúdo durante o carregamento; nunca um spinner no meio da página.
-- **Ícones:** SVG próprios, traço de 1,75px, cantos arredondados, significado literal; sempre ao lado de um rótulo.
+- **Botões:** primário, secundário, perigo, fantasma, link e só ícone (36px; 44px em toque). Estados: hover, pressionado, foco visível (anel de 2px), desabilitado (0,55) e enviando (indicador + gerúndio, com `aria-busy`).
+- **Campos:** rótulo acima, ajuda abaixo, erro por `aria-describedby`; valor com prefixo "R$" visual; datas em texto DD/MM/AAAA com máscara, nunca o seletor nativo.
+- **Controle segmentado:** opções de mesmo peso com indicador deslizante.
+- **Menu de ações** (Base UI Menu): uma ação comum visível na linha e "Mais ações" com as demais; destrutivas por último, separadas e em `negative`. Teclado completo.
+- **Diálogo de confirmação** (Base UI AlertDialog): só para ações definitivas (desativar conta, arquivar categoria, remover regra). Foco inicial em "Cancelar"; não fecha durante o envio; erro exibido dentro dele.
+- **Toast** (Sonner): confirmação transitória de sucesso (criação, avisos após redirecionamento). Erros ficam fixos, perto de onde aconteceram.
+- **Etiqueta de status:** ponto de 7px + texto; tons positivo e atenção levemente tingidos. A cor nunca aparece sozinha.
+- **Bloco recolhível:** explicações permanentes (como as regras funcionam), aberto quando a lista está vazia.
+- **Primeiros passos:** conta → movimentação → categoria, com o próximo passo destacado; some quando os três estão feitos.
+- **Paginação:** 20 itens por página em todas as listas; Anterior, números (primeira, última e vizinhas da atual, com reticências) e Próxima. No celular, só Anterior, "6 de 12" e Próxima.
+- **Estado vazio, aviso e esqueleto:** como antes; o esqueleto tem a forma do conteúdo final.
+- **Ícones:** SVG próprios, traço de 1,75px, significado literal; sempre com rótulo visível ou acessível.
 
 ## Do's and Don'ts
 
-- Faça: mostrar período, fonte e data de referência; revelar detalhes conforme a necessidade; linguagem simples; diferenciar ação, informação e alerta; nomear a ação em cada botão; dizer o problema e a recuperação em cada erro.
-- Evite: promessas de rentabilidade; gradientes chamativos; telas feitas só de cartões; esconder indisponibilidade ou defasagem; eyebrows acima de títulos; bordas coloridas grossas em avisos; cor como único indicador; movimento decorativo (transições de 150–200ms só para mudança de estado, respeitando `prefers-reduced-motion`).
+- Faça: mostrar período, fonte e data de referência; revelar detalhes conforme a necessidade; uma ação primária por tela; nomear a ação em cada botão; dizer o problema e a recuperação em cada erro.
+- Evite: promessas de rentabilidade; gradientes chamativos; telas feitas só de cartões; esconder indisponibilidade ou defasagem; eyebrows acima de títulos; cor como único indicador; movimento decorativo em ações frequentes.

@@ -70,19 +70,24 @@ export function AmountInput({
   return (
     <div className={ui.field}>
       <label className={ui.label} htmlFor={`${id}-amount`}>
-        Valor (R$)
+        Valor<span className="visually-hidden"> em reais</span>
       </label>
-      <input
-        className={`${ui.input} tabular`}
-        id={`${id}-amount`}
-        name="amount"
-        inputMode="decimal"
-        autoComplete="off"
-        placeholder="0,00"
-        defaultValue={defaultValue}
-        required
-        {...errorProps(`${id}-amount-error`, error)}
-      />
+      <div className={ui.affix}>
+        <span className={ui.affixText} aria-hidden>
+          R$
+        </span>
+        <input
+          className={`${ui.input} tabular`}
+          id={`${id}-amount`}
+          name="amount"
+          inputMode="decimal"
+          autoComplete="off"
+          placeholder="0,00"
+          defaultValue={defaultValue}
+          required
+          {...errorProps(`${id}-amount-error`, error)}
+        />
+      </div>
       <FieldError id={`${id}-amount-error`} message={error} />
     </div>
   );

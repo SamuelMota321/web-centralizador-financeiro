@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Notice, ui } from "@/components/ui";
+import { Notice, PendingLabel, ui } from "@/components/ui";
 import type { Account } from "@/lib/accounts/types";
 import { updateAccountAction, type UpdateAccountState } from "./actions";
 import { AccountFields } from "./account-fields";
@@ -23,7 +23,7 @@ export function AccountEditForm({ account, onClose }: Props) {
   const fieldErrors = state.status === "invalid" ? state.fieldErrors : undefined;
 
   return (
-    <form action={formAction} className={`${ui.form} ${ui.reveal}`}>
+    <form action={formAction} className={ui.form}>
       <AccountFields defaults={account} fieldErrors={fieldErrors} />
 
       {state.status === "duplicate" ? (
@@ -49,7 +49,7 @@ export function AccountEditForm({ account, onClose }: Props) {
           disabled={pending}
           aria-busy={pending}
         >
-          {pending ? "Salvando…" : "Salvar alterações"}
+          <PendingLabel pending={pending} idle="Salvar alterações" busy="Salvando…" />
         </button>
         <button className={ui.linkButton} type="button" onClick={onClose} disabled={pending}>
           Cancelar

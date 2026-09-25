@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useId } from "react";
-import { errorProps, FieldError, Notice, ui } from "@/components/ui";
+import { errorProps, FieldError, Notice, PendingLabel, ui } from "@/components/ui";
 import type { Transaction } from "@/lib/transactions/types";
 import { categorizeTransactionAction, type CategorizeState } from "./actions";
 import type { CategoryOption } from "./presentation";
@@ -29,7 +29,7 @@ export function CategorizePanel({ transaction, activeCategories, truncated, onCl
     : "";
 
   return (
-    <form action={formAction} className={`${ui.form} ${ui.reveal}`}>
+    <form action={formAction} className={ui.form}>
       {activeCategories.length === 0 ? (
         <Notice
           tone="info"
@@ -100,7 +100,7 @@ export function CategorizePanel({ transaction, activeCategories, truncated, onCl
             disabled={pending}
             aria-busy={pending}
           >
-            {pending ? "Salvando…" : "Aplicar categoria"}
+            <PendingLabel pending={pending} idle="Aplicar categoria" busy="Salvando…" />
           </button>
         ) : null}
         <button

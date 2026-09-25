@@ -121,3 +121,55 @@ export const IconRules = (p: IconProps) => (
     <path d="M16 18h4" />
   </Icon>
 );
+
+export const IconMore = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 12h.01M12 12h.01M18 12h.01" strokeWidth={2.75} />
+  </Icon>
+);
+
+export const IconChevronDown = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m6 9.5 6 6 6-6" />
+  </Icon>
+);
+
+export const IconArchive = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3.5" y="4.5" width="17" height="4.5" rx="1.5" />
+    <path d="M5 9v8.5A2 2 0 0 0 7 19.5h10a2 2 0 0 0 2-2V9M10 13h4" />
+  </Icon>
+);
+
+export const IconTrash = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4.5 7h15M9.5 7V5.5a1.5 1.5 0 0 1 1.5-1.5h2a1.5 1.5 0 0 1 1.5 1.5V7M6.5 7l.8 11.2A2 2 0 0 0 9.3 20h5.4a2 2 0 0 0 2-1.8L17.5 7" />
+  </Icon>
+);
+
+export const IconPause = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M10 9.5v5M14 9.5v5" />
+  </Icon>
+);
+
+export const IconPlay = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="m10.2 9 4.8 3-4.8 3Z" />
+  </Icon>
+);
+
+export const IconArrowRight = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </Icon>
+);
+
+export const IconTag = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 12.5V5a1 1 0 0 1 1-1h7.5l7.5 7.5-8.5 8.5Z" />
+    <path d="M8.5 8.5h.01" strokeWidth={2.5} />
+  </Icon>
+);

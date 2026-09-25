@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { IconInflow, IconOutflow, IconTransfer } from "@/components/icons";
+import { IconInflow, IconOutflow, IconTag, IconTransfer } from "@/components/icons";
 import { StatusChip, ui } from "@/components/ui";
-import { formatCivilDate } from "@/lib/civil-date";
 import type { Transaction } from "@/lib/transactions/types";
 import { CategorizePanel } from "./categorize-panel";
 import {
@@ -17,6 +16,7 @@ import {
   signedAmount,
   typeLabel,
 } from "./presentation";
+import { useRecentMovements } from "./recent";
 import styles from "./movimentacoes.module.css";
 
 const DIRECTION_ICONS = { in: IconInflow, out: IconOutflow, transfer: IconTransfer } as const;
@@ -34,14 +34,21 @@ export function MovementRow({
   categoriesTruncated: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const { isRecent } = useRecentMovements();
   const amount = signedAmount(transaction);
   const direction = movementDirection(transaction);
   const DirectionIcon = DIRECTION_ICONS[direction];
   const description = transaction.description ?? "Sem descrição";
   const categorizable = categories !== null && canCategorize(transaction);
+  // Sem categoria é o caso que pede ação: vira botão. Corrigir fica discreto.
+  const needsCategory = transaction.categorizationStatus === "unclassified";
 
   return (
-    <li className={styles.row}>
+    <li
+      className={styles.row}
+      data-recent={isRecent(transaction.id) || undefined}
+      data-open={open || undefined}
+    >
       <div className={styles.rowMain}>
         <span className={styles.rowIcon} data-direction={direction}>
           <DirectionIcon size={16} />
@@ -51,8 +58,6 @@ export function MovementRow({
             {description}
           </p>
           <p className={styles.rowMeta}>
-            <span className="tabular">{formatCivilDate(transaction.occurredOn)}</span>
-            <span aria-hidden> · </span>
             {accountLabel(transaction.accountId, accounts)}
             <span aria-hidden> · </span>
             {typeLabel(transaction)}
@@ -67,12 +72,15 @@ export function MovementRow({
         </StatusChip>
         {categorizable ? (
           <button
-            className={ui.linkButton}
+            className={
+              needsCategory ? `${ui.button} ${ui.secondary} ${ui.small}` : ui.linkButton
+            }
             type="button"
             aria-expanded={open}
             onClick={() => setOpen(!open)}
           >
-            {transaction.categorizationStatus === "unclassified" ? "Categorizar" : "Corrigir"}
+            {needsCategory ? <IconTag size={15} /> : null}
+            {needsCategory ? "Categorizar" : "Corrigir"}
             <span className="visually-hidden"> a categoria de {description}</span>
           </button>
         ) : null}
@@ -83,7 +91,7 @@ export function MovementRow({
       </p>
 
       {open && categories ? (
-        <div className={styles.rowPanel}>
+        <div className={`${ui.rowPanel} ${ui.reveal}`}>
           <CategorizePanel
             transaction={transaction}
             activeCategories={categories.filter((category) => category.status === "active")}

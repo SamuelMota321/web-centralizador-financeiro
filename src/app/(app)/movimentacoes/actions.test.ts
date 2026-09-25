@@ -126,7 +126,9 @@ describe("createTransactionAction", () => {
     );
     expect(state.status).toBe("success");
     expect(state.idempotencyKey).not.toBe(KEY);
-    expect(state).toMatchObject({ summary: { kind: "movement", categorizedByRule: true } });
+    expect(state).toMatchObject({
+      summary: { kind: "movement", categorizedByRule: true, transactionIds: [expect.any(String)] },
+    });
     expect(revalidatePath).toHaveBeenCalledWith("/movimentacoes");
   });
 
@@ -282,7 +284,13 @@ describe("createTransferAction", () => {
     );
     expect(state).toMatchObject({
       status: "success",
-      summary: { kind: "transfer", amount: "50.00", fromAccountId: ACCOUNT_A, toAccountId: ACCOUNT_B },
+      summary: {
+        kind: "transfer",
+        amount: "50.00",
+        fromAccountId: ACCOUNT_A,
+        toAccountId: ACCOUNT_B,
+        transactionIds: [expect.any(String), expect.any(String)],
+      },
     });
     expect(state.idempotencyKey).not.toBe(KEY);
   });

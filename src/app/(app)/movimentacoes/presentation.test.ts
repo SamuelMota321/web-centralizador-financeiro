@@ -7,6 +7,7 @@ import {
   canCategorize,
   CATEGORY_FALLBACK_LABEL,
   categorizationLabel,
+  groupByDay,
   parsePageParam,
   signedAmount,
   totalPages,
@@ -148,5 +149,34 @@ describe("categorizationTone e movementDirection", () => {
     expect(movementDirection({ type: "income", transferSide: null })).toBe("in");
     expect(movementDirection({ type: "expense", transferSide: null })).toBe("out");
     expect(movementDirection({ type: "transfer", transferSide: "incoming" })).toBe("transfer");
+  });
+});
+
+describe("groupByDay", () => {
+  const item = (id: string, occurredOn: string) => ({ id, occurredOn });
+
+  it("agrupa datas iguais e vizinhas mantendo a ordem da API", () => {
+    const groups = groupByDay([
+      item("a", "2026-09-24"),
+      item("b", "2026-09-24"),
+      item("c", "2026-09-23"),
+    ]);
+    expect(groups).toEqual([
+      { date: "2026-09-24", items: [item("a", "2026-09-24"), item("b", "2026-09-24")] },
+      { date: "2026-09-23", items: [item("c", "2026-09-23")] },
+    ]);
+  });
+
+  it("não reordena: data intercalada gera um novo grupo", () => {
+    const groups = groupByDay([
+      item("a", "2026-09-24"),
+      item("b", "2026-09-20"),
+      item("c", "2026-09-24"),
+    ]);
+    expect(groups.map((group) => group.date)).toEqual(["2026-09-24", "2026-09-20", "2026-09-24"]);
+  });
+
+  it("lista vazia não tem grupos", () => {
+    expect(groupByDay([])).toEqual([]);
   });
 });

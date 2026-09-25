@@ -121,3 +121,23 @@ export function movementDirection(
   if (transaction.type === "transfer") return "transfer";
   return transaction.type === "income" ? "in" : "out";
 }
+
+export interface DayGroup<T> {
+  /** Data civil AAAA-MM-DD compartilhada pelas movimentações do grupo. */
+  date: string;
+  items: T[];
+}
+
+/**
+ * Agrupa por data mantendo a ordem da API (mais recentes primeiro). Só junta itens
+ * vizinhos: se a ordem vier intercalada, a data se repete em vez de reordenar a lista.
+ */
+export function groupByDay<T extends Pick<Transaction, "occurredOn">>(items: T[]): DayGroup<T>[] {
+  const groups: DayGroup<T>[] = [];
+  for (const item of items) {
+    const last = groups.at(-1);
+    if (last && last.date === item.occurredOn) last.items.push(item);
+    else groups.push({ date: item.occurredOn, items: [item] });
+  }
+  return groups;
+}

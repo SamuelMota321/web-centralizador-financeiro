@@ -33,7 +33,7 @@ export function BrandLockup({ className }: { className?: string }) {
     <span className={className} style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
       <BrandSymbol size={28} />
       <span style={{ fontWeight: 800, letterSpacing: "-0.03em", fontSize: "1.0625rem" }}>
-        Coin<span style={{ color: "var(--primary)" }}>ciente</span>
+        Coin<span style={{ color: "var(--brand-accent, var(--primary))" }}>ciente</span>
       </span>
     </span>
   );

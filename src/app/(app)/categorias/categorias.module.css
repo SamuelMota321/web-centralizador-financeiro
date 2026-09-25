@@ -14,8 +14,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(9rem, auto);
   align-items: center;
-  gap: 10px 20px;
+  gap: 8px 20px;
   padding: 14px 20px;
+  transition: background-color var(--duration) ease;
 }
 
 .rowMain {
@@ -39,24 +40,12 @@
   font-size: 0.8125rem;
 }
 
-.rowActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 16px;
+.row > :nth-child(2) {
+  justify-self: start;
 }
 
-.rowPanel {
-  grid-column: 1 / -1;
-  padding: 16px;
-  border-radius: var(--radius-control);
+.row[data-open] {
   background: var(--surface-soft);
-}
-
-.confirm {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  font-size: 0.875rem;
 }
 
 @media (max-width: 40rem) {
@@ -65,9 +54,16 @@
     padding: 14px 16px;
   }
 
-  .rowActions {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
+  /* Nome e etiqueta empilhados; ações à direita, ocupando as duas linhas. */
+  .row > :nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .row > :nth-child(3) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
   }
 }
 

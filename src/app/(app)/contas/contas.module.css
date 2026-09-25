@@ -1,22 +1,43 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 /* Colunas: conta | origem | saldo inicial | ações. */
+.listHead,
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) auto minmax(9rem, 1fr) minmax(8.5rem, auto);
+  grid-template-columns: minmax(0, 1.6fr) 7rem minmax(9rem, 1fr) 7.5rem;
+  column-gap: var(--space-5);
+}
+
+.listHead {
+  padding: 0 20px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.listHead > :nth-child(3) {
+  text-align: right;
+}
+
+.row {
   align-items: center;
-  gap: 10px 20px;
+  row-gap: var(--space-3);
   padding: 14px 20px;
+  transition: background-color var(--duration) ease;
+}
+
+.row[data-open] {
+  background: var(--surface-soft);
 }
 
 .rowMain {
@@ -38,34 +59,26 @@
 }
 
 .balance {
+  font-size: 1rem;
   font-weight: 750;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
-.rowActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 16px;
-}
+@media (max-width: 52rem) {
+  .listHead {
+    display: none;
+  }
 
-.rowPanel {
-  grid-column: 1 / -1;
-  padding: 16px;
-  border-radius: var(--radius-control);
-  background: var(--surface-soft);
-}
-
-.confirm {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  font-size: 0.875rem;
-}
-
-@media (max-width: 48rem) {
   .row {
     grid-template-columns: minmax(0, 1fr) auto;
     padding: 14px 16px;
+  }
+
+  .rowOrigin {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
   }
 
   .rowBalance {
@@ -73,7 +86,7 @@
     text-align: left;
   }
 
-  .rowActions {
+  .row > :nth-child(4) {
     grid-column: 2;
     align-self: end;
   }

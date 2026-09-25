@@ -8,10 +8,12 @@
   --background: var(--respiro);
   --surface: #ffffff;
   --surface-soft: #f7faf8;
+  --surface-sunken: #eaf1ed;
   --foreground: #14231e;
   --body-text: #354a42;
   --muted: #60736b;
   --line: rgba(53, 74, 66, 0.14);
+  --line-strong: rgba(53, 74, 66, 0.24);
   --input-border: #7a8f86;
 
   --primary: var(--consciencia);
@@ -24,14 +26,52 @@
   --warning: #a86512;
   --info: #2b6f89;
 
-  --shadow-overlay: 0 12px 32px rgba(25, 54, 44, 0.07);
+  /* Estrutura institucional: a navegação vive sobre Confiança nos dois temas. */
+  --nav-bg: var(--confianca);
+  --nav-fg: #edf6f2;
+  --nav-muted: #a6b9b0;
+  --nav-line: rgba(196, 222, 211, 0.12);
+  --nav-hover: rgba(237, 246, 242, 0.06);
+  --nav-active-bg: rgba(85, 214, 164, 0.12);
+  --nav-accent: var(--clareza);
+  --nav-on-accent: #07140f;
+
+  /* Sombras tingidas com a cor da marca, nunca preto puro. */
+  --shadow-raised: 0 1px 2px rgba(16, 37, 31, 0.06), 0 1px 1px rgba(16, 37, 31, 0.04);
+  --shadow-overlay: 0 12px 32px rgba(25, 54, 44, 0.12), 0 2px 6px rgba(25, 54, 44, 0.06);
+  --shadow-scroll: 0 1px 0 var(--line), 0 6px 16px rgba(25, 54, 44, 0.06);
 
   --radius-control: 9px;
   --radius-panel: 13px;
   --radius-frame: 20px;
+  --radius-pill: 999px;
 
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Espaçamento em passos de 4px. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Movimento (emil-design-eng): curvas fortes, UI sempre abaixo de 300ms. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-fast: 120ms;
   --duration: 180ms;
+  --duration-slow: 240ms;
+
+  /* Camadas: popups da Base UI saem pelo portal, acima do .root isolado. */
+  --z-sticky: 10;
+  --z-topbar: 20;
+  --z-nav: 30;
+
+  /* Deslocamento de cabeçalhos fixos dentro do conteúdo (barra superior no celular). */
+  --sticky-top: 0px;
 
   /* Nomes da Sprint 1, mantidos como apelidos dos tokens do guia. */
   --border: var(--line);
@@ -47,10 +87,12 @@
     --background: #0c1714;
     --surface: #13231e;
     --surface-soft: #192c26;
+    --surface-sunken: #0f1d19;
     --foreground: #edf6f2;
     --body-text: #d0dfd8;
     --muted: #a6b9b0;
     --line: rgba(196, 222, 211, 0.14);
+    --line-strong: rgba(196, 222, 211, 0.24);
     --input-border: #5f7a70;
 
     --primary: var(--clareza);
@@ -62,7 +104,12 @@
     --warning: #f3b866;
     --info: #75c4df;
 
-    --shadow-overlay: 0 18px 46px rgba(0, 0, 0, 0.28);
+    /* Mais funda que o fundo do conteúdo: a estrutura continua separada. */
+    --nav-bg: #081310;
+
+    --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-overlay: 0 18px 46px rgba(0, 0, 0, 0.42), 0 2px 8px rgba(0, 0, 0, 0.24);
+    --shadow-scroll: 0 1px 0 var(--line), 0 8px 20px rgba(0, 0, 0, 0.28);
 
     color-scheme: dark;
   }
@@ -79,10 +126,14 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * `clip` e não `hidden`: `hidden` transforma o body em contêiner de rolagem e desliga o
+ * `position: sticky` da lateral, da barra do celular e dos cabeçalhos de dia.
+ */
 html,
 body {
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -99,6 +150,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
   caret-color: var(--primary);
   accent-color: var(--primary);
+}
+
+/* Contexto de empilhamento próprio: menus, diálogos e toasts ficam sempre por cima. */
+.root {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  isolation: isolate;
 }
 
 h1,
@@ -138,7 +197,7 @@ textarea {
   outline-offset: 2px;
 }
 
-/* Barras de rolagem acompanham a paleta em vez do padrao do sistema. */
+/* Barras de rolagem acompanham a paleta em vez do padrão do sistema. */
 * {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent;
@@ -158,12 +217,17 @@ textarea {
   white-space: nowrap;
 }
 
+/*
+ * Movimento reduzido: sai o deslocamento, ficam as mudanças de opacidade e cor
+ * que ajudam a entender o que mudou (reduzido não é zero).
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    transition-property: opacity, color, background-color, border-color !important;
   }
 }

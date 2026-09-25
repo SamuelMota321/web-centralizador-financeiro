@@ -1,72 +1,50 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState, useId } from "react";
-import { IconClose } from "@/components/icons";
-import { Notice, ui } from "@/components/ui";
+import { useActionState, useEffect, useRef } from "react";
+import { showToast } from "@/components/interactive";
+import { Notice, PendingLabel, ui } from "@/components/ui";
 import { createAccountAction, type CreateAccountState } from "./actions";
 import { AccountFields } from "./account-fields";
 import { DuplicateNotice } from "./duplicate-notice";
 
 const INITIAL_STATE: CreateAccountState = { status: "idle" };
 
-export function AccountForm({ closeHref }: { closeHref: string }) {
+/** Formulário de nova conta manual; o painel que o envolve fica na página. */
+export function AccountForm() {
   const [state, formAction, pending] = useActionState(createAccountAction, INITIAL_STATE);
-  const id = useId();
   const fieldErrors = state.status === "invalid" ? state.fieldErrors : undefined;
+  const announced = useRef<CreateAccountState | null>(null);
+
+  useEffect(() => {
+    if (state.status !== "success" || announced.current === state) return;
+    announced.current = state;
+    showToast("success", "Conta criada. Ela já pode receber movimentações.");
+  }, [state]);
 
   return (
-    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${id}-title`}>
-      <div className={ui.panelHeader}>
-        <div>
-          <h2 className={ui.panelTitle} id={`${id}-title`}>
-            Nova conta manual
-          </h2>
-          <p className={ui.panelDescription}>
-            Registre uma conta que não está conectada. O saldo inicial vale a partir da data de
-            referência.
-          </p>
-        </div>
-        <Link
-          className={`${ui.button} ${ui.ghost} ${ui.small}`}
-          href={closeHref}
-          scroll={false}
-          aria-label="Fechar o painel de nova conta"
+    <form action={formAction} className={ui.form}>
+      <AccountFields fieldErrors={fieldErrors} />
+
+      {state.status === "duplicate" ? (
+        <DuplicateNotice candidates={state.candidates} action="Criar assim mesmo" disabled={pending} />
+      ) : null}
+
+      {state.status === "error" ? (
+        <Notice tone="error" className={ui.fullWidth}>
+          {state.message}
+        </Notice>
+      ) : null}
+
+      <div className={ui.formFooter}>
+        <button
+          className={`${ui.button} ${ui.primary}`}
+          type="submit"
+          disabled={pending}
+          aria-busy={pending}
         >
-          <IconClose size={16} />
-        </Link>
+          <PendingLabel pending={pending} idle="Criar conta" busy="Criando…" />
+        </button>
       </div>
-
-      <form action={formAction} className={ui.form}>
-        <AccountFields fieldErrors={fieldErrors} />
-
-        {state.status === "duplicate" ? (
-          <DuplicateNotice candidates={state.candidates} action="Criar assim mesmo" disabled={pending} />
-        ) : null}
-
-        {state.status === "error" ? (
-          <Notice tone="error" className={ui.fullWidth}>
-            {state.message}
-          </Notice>
-        ) : null}
-
-        {state.status === "success" ? (
-          <Notice tone="success" className={ui.fullWidth}>
-            Conta criada. Ela já pode receber movimentações.
-          </Notice>
-        ) : null}
-
-        <div className={ui.formFooter}>
-          <button
-            className={`${ui.button} ${ui.primary}`}
-            type="submit"
-            disabled={pending}
-            aria-busy={pending}
-          >
-            {pending ? "Criando…" : "Criar conta"}
-          </button>
-        </div>
-      </form>
-    </section>
+    </form>
   );
 }

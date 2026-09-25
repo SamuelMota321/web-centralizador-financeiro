@@ -32,12 +32,20 @@ export type FormValues = Record<string, string>;
 export type MovementSummary =
   | {
       kind: "movement";
+      /** Lançamentos criados, para a lista destacar onde o registro foi parar. */
+      transactionIds: string[];
       type: MovementType;
       amount: string;
       accountId: string;
       categorizedByRule: boolean;
     }
-  | { kind: "transfer"; amount: string; fromAccountId: string; toAccountId: string };
+  | {
+      kind: "transfer";
+      transactionIds: string[];
+      amount: string;
+      fromAccountId: string;
+      toAccountId: string;
+    };
 
 /**
  * Toda resposta carrega a Idempotency-Key do proximo envio: a mesma apos qualquer
@@ -103,6 +111,7 @@ export async function createTransactionAction(
       idempotencyKey: newIdempotencyKey(),
       summary: {
         kind: "movement",
+        transactionIds: [transaction.id],
         type: parsed.data.type,
         amount: transaction.amount,
         accountId: transaction.accountId,
@@ -152,6 +161,7 @@ export async function createTransferAction(
       idempotencyKey: newIdempotencyKey(),
       summary: {
         kind: "transfer",
+        transactionIds: transfer.entries.map((entry) => entry.id),
         amount: (outgoing ?? transfer.entries[0]).amount,
         fromAccountId: (outgoing ?? transfer.entries[0]).accountId,
         toAccountId: (incoming ?? transfer.entries[1]).accountId,

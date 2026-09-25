@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useId } from "react";
-import { errorProps, FieldError, Notice, ui } from "@/components/ui";
+import { useActionState, useEffect, useId, useRef } from "react";
+import { showToast } from "@/components/interactive";
+import { errorProps, FieldError, PendingLabel, ui } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import { createTransactionAction, type FormValues, type MovementFormState } from "./actions";
 import {
@@ -15,6 +16,7 @@ import {
   selectableAccount,
 } from "./form-parts";
 import { accountLabel, type AccountOption } from "./presentation";
+import { useRecentMovements } from "./recent";
 
 interface Props {
   accounts: AccountOption[];
@@ -30,6 +32,27 @@ export function MovementForm({ accounts, initialKey }: Props) {
 
   const values = "values" in state ? state.values : undefined;
   const fieldErrors = state.status === "invalid" ? state.fieldErrors : undefined;
+  const { markRecent } = useRecentMovements();
+  // Cada resposta é anunciada uma vez, mesmo que a lista de contas chegue de novo.
+  const announced = useRef<MovementFormState | null>(null);
+
+  // Sucesso é transitório: vira toast e destaque da linha; o formulário recomeça limpo.
+  useEffect(() => {
+    if (state.status !== "success" || state.summary.kind !== "movement") return;
+    if (announced.current === state) return;
+    announced.current = state;
+    const { summary } = state;
+    markRecent(summary.transactionIds);
+    showToast(
+      "success",
+      <>
+        {summary.type === "income" ? "Receita" : "Despesa"} de{" "}
+        <span className="tabular">{formatMoney(summary.amount)}</span> registrada em{" "}
+        {accountLabel(summary.accountId, accounts)}.
+        {summary.categorizedByRule ? " A categoria foi aplicada por uma regra pessoal." : null}
+      </>,
+    );
+  }, [state, accounts, markRecent]);
 
   return (
     <form action={formAction} className={ui.form}>
@@ -44,17 +67,6 @@ export function MovementForm({ accounts, initialKey }: Props) {
 
       <FormFailure state={state} />
 
-      {state.status === "success" && state.summary.kind === "movement" ? (
-        <Notice tone="success" className={ui.fullWidth}>
-          {state.summary.type === "income" ? "Receita" : "Despesa"} de{" "}
-          <span className="tabular">{formatMoney(state.summary.amount)}</span> registrada em{" "}
-          {accountLabel(state.summary.accountId, accounts)}.
-          {state.summary.categorizedByRule
-            ? " A categoria foi aplicada por uma regra pessoal."
-            : null}
-        </Notice>
-      ) : null}
-
       <div className={ui.formFooter}>
         <button
           className={`${ui.button} ${ui.primary}`}
@@ -62,7 +74,7 @@ export function MovementForm({ accounts, initialKey }: Props) {
           disabled={pending}
           aria-busy={pending}
         >
-          {pending ? "Registrando…" : "Registrar movimentação"}
+          <PendingLabel pending={pending} idle="Registrar movimentação" busy="Registrando…" />
         </button>
       </div>
     </form>

@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState, useId } from "react";
-import { IconClose } from "@/components/icons";
-import { Notice, ui } from "@/components/ui";
+import { useActionState, useEffect, useRef } from "react";
+import { showToast } from "@/components/interactive";
+import { PanelSection } from "@/components/panel";
+import { Notice, PendingLabel, ui } from "@/components/ui";
 import { createRuleAction, type RuleFormState } from "./actions";
 import { RuleFields } from "./rule-fields";
 import { EMPTY_RULE_VALUES, type NamedOption } from "./rule-logic";
@@ -17,13 +17,13 @@ interface Attempt {
 export function RuleCreatePanel({
   categories,
   accounts,
-  closeHref,
+  forceOpen,
 }: {
   categories: NamedOption[];
   accounts: NamedOption[];
-  closeHref: string;
+  /** Sem nenhuma regra o painel fica aberto: é a próxima ação óbvia. */
+  forceOpen: boolean;
 }) {
-  const id = useId();
   const [attempt, formAction, pending] = useActionState<Attempt, FormData>(
     async (previous, formData) => ({
       result: await createRuleAction(previous.result, formData),
@@ -32,28 +32,25 @@ export function RuleCreatePanel({
     { result: { status: "idle" }, version: 0 },
   );
   const { result } = attempt;
+  const announced = useRef<Attempt | null>(null);
+
+  useEffect(() => {
+    if (result.status !== "success" || announced.current === attempt) return;
+    announced.current = attempt;
+    showToast(
+      "success",
+      "Regra criada. Ela vale para as próximas movimentações; as já registradas não mudam.",
+    );
+  }, [attempt, result.status]);
 
   return (
-    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${id}-title`}>
-      <div className={ui.panelHeader}>
-        <div>
-          <h2 className={ui.panelTitle} id={`${id}-title`}>
-            Nova regra
-          </h2>
-          <p className={ui.panelDescription}>
-            Uma condição por regra. Ela categoriza as próximas movimentações que combinarem.
-          </p>
-        </div>
-        <Link
-          className={`${ui.button} ${ui.ghost} ${ui.small}`}
-          href={closeHref}
-          scroll={false}
-          aria-label="Fechar o painel de nova regra"
-        >
-          <IconClose size={16} />
-        </Link>
-      </div>
-
+    <PanelSection
+      flag="nova"
+      forceOpen={forceOpen}
+      title="Nova regra"
+      description="Uma condição por regra. Ela categoriza as próximas movimentações que combinarem."
+      closeLabel="Fechar o painel de nova regra"
+    >
       <form action={formAction} className={ui.form}>
         <RuleFields
           key={attempt.version}
@@ -79,12 +76,6 @@ export function RuleCreatePanel({
           </Notice>
         ) : null}
 
-        {result.status === "success" ? (
-          <Notice tone="success" className={ui.fullWidth}>
-            Regra criada. Ela vale para as próximas movimentações; as já registradas não mudam.
-          </Notice>
-        ) : null}
-
         <div className={ui.formFooter}>
           <button
             className={`${ui.button} ${ui.primary}`}
@@ -92,10 +83,10 @@ export function RuleCreatePanel({
             disabled={pending}
             aria-busy={pending}
           >
-            {pending ? "Criando…" : "Criar regra"}
+            <PendingLabel pending={pending} idle="Criar regra" busy="Criando…" />
           </button>
         </div>
       </form>
-    </section>
+    </PanelSection>
   );
 }

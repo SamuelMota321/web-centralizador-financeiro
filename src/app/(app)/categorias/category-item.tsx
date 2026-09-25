@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useId, useState } from "react";
-import { errorProps, FieldError, Notice, StatusChip, ui } from "@/components/ui";
+import { IconArchive } from "@/components/icons";
+import { ActionMenu, ConfirmDialog } from "@/components/interactive";
+import { errorProps, FieldError, Notice, PendingLabel, StatusChip, ui } from "@/components/ui";
 import type { Category } from "@/lib/categories/types";
 import {
   archiveCategoryAction,
@@ -15,14 +17,21 @@ import styles from "./categorias.module.css";
 const ARCHIVE_INITIAL: ArchiveCategoryState = { status: "idle" };
 const RENAME_INITIAL: CategoryFormState = { status: "idle" };
 
-type Panel = "none" | "rename" | "archive";
-
 export function CategoryItem({ category }: { category: Category }) {
-  const [panel, setPanel] = useState<Panel>("none");
+  const [renaming, setRenaming] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [archiveState, archive, archiving] = useActionState(
+    archiveCategoryAction.bind(null, category.id),
+    ARCHIVE_INITIAL,
+  );
   const archived = category.status === "archived";
 
   return (
-    <li className={styles.row} data-archived={archived || undefined}>
+    <li
+      className={styles.row}
+      data-archived={archived || undefined}
+      data-open={renaming || undefined}
+    >
       <div className={styles.rowMain}>
         <p className={styles.rowTitle}>{category.name}</p>
         {archived ? (
@@ -34,39 +43,55 @@ export function CategoryItem({ category }: { category: Category }) {
         {CATEGORY_STATUS_LABELS[category.status]}
       </StatusChip>
 
-      <div className={styles.rowActions}>
+      <div className={ui.rowActions}>
         {archived ? null : (
           <>
             <button
-              className={ui.linkButton}
+              className={`${ui.button} ${ui.ghost} ${ui.small}`}
               type="button"
-              aria-expanded={panel === "rename"}
-              onClick={() => setPanel(panel === "rename" ? "none" : "rename")}
+              aria-expanded={renaming}
+              onClick={() => setRenaming(!renaming)}
             >
               Renomear<span className="visually-hidden"> {category.name}</span>
             </button>
-            <button
-              className={`${ui.linkButton} ${ui.linkDanger}`}
-              type="button"
-              aria-expanded={panel === "archive"}
-              onClick={() => setPanel(panel === "archive" ? "none" : "archive")}
-            >
-              Arquivar<span className="visually-hidden"> {category.name}</span>
-            </button>
+            <ActionMenu
+              label={`Mais ações para ${category.name}`}
+              items={[
+                {
+                  label: "Arquivar categoria",
+                  icon: <IconArchive size={17} />,
+                  tone: "danger",
+                  onSelect: () => setConfirming(true),
+                },
+              ]}
+            />
           </>
         )}
       </div>
 
-      {panel === "rename" ? (
-        <div className={styles.rowPanel}>
-          <RenamePanel category={category} onClose={() => setPanel("none")} />
+      {renaming ? (
+        <div className={`${ui.rowPanel} ${ui.reveal}`}>
+          <RenamePanel category={category} onClose={() => setRenaming(false)} />
         </div>
       ) : null}
-      {panel === "archive" ? (
-        <div className={styles.rowPanel}>
-          <ArchivePanel category={category} onClose={() => setPanel("none")} />
-        </div>
-      ) : null}
+
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title={`Arquivar “${category.name}”?`}
+        description="Ela continua visível no histórico das movimentações, mas não poderá ser atribuída de novo nem reativada."
+        confirmLabel="Arquivar categoria"
+        pendingLabel="Arquivando…"
+        action={archive}
+        pending={archiving}
+        error={
+          archiveState.status === "error" ? (
+            <Notice tone="error" actions={archiveState.reauth ? <ReauthLink /> : undefined}>
+              {archiveState.message}
+            </Notice>
+          ) : null
+        }
+      />
     </li>
   );
 }
@@ -89,7 +114,7 @@ function RenamePanel({ category, onClose }: { category: Category; onClose: () =>
   const error = state.status === "invalid" ? state.message : undefined;
 
   return (
-    <form action={formAction} className={`${ui.form} ${ui.reveal}`}>
+    <form action={formAction} className={ui.form}>
       <div className={`${ui.field} ${ui.fieldWide}`}>
         <label className={ui.label} htmlFor={`${id}-name`}>
           Novo nome
@@ -124,54 +149,10 @@ function RenamePanel({ category, onClose }: { category: Category; onClose: () =>
           disabled={pending}
           aria-busy={pending}
         >
-          {pending ? "Salvando…" : "Salvar nome"}
+          <PendingLabel pending={pending} idle="Salvar nome" busy="Salvando…" />
         </button>
         <button className={ui.linkButton} type="button" onClick={onClose} disabled={pending}>
           Cancelar
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function ArchivePanel({ category, onClose }: { category: Category; onClose: () => void }) {
-  const [state, archive, pending] = useActionState(
-    archiveCategoryAction.bind(null, category.id),
-    ARCHIVE_INITIAL,
-  );
-  const textId = useId();
-
-  return (
-    <form action={archive} className={`${styles.confirm} ${ui.reveal}`} aria-describedby={textId}>
-      <p id={textId}>
-        Arquivar &ldquo;{category.name}&rdquo;? Ela continua visível no histórico das
-        movimentações, mas não poderá ser atribuída de novo nem reativada.
-      </p>
-
-      {state.status === "error" ? (
-        <Notice tone="error" actions={state.reauth ? <ReauthLink /> : undefined}>
-          {state.message}
-        </Notice>
-      ) : null}
-
-      <div className={ui.formFooter}>
-        {/* Foco inicial na opção segura: a ação definitiva exige escolha explícita. */}
-        <button
-          className={`${ui.button} ${ui.secondary} ${ui.small}`}
-          type="button"
-          onClick={onClose}
-          disabled={pending}
-          autoFocus
-        >
-          Cancelar
-        </button>
-        <button
-          className={`${ui.button} ${ui.danger} ${ui.small}`}
-          type="submit"
-          disabled={pending}
-          aria-busy={pending}
-        >
-          {pending ? "Arquivando…" : "Arquivar categoria"}
         </button>
       </div>
     </form>
