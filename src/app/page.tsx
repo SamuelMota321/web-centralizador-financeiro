@@ -1,69 +1,107 @@
-import Image from "next/image";
+import { redirect } from "next/navigation";
+import { BrandLockup } from "@/components/brand";
+import { IconInflow, IconOutflow, IconTransfer } from "@/components/icons";
+import { StatusChip } from "@/components/ui";
+import { auth0 } from "@/lib/auth0";
+import { formatMoney } from "@/lib/money";
 import styles from "./page.module.css";
 
-export default function Home() {
+/** Amostra fictícia (os mesmos exemplos do Style Guide), montada com os componentes do app. */
+const SAMPLE = [
+  {
+    Icon: IconInflow,
+    direction: "in",
+    title: "Salário (fictício)",
+    meta: "Conta do dia a dia",
+    chip: { tone: "positive", label: "Renda · definida por você" },
+    amount: `+ ${formatMoney("6800.00")}`,
+  },
+  {
+    Icon: IconOutflow,
+    direction: "out",
+    title: "Mercado do bairro",
+    meta: "Conta do dia a dia",
+    chip: { tone: "positive", label: "Alimentação · aplicada por regra" },
+    amount: `− ${formatMoney("184.90")}`,
+  },
+  {
+    Icon: IconOutflow,
+    direction: "out",
+    title: "Padaria",
+    meta: "Conta do dia a dia",
+    chip: { tone: "warning", label: "Categoria incerta" },
+    amount: `− ${formatMoney("23.50")}`,
+  },
+  {
+    Icon: IconTransfer,
+    direction: "transfer",
+    title: "Reserva do mês",
+    meta: "Transferência entre contas",
+    chip: { tone: "neutral", label: "Não se aplica" },
+    amount: `− ${formatMoney("250.00")}`,
+  },
+] as const;
+
+export default async function Home() {
+  const session = await auth0.getSession();
+  if (session) redirect("/movimentacoes");
+
   return (
     <div className={styles.page}>
+      <header className={styles.header}>
+        <BrandLockup />
+      </header>
+
       <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
+        <section className={styles.intro}>
+          <h1 className={styles.title}>Clareza para cuidar do que é seu.</h1>
+          <p className={styles.lead}>
+            Suas contas e movimentações em uma leitura única, rastreável e honesta.
           </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
+          {/* Link do Next faria prefetch e iniciaria a transação de login por engano. */}
+          <a className={styles.action} href="/auth/login?returnTo=/movimentacoes">
+            Entrar
           </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+        </section>
+
+        {/* Prévia real: os mesmos componentes do app, com dados fictícios. */}
+        <figure className={styles.preview}>
+          <div className={styles.previewPanel} aria-hidden>
+            <p className={styles.previewDay}>Hoje</p>
+            <ul className={styles.previewList}>
+              {SAMPLE.map(({ Icon, direction, title, meta, chip, amount }) => (
+                <li key={title} className={styles.previewRow}>
+                  <span className={styles.previewIcon} data-direction={direction}>
+                    <Icon size={15} />
+                  </span>
+                  <span className={styles.previewText}>
+                    <span className={styles.previewTitle}>{title}</span>
+                    <span className={styles.previewMeta}>{meta}</span>
+                  </span>
+                  <span className={styles.previewChip}>
+                    <StatusChip tone={chip.tone}>{chip.label}</StatusChip>
+                  </span>
+                  <span className={`${styles.previewAmount} tabular`} data-direction={direction}>
+                    {amount}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className={styles.previewRule}>
+              Se a descrição contém <span className={styles.previewValue}>“mercado”</span> →{" "}
+              <strong>Alimentação</strong>
+            </p>
+          </div>
+          <figcaption className={styles.caption}>
+            Cada lançamento mostra conta, categoria e de onde veio a classificação.
+          </figcaption>
+        </figure>
       </main>
+
+      <footer className={styles.footer}>
+        <p>O Coinciente organiza: não movimenta dinheiro nem recomenda investimentos.</p>
+        <p>Demonstração acadêmica com dados fictícios, UCB 2026</p>
+      </footer>
     </div>
   );
 }

@@ -1,0 +1,174 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Colunas: frase da regra | prioridade | status | ações. */
+.listHead,
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6.5rem 7.5rem 7.5rem;
+  column-gap: var(--space-5);
+}
+
+.listHead {
+  padding: 0 20px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.listHead > :nth-child(2) {
+  text-align: right;
+}
+
+.row {
+  align-items: center;
+  row-gap: var(--space-3);
+  padding: 14px 20px;
+  transition: background-color var(--duration) ease;
+}
+
+.row[data-open] {
+  background: var(--surface-soft);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sentence {
+  color: var(--body-text);
+  overflow-wrap: anywhere;
+}
+
+/* O valor comparado e a categoria são o que distingue uma regra da outra. */
+.value {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  color: var(--foreground);
+  font-weight: 700;
+  box-decoration-break: clone;
+}
+
+.category {
+  color: var(--foreground);
+  font-weight: 750;
+}
+
+.arrow {
+  color: var(--muted);
+}
+
+/* Removida fica secundária, mas legível; o status também aparece em texto. */
+.row[data-removed] .sentence,
+.row[data-removed] .category,
+.row[data-removed] .value {
+  color: var(--muted);
+}
+
+.rowMeta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* A etiqueta de status ocupa só o próprio texto, não a coluna. */
+.row > :nth-child(3) {
+  justify-self: start;
+}
+
+.priority {
+  color: var(--foreground);
+  font-weight: 750;
+  text-align: right;
+}
+
+/* O rótulo "Prioridade" fica só para leitores de tela enquanto a coluna tem cabeçalho. */
+.priorityLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px dashed color-mix(in srgb, var(--primary) 40%, var(--line));
+  border-radius: var(--radius-control);
+  background: var(--primary-tint);
+  font-weight: 650;
+}
+
+.previewLabel {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+@media (max-width: 52rem) {
+  .listHead {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 14px 16px;
+  }
+
+  .row > .rowMain {
+    grid-column: 1 / -1;
+  }
+
+  .priority {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 0.8125rem;
+    text-align: left;
+  }
+
+  .priorityLabel {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
+  /* Status e ações dividem a última linha. */
+  .row > :nth-child(3) {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: start;
+  }
+
+  .row > :nth-child(4) {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+  }
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+}
