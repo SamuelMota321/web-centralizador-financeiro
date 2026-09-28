@@ -111,14 +111,15 @@ rounded:
   skeleton: "6px"
   pill: "999px"
 spacing:
-  xs: "4px"
-  sm: "8px"
-  md: "12px"
-  lg: "16px"
-  xl: "24px"
-  2xl: "32px"
-  3xl: "40px"
-  4xl: "48px"
+  space-1: "4px"
+  space-2: "8px"
+  space-3: "12px"
+  space-4: "16px"
+  space-5: "20px"
+  space-6: "24px"
+  space-8: "32px"
+  space-10: "40px"
+  space-12: "48px"
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -206,6 +207,9 @@ Restrained: neutros esverdeados carregam o conteúdo; o verde Consciência apare
 - **Newsreader** só na entrada do produto (título fluido da página inicial) e, no futuro, valores de patrimônio no dashboard. Nunca em rótulos, botões ou dados de lista.
 - Tracking por tamanho: títulos grandes negativos (-0,025em a -0,035em), corpo em 0.
 - Números comparados em coluna usam `tabular-nums`; o valor da linha é o dado mais forte (1rem, 750).
+- Duas exceções deliberadas à escala, para dar peso ao que mais importa numa lista: o cabeçalho de dia do
+  histórico usa 0,8125rem/750 (mais pesado que `label`, no mesmo tamanho) e o valor da movimentação usa
+  1rem/750 em vez do token `amount` (0,9375rem), um degrau acima porque é o dado mais lido da tela.
 
 ## Layout
 
@@ -244,10 +248,10 @@ Não se movem: navegação entre páginas, hover de linhas (só cor), valores. C
 
 ## Components
 
-- **Botões:** primário, secundário, perigo, fantasma, link e só ícone (36px; 44px em toque). Estados: hover, pressionado, foco visível (anel de 2px), desabilitado (0,55) e enviando (indicador + gerúndio, com `aria-busy`).
+- **Botões:** primário, secundário, perigo, fantasma, link e só ícone (36px; 44px em toque). Estados: hover, pressionado, foco visível (anel de 2px), desabilitado (0,55) e enviando (indicador + gerúndio, com `aria-busy`). O variante link tem no mínimo 24px de altura (WCAG 2.5.8): é um controle autônomo, não um link dentro de frase.
 - **Campos:** rótulo acima, ajuda abaixo, erro por `aria-describedby`; valor com prefixo "R$" visual; datas em texto DD/MM/AAAA com máscara, nunca o seletor nativo.
 - **Controle segmentado:** opções de mesmo peso com indicador deslizante.
-- **Menu de ações** (Base UI Menu): uma ação comum visível na linha e "Mais ações" com as demais; destrutivas por último, separadas e em `negative`. Teclado completo.
+- **Menu de ações** (Base UI Menu): uma ação comum visível na linha e "Mais ações" com as demais; destrutivas por último, separadas e em `negative`. Teclado completo, com anel de foco próprio no item destacado por teclado (`highlightItemOnHover=false` separa isso do simples passar de mouse, que fica só com o fundo sutil).
 - **Diálogo de confirmação** (Base UI AlertDialog): só para ações definitivas (desativar conta, arquivar categoria, remover regra). Foco inicial em "Cancelar"; não fecha durante o envio; erro exibido dentro dele.
 - **Toast** (Sonner): confirmação transitória de sucesso (criação, avisos após redirecionamento). Erros ficam fixos, perto de onde aconteceram.
 - **Etiqueta de status:** ponto de 7px + texto; tons positivo e atenção levemente tingidos. A cor nunca aparece sozinha.

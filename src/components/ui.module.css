@@ -156,6 +156,9 @@
 .linkButton {
   display: inline-flex;
   align-items: center;
+  /* min-height 24px: alvo mínimo do WCAG 2.5.8 (Target Size) para um controle autônomo, */
+  /* não um link dentro de uma frase — o texto continua do mesmo tamanho, só a área cresce. */
+  min-height: 24px;
   gap: 6px;
   padding: 2px 0;
   border: none;
@@ -873,8 +876,20 @@
   color: var(--muted);
 }
 
+/* Passar o mouse: só o fundo sutil (highlightItemOnHover=false separa isto do teclado). */
+@media (hover: hover) and (pointer: fine) {
+  .menuItem:hover:not([data-disabled]) {
+    background: var(--surface-soft);
+  }
+}
+
+/*
+ * Destaque por teclado: fundo + anel visível. Contraste medido do fundo sozinho contra
+ * --surface é de só 1,05:1 (abaixo do 3:1 do WCAG 1.4.11) — por isso o anel não é opcional.
+ */
 .menuItem[data-highlighted] {
   background: var(--surface-soft);
+  box-shadow: inset 0 0 0 2px var(--primary);
 }
 
 .menuItem[data-disabled] {
@@ -889,6 +904,7 @@
 
 .menuItemDanger[data-highlighted] {
   background: color-mix(in srgb, var(--negative) 8%, var(--surface));
+  box-shadow: inset 0 0 0 2px var(--negative);
 }
 
 .menuSeparator {
