@@ -240,6 +240,15 @@ describe("deactivateAccountAction", () => {
     );
   });
 
+  it("conta usada por regra ativa (409 CATEGORY_RULE_CONFLICT) explica o que fazer, sem redirecionar", async () => {
+    vi.mocked(deactivateAccount).mockRejectedValue(problem(409, "CATEGORY_RULE_CONFLICT"));
+    expect(await deactivateAccountAction(ACCOUNT_ID)).toEqual({
+      status: "error",
+      message:
+        "Esta conta é usada por uma regra ativa. Desative ou remova a regra em Regras antes de desativar a conta.",
+    });
+  });
+
   it("mantém o painel com mensagem em pt-BR em falha interna", async () => {
     vi.mocked(deactivateAccount).mockRejectedValue(problem(500, "INTERNAL_ERROR"));
     expect(await deactivateAccountAction(ACCOUNT_ID)).toEqual({

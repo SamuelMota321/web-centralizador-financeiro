@@ -103,13 +103,31 @@ describe("createCategoryAction", () => {
     expect(state).toEqual({ status: "invalid", name: "Mercado", message: DUPLICATE_NAME_MESSAGE });
   });
 
-  it("500 (nome repetido por corrida) vira mensagem segura que cita a causa provavel", async () => {
+  it("409 CATEGORY_ALREADY_EXISTS (nome repetido por corrida) vira erro no campo", async () => {
+    vi.mocked(createCategory).mockRejectedValue(problem(409, "CATEGORY_ALREADY_EXISTS"));
+
+    const state = await createCategoryAction({ status: "idle" }, form("Mercado"));
+
+    expect(state).toEqual({ status: "invalid", name: "Mercado", message: DUPLICATE_NAME_MESSAGE });
+  });
+
+  it("409 CATEGORY_ALREADY_EXISTS ao renomear tambem vira erro no campo", async () => {
+    vi.mocked(renameCategory).mockRejectedValue(problem(409, "CATEGORY_ALREADY_EXISTS"));
+
+    const state = await renameCategoryAction(CATEGORY_ID, { status: "idle" }, form("Mercado"));
+
+    expect(state).toEqual({ status: "invalid", name: "Mercado", message: DUPLICATE_NAME_MESSAGE });
+  });
+
+  it("500 vira mensagem segura, sem culpar o nome nem mostrar o detalhe tecnico", async () => {
     vi.mocked(createCategory).mockRejectedValue(problem(500, "INTERNAL_ERROR"));
 
     const state = await createCategoryAction({ status: "idle" }, form("Mercado"));
 
-    expect(state).toMatchObject({ status: "error", message: expect.stringContaining("use outro") });
-    expect(state.status === "error" && state.message).not.toContain("English");
+    expect(state).toMatchObject({
+      status: "error",
+      message: "Não foi possível criar a categoria. Tente de novo.",
+    });
   });
 
   it("segue para o backend se a verificacao de nomes falhar", async () => {

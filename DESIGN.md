@@ -169,7 +169,7 @@ components:
 
 # Coinciente — sistema visual do app web
 
-Fonte de verdade: Style Guide 1.0 (`documentacao-centralizador-financeiro/style-guide.html` e `assets/styles.css`). Este arquivo traduz o guia para a interface de produto; quando divergir do guia, o guia vence e este arquivo é corrigido. Divergência deliberada, aprovada na reformulação da interface: a navegação lateral usa o fundo Confiança (o guia mostra a lateral clara), para dar à estrutura o peso institucional da marca.
+Fonte de verdade: Style Guide 1.0 (`documentacao-centralizador-financeiro/docs/design/style-guide.html` e `assets/styles.css`). Este arquivo traduz o guia para a interface de produto; quando divergir do guia, o guia vence e este arquivo é corrigido. Divergência deliberada, aprovada na reformulação da interface: a navegação lateral usa o fundo Confiança (o guia mostra a lateral clara), para dar à estrutura o peso institucional da marca.
 
 ## Overview
 
