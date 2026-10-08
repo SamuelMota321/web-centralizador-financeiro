@@ -40,9 +40,11 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const { body, query, headers, accessToken, idempotencyKey, ...rest } = options;
 
+  // FormData segue como esta: o fetch define o content-type com o boundary do multipart.
+  const isFormData = body instanceof FormData;
   const finalHeaders = new Headers(headers);
   finalHeaders.set("accept", "application/json");
-  if (body !== undefined) {
+  if (body !== undefined && !isFormData) {
     finalHeaders.set("content-type", "application/json");
   }
   if (accessToken) {
@@ -58,7 +60,7 @@ export async function apiRequest<T>(
     // fetch por padrão; declarar evita que config ou `use cache` futuros mudem isso sem aviso.
     cache: "no-store",
     headers: finalHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
   });
 
   const raw = await response.text();

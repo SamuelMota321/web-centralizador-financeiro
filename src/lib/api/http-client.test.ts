@@ -51,6 +51,17 @@ describe("apiRequest", () => {
     expect(withoutBody.headers.has("content-type")).toBe(false);
   });
 
+  it("envia FormData sem serializar e deixa o fetch definir o content-type", async () => {
+    const fetchMock = stubFetch(201, {});
+    const form = new FormData();
+    form.append("file", new File(["OFXHEADER:100"], "extrato.ofx"));
+
+    await apiRequest("/ingestions/ofx/previews", { method: "POST", body: form });
+    const request = lastRequest(fetchMock);
+    expect(request.init.body).toBe(form);
+    expect(request.headers.has("content-type")).toBe(false);
+  });
+
   it("normaliza erro Problem Details preservando o corpo", async () => {
     stubFetch(404, {
       type: "about:blank",
