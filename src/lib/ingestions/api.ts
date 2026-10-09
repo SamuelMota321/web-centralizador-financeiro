@@ -5,7 +5,7 @@ import { idempotencyKeySchema } from "../transactions/schema";
 import { confirmImportInputSchema, importRunSchema } from "./schema";
 import type { ConfirmImportInput, ImportRun } from "./types";
 
-// Rotas do contrato S3-01 do Dev 1; ainda nao publicadas no OpenAPI (backend @ 9887206).
+// Rotas do OpenAPI do backend (@ 2c416cd). Previa e confirmacao exigem Idempotency-Key.
 
 /** Credencial da requisicao em curso, sempre explicita. Ver `RequestOptions.accessToken`. */
 export interface IngestionsRequestContext {
@@ -17,16 +17,24 @@ export interface IngestionWriteContext extends IngestionsRequestContext {
   idempotencyKey: string;
 }
 
+/** A conta vai junto com o arquivo: a previa ja calcula os duplicados para ela. */
+export interface OfxPreviewInput {
+  file: File;
+  destinationAccountId: string;
+}
+
 const uuidSchema = z.uuid();
 
-/** POST /api/v1/ingestions/ofx/previews — 201 com a previa pronta ou 202 na fila. */
+/** POST /api/v1/ingestions/ofx/previews — 201 com a previa pronta. */
 export async function createOfxPreview(
-  file: File,
+  input: OfxPreviewInput,
   context: IngestionWriteContext,
 ): Promise<ImportRun> {
+  const destinationAccountId = uuidSchema.parse(input.destinationAccountId);
   const idempotencyKey = idempotencyKeySchema.parse(context.idempotencyKey);
   const body = new FormData();
-  body.append("file", file, file.name);
+  body.append("file", input.file, input.file.name);
+  body.append("destinationAccountId", destinationAccountId);
   try {
     const raw = await apiRequest<unknown>("/ingestions/ofx/previews", {
       method: "POST",
@@ -40,7 +48,7 @@ export async function createOfxPreview(
   }
 }
 
-/** POST /api/v1/ingestions/{importRunId}/confirmations — 200 concluida ou 202 na fila. */
+/** POST /api/v1/ingestions/{importRunId}/confirmations — 200 com o resultado. */
 export async function confirmImport(
   importRunId: string,
   input: ConfirmImportInput,

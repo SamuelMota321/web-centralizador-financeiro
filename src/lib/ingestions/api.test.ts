@@ -31,9 +31,11 @@ const problemBody = (status: number, code: string) => ({
 describe("createOfxPreview", () => {
   const file = new File(["OFXHEADER:100"], "extrato.ofx", { type: "application/x-ofx" });
 
-  it("envia o arquivo no campo file, com bearer e Idempotency-Key", async () => {
+  const input = { file, destinationAccountId: DESTINATION_ACCOUNT_ID };
+
+  it("envia arquivo e conta no multipart, com bearer e Idempotency-Key", async () => {
     const fetchMock = stubFetch(201, previewRun());
-    const run = await createOfxPreview(file, { ...context, idempotencyKey: KEY });
+    const run = await createOfxPreview(input, { ...context, idempotencyKey: KEY });
 
     const call = lastCall(fetchMock);
     expect(call.url).toBe(`${BASE}/ingestions/ofx/previews`);
@@ -41,29 +43,28 @@ describe("createOfxPreview", () => {
     expect(call.headers.get("authorization")).toBe("Bearer token-ficticio");
     expect(call.headers.get("idempotency-key")).toBe(KEY);
     expect(call.headers.has("content-type")).toBe(false);
-    const sent = (call.init.body as FormData).get("file") as File;
+    const form = call.init.body as FormData;
+    expect(form.get("destinationAccountId")).toBe(DESTINATION_ACCOUNT_ID);
+    const sent = form.get("file") as File;
     expect(sent.name).toBe("extrato.ofx");
     expect(await sent.text()).toBe("OFXHEADER:100");
-    expect(run.status).toBe("preview_ready");
+    expect(run.items.some((item) => item.isDuplicate)).toBe(true);
   });
 
-  it("aceita 202 com a prévia na fila", async () => {
-    stubFetch(202, previewRun({ status: "queued", items: [], totalItems: 0 }));
-    const run = await createOfxPreview(file, { ...context, idempotencyKey: KEY });
-    expect(run.status).toBe("queued");
-  });
-
-  it("recusa chave inválida antes de chamar o backend", async () => {
+  it("recusa conta ou chave inválidas antes de chamar o backend", async () => {
     const fetchMock = stubFetch(201, previewRun());
-    await expect(createOfxPreview(file, { ...context, idempotencyKey: "x" })).rejects.toThrow();
+    await expect(
+      createOfxPreview({ file, destinationAccountId: "conta" }, { ...context, idempotencyKey: KEY }),
+    ).rejects.toThrow();
+    await expect(createOfxPreview(input, { ...context, idempotencyKey: "x" })).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("converte o erro em ProblemDetailsError", async () => {
-    stubFetch(415, problemBody(415, "CODIGO_FICTICIO"));
-    const error = await createOfxPreview(file, { ...context, idempotencyKey: KEY }).catch((e: unknown) => e);
+    stubFetch(415, problemBody(415, "INVALID_REQUEST"));
+    const error = await createOfxPreview(input, { ...context, idempotencyKey: KEY }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ProblemDetailsError);
-    expect(error).toMatchObject({ status: 415 });
+    expect(error).toMatchObject({ status: 415, code: "INVALID_REQUEST" });
   });
 });
 
