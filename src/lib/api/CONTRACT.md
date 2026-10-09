@@ -5,7 +5,7 @@ O contrato e propriedade do backend (`backend-centralizador-financeiro`), servid
 naquele repositorio.
 
 `openapi.snapshot.json` (nesta pasta) e uma copia de referencia do contrato
-em `backend @ e95d2af`. Os tipos em `src/lib/accounts/types.ts` e os schemas em
+em `backend @ 2c416cd`. Os tipos em `src/lib/accounts/types.ts` e os schemas em
 `src/lib/accounts/schema.ts` sao transcritos a mao e devem acompanhar esse snapshot.
 
 ## Cobertura atual
@@ -165,67 +165,65 @@ Enquanto nao houver decisao, o acesso usa `src/lib/api/http-client.ts` + tipos a
 
 ## Sprint 3 (planejado)
 
-Baseline da Fase 1 do Dev 2 (2026-10-07), atualizado em 2026-10-08 com o contrato backend S3-01
-do Dev 1 (`docs/planejamento/sprint-03/contrato-backend-s3-01.html`, docs @ `f851384`). O backend
-em `9887206` tem a fundacao de OFX (dominio, parser, persistencia), mas nenhum controller: as
-rotas abaixo ainda nao estao no OpenAPI nem em `openapi.snapshot.json`. O cliente usa este
-contrato com dados ficticios ate o Dev 1 publicar os handlers (S3-02 e S3-05).
+Baseline da Fase 1 do Dev 2 (2026-10-07), atualizado com o contrato backend S3-01 do Dev 1
+(`docs/planejamento/sprint-03/contrato-backend-s3-01.html`) e, em 2026-10-09, com o OpenAPI do
+backend em `2c416cd`, que publica as rotas de OFX. Em divergencia, o cliente segue o OpenAPI.
+O plano da S3-08 (docs @ `1f68771`) registra a reconciliacao em curso.
 
-### Operacoes (contrato S3-01, ainda fora do OpenAPI)
+### Operacoes
 
 | Operacao | Cliente | Status |
 |---|---|---|
-| `POST /api/v1/ingestions/ofx/previews` (multipart, campo `file`) + `Idempotency-Key` | `createOfxPreview()` | rota Approved; resposta Proposed |
-| `POST /api/v1/ingestions/{importRunId}/confirmations` + `Idempotency-Key` | `confirmImport()` | rota Approved; resposta Proposed |
-| `GET /api/v1/ingestions/{importRunId}` | `getImportRun()` | rota Approved; resposta Proposed |
-| `POST /api/v1/connections/pluggy/sessions` | — (fase 4) | rota Approved; campos OPEN |
-| `POST /api/v1/connections/pluggy/completions` + `Idempotency-Key` | — (fase 4) | rota Approved; campos OPEN |
-| `GET /api/v1/connections/{connectionId}` | — (fase 4) | rota Approved; campos OPEN |
-| `PUT /api/v1/connections/{connectionId}/accounts/{providerAccountId}/mapping` | — (fase 4) | rota Approved; campos OPEN |
-| `POST /api/v1/connections/{connectionId}/disconnect` | — (fase 4) | rota Approved |
+| `POST /api/v1/ingestions/ofx/previews` (multipart: `file` e `destinationAccountId`) + `Idempotency-Key` | `createOfxPreview()` | Approved — OpenAPI @ 2c416cd |
+| `POST /api/v1/ingestions/{importRunId}/confirmations` (JSON: `destinationAccountId`) + `Idempotency-Key` | `confirmImport()` | Approved — OpenAPI @ 2c416cd |
+| `GET /api/v1/ingestions/{importRunId}` | `getImportRun()` | Approved — OpenAPI @ 2c416cd |
+| `POST /api/v1/connections/pluggy/sessions` | — (fase 4) | contrato S3-01; fora do OpenAPI |
+| `POST /api/v1/connections/pluggy/completions` + `Idempotency-Key` | — (fase 4) | contrato S3-01; fora do OpenAPI |
+| `GET /api/v1/connections/{connectionId}` | — (fase 4) | contrato S3-01; fora do OpenAPI |
+| `PUT /api/v1/connections/{connectionId}/accounts/{providerAccountId}/mapping` | — (fase 4) | contrato S3-01; fora do OpenAPI |
+| `POST /api/v1/connections/{connectionId}/disconnect` | — (fase 4) | contrato S3-01; fora do OpenAPI |
 
-Modulo: `src/lib/ingestions/`. Os nomes dos campos da resposta (Proposed) seguem o dominio do
-backend @ `9887206` (`ImportRunSnapshot` e `IngestionItemState`); `items` e o nome assumido para
-as linhas da previa e do resultado. Os testes usam dados ficticios marcados como Proposed;
-`contract.test.ts` nao cobre estas rotas enquanto elas nao estiverem no snapshot.
+Modulo: `src/lib/ingestions/`. Os schemas de ingestao sao inline no OpenAPI (fora de
+`components.schemas`) e transcritos a mao. `contract.test.ts` cobre as tres operacoes: bearer,
+`Idempotency-Key` obrigatoria na previa e na confirmacao, campos do multipart e da confirmacao,
+campos exatos do ImportRun e do item, enums e dados ficticios validados contra o snapshot.
 
-### Decidido no contrato S3-01
+### Comportamento verificado no backend (@ 2c416cd)
 
-- OFX 1.x SGML e 2.x XML, em ASCII ou UTF-8; PDF recusado. Limite do backend: 10 MiB.
-- Conta de destino escolhida na confirmacao (`destinationAccountId`, conta ativa do tenant).
-- Duplicado: FITID dentro da conta de destino; sem FITID, data/valor/descricao, com o aviso
-  `external_id_missing` e sem bloquear a confirmacao. Duplicados sao sempre ignorados.
-- Previa: 201 pronta ou 202 na fila. Confirmacao: 200 concluida ou 202 na fila. O limiar numerico
-  de assincronia ainda nao foi medido (Dev 1).
-- Estados da importacao: `preview_ready`, `awaiting_account_mapping`, `queued`, `processing`,
-  `completed`, `completed_with_errors`, `failed`, `expired`.
-- Pluggy: conexao `pending_authorization`, `connected`, `partially_available`, `expired`,
-  `revoked`, `disconnected`; consentimento `granted`, `expired`, `revoked`. Desconectar para a
-  coleta e mantem as contas e movimentacoes ja importadas.
-- Erros por status: 400, 401, 403, 404, 409 (estado invalido ou idempotencia), 413, 415, 422 e 503.
+- A conta de destino vai junto com o arquivo; a previa ja traz `isDuplicate` por item, calculado
+  para essa conta. A confirmacao repete `destinationAccountId`.
+- Previa responde 201 e confirmacao 200 (fluxo sincrono; nenhum 202 publicado ainda).
+- Estados do ImportRun: `preview_ready`, `queued`, `processing`, `completed`,
+  `completed_with_errors`, `failed`, `expired`. Item: `previewed`, `imported`, `ignored_duplicate`,
+  `failed`. `warnings` e uma lista de texto aberta; o aviso conhecido e `external_id_missing`.
+- OFX 1.x SGML e 2.x XML, em ASCII ou UTF-8; PDF recusado; limite do backend 10 MiB.
+- `retentionExpiresAt` e o fim da retencao dos metadados (90 dias), nao a validade da previa.
+- Erros: arquivo e estado saem como `INVALID_REQUEST`, distinguidos pelo status (400, 404, 409,
+  413, 415, 422); `ACCOUNT_NOT_FOUND` (404), `ACCOUNT_ARCHIVED` (409), `IDEMPOTENCY_KEY_REUSED` e
+  `IDEMPOTENCY_KEY_EXPIRED` (409); armazenamento indisponivel e 503 `INTERNAL_ERROR`.
+- Sem as variaveis `R2_*` no backend, a previa responde 503: o teste local de ponta a ponta
+  depende de um bucket de desenvolvimento.
 
-### Pendente com o Dev 1 (levantado em 2026-10-08)
+### Ainda em aberto
 
-1. 10 MiB nao passa pela Vercel (4,5 MB por requisicao): o web limita a 4 MiB ate a decisao.
-2. Duplicados so aparecem no resultado: a conta e escolhida depois da previa e o dominio deixa
-   `isDuplicate` nulo na previa.
-3. Valores de `code` do Problem Details para ingestions e connections.
-4. Nomes dos campos da resposta (usados os do dominio, Proposed).
-5. `Idempotency-Key` na previa: o cliente envia; a tabela do contrato so a exige na confirmacao.
-6. Prazo de validade da previa (`expired` existe, sem campo como `expiresAt`).
-7. Campos de `sessions` e `completions` do Pluggy.
-
-Tambem em aberto: regra de conta "correspondente" no Pluggy (Dev 3) e credenciais do Sandbox.
+1. Validade de 24 horas da previa: decidida na S3-08, mas `expiresAt` ainda nao esta no OpenAPI.
+2. Estado `awaiting_account_mapping` e operacao de mapeamento (S3-08): ainda sem campos. Se o
+   fluxo passar a "arquivo primeiro, conta depois", `createOfxPreview()` muda.
+3. Pluggy (S3-05): campos de `sessions` e `completions`; regra de conta "correspondente"
+   (Dev 3); credenciais do Sandbox.
+4. Credenciais R2 de desenvolvimento para testar a importacao contra o backend local.
 
 ### Decisoes do cliente
 
-- Upload por Server Action (fase 3), com `serverActions.bodySizeLimit` ajustado ao limite do web.
+- Upload por Server Action em `/contas/importar-ofx` (fase 3), com
+  `experimental.serverActions.bodySizeLimit` = `SERVER_ACTION_BODY_LIMIT_BYTES` (4 MiB + 64 KiB):
+  cabe o arquivo com o overhead do multipart e fica abaixo do teto de 4,5 MB da Vercel (S3-08).
 - `apiRequest()` repassa `FormData` sem `JSON.stringify` e sem `content-type` (o runtime define o
   boundary); corpos JSON nao mudam.
 - Validacao local do arquivo (`checkOfxFile()`): vazio, PDF e acima de 4 MiB. E so ajuda de uso;
   quem decide e o backend.
-- Erros: `ingestionErrorMessage()` traduz primeiro os codigos ja conhecidos (idempotencia, sessao,
-  conta) e depois o status HTTP, ate os `code` serem publicados. O `detail` nunca e exibido.
+- Erros: `ingestionErrorMessage()` traduz primeiro os codigos especificos (conta, idempotencia,
+  sessao) e depois o status HTTP. O `detail` nunca e exibido.
 - Rotas `/contas/importar-ofx` e `/contas/conectar` (fases 3 e 4), sem item novo em `NAV_GROUPS`;
   `PROTECTED_PREFIXES` (`src/proxy.ts`) ja cobre `/contas/*`.
 - Dependencia aprovada, ainda nao instalada: `react-pluggy-connect@2.12.0` (fase 4).

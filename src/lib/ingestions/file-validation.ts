@@ -3,6 +3,12 @@
 // Next, e a Vercel recusa requisicoes acima de 4,5 MB. Por isso o web limita a 4 MiB.
 export const MAX_OFX_BYTES = 4 * 1024 * 1024;
 
+/**
+ * Limite do corpo da Server Action (`next.config.ts`): o arquivo de 4 MiB mais folga para o
+ * overhead do multipart (a documentacao do Next estima 10 a 20 KB), abaixo dos 4,5 MB da Vercel.
+ */
+export const SERVER_ACTION_BODY_LIMIT_BYTES = MAX_OFX_BYTES + 64 * 1024;
+
 export interface OfxFileCandidate {
   name: string;
   type: string;
