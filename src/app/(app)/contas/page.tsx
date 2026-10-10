@@ -45,6 +45,9 @@ export default async function ContasPage({
                 Importar extrato OFX
               </Link>
             ) : null}
+            <Link className={`${ui.button} ${ui.secondary}`} href="/contas/conectar">
+              Conectar banco (Sandbox)
+            </Link>
             <PanelToggle flag="nova" forceOpen={forceOpen}>
               Nova conta
             </PanelToggle>
