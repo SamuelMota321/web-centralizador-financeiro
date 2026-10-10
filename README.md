@@ -14,6 +14,12 @@ manual com estados incerto e não reconhecido, regras pessoais de categorizaçã
 precedência explicada e o isolamento de estado entre sessões. A interface segue o Style
 Guide 1.0, documentado em `PRODUCT.md` e `DESIGN.md`.
 
+A Sprint 3 (S3-03 e S3-06) acrescenta a importação de extrato OFX em `/contas/importar-ofx`
+(prévia com duplicatas antes da confirmação, confirmação com Idempotency-Key e resultado com
+importadas, ignoradas e com erro) e a conexão de banco pelo Pluggy em ambiente Sandbox em
+`/contas/conectar` (explicação do que é autorizado, widget, registro e detalhe da conexão,
+remoção com confirmação). Contrato no backend `605cb07`; ver `src/lib/api/CONTRACT.md`.
+
 A reformulação da interface reorganizou a navegação (lateral em Confiança com grupos
 "Registros" e "Organização", trilho no tablet e abas no celular), trouxe histórico agrupado
 por dia, primeiros passos, menus de ações, diálogo de confirmação e toasts. Componentes
@@ -195,7 +201,7 @@ Next são simulados. Os arquivos `*.test.ts` ficam ao lado do código testado.
 | `src/lib/api/http-client.test.ts` | bearer só com token, `cache: "no-store"` sempre, URL, corpo JSON e normalização de erros |
 | `src/lib/page-window.test.ts` | páginas exibidas na paginação numerada (primeira, última, vizinhas e reticências) |
 | `src/lib/api/pagination.test.ts` | leitura de todas as páginas para seletores, com aviso de truncamento |
-| `src/lib/api/contract.test.ts` | operações existem no `openapi.snapshot.json`; fixtures de cada resposta validadas contra o snapshot e contra o Zod; enums iguais aos do contrato |
+| `src/lib/api/contract.test.ts` | operações existem no `openapi.snapshot.json`; fixtures de cada resposta validadas contra o snapshot e contra o Zod; enums iguais aos do contrato; importação OFX e conexões (bearer, Idempotency-Key, campos e todos os estados) |
 | `src/lib/accounts/*.test.ts` | contas: schema, PATCH só com alterações, mensagens, chamadas da API |
 | `src/lib/transactions/*.test.ts` | movimentações: schemas de entrada (valor, data, transferência entre contas distintas, categorização), chamadas com Idempotency-Key, mensagens |
 | `src/lib/categories/api.test.ts`, `src/lib/category-rules/*.test.ts` | categorias e regras: chamadas, gramática da condição e limites de prioridade |
@@ -204,6 +210,10 @@ Next são simulados. Os arquivos `*.test.ts` ficam ao lado do código testado.
 | `src/app/(app)/contas/*.test.ts` | Server Actions de contas e avisos restritos a uma lista fechada |
 | `src/app/(app)/categorias/*.test.ts` | criar, renomear e arquivar; nome repetido recusado antes da API |
 | `src/app/(app)/regras/*.test.ts` | criar, editar só o que mudou, ativar, desativar e remover; frase da regra e gramática |
+| `src/lib/ingestions/*.test.ts` | importação OFX: arquivo vazio, PDF e acima de 4 MiB recusados antes do envio, multipart com Idempotency-Key, schemas e mensagens sem o `detail` |
+| `src/lib/connections/*.test.ts` | conexões: chamadas das quatro operações, schemas e mensagens (404 neutro, 409 e 503) |
+| `src/app/(app)/contas/importar-ofx/*.test.ts` | Server Actions da prévia e da confirmação (mesma chave no reenvio, troca só na recusa, prévia expirada, ids adulterados) e textos da prévia e do resultado parcial |
+| `src/app/(app)/contas/conectar/*.test.ts` | Server Actions da conexão (só o `connectToken` vai ao navegador, mesmo `itemId` no reenvio, remoção e conflito) e textos de cada estado |
 | `src/proxy.test.ts` | rotas do app sem sessão redirecionam ao login; `/auth/*` e a página pública não exigem sessão |
 
 Os fluxos de tela (login real no Auth0, confirmação visual, logout pelo navegador) são
@@ -237,6 +247,8 @@ pnpm start          # serve o build na porta 3001
 | `src/app/(app)/layout.tsx`, `app-frame.tsx` | sessão e estrutura do app: lateral, trilho ou abas (`side-nav.tsx`), menu da conta e atalho de registro (`account-menu.tsx`) |
 | `src/app/(app)/movimentacoes/` | histórico agrupado por dia, primeiros passos, registro de receita, despesa e transferência, categorização |
 | `src/app/(app)/contas/` | contas manuais: criar, editar, desativar com confirmação |
+| `src/app/(app)/contas/importar-ofx/` | importação OFX: escolha de conta e arquivo, prévia, confirmação e resultado |
+| `src/app/(app)/contas/conectar/` | conexão Pluggy Sandbox: explicação, widget (`next/dynamic` sem SSR), registro, detalhe e remoção |
 | `src/app/(app)/categorias/` | categorias pessoais: criar, renomear, arquivar |
 | `src/app/(app)/regras/` | regras pessoais: formulário guiado, ciclo de vida e explicação da precedência |
 | `src/components/` | ícones SVG, símbolo da marca, peças de interface (`ui.tsx`), menu, diálogo, toasts e controle segmentado (`interactive.tsx`) e painel de criação (`panel.tsx`) |
@@ -247,6 +259,7 @@ pnpm start          # serve o build na porta 3001
 | `src/lib/api/CONTRACT.md` | estado do contrato OpenAPI e opções de gerador |
 | `src/lib/accounts/` | tipos, Zod de borda, funções da API, diff do PATCH e mensagens por código |
 | `src/lib/transactions/`, `categories/`, `category-rules/` | clientes tipados de Transactions, com Zod de borda e mensagens |
+| `src/lib/ingestions/`, `src/lib/connections/` | clientes tipados da importação OFX e das conexões, com Zod de borda, validação local do arquivo e mensagens |
 | `src/lib/session.ts` | token da sessão no servidor e detecção de falha de autenticação |
 | `vitest.config.mts` | configuração dos testes (alias `@`, variáveis fictícias) |
 
@@ -275,6 +288,36 @@ usuários de teste (A e B) do mesmo tenant Auth0. Não mostre `.env`, tokens nem
 O roteiro completo (web e mobile, usuários A e B, precedência de regras, reenvio sem
 duplicar e isolamento) está em
 `documentacao-centralizador-financeiro/prompts/sprint2/dev2/roteiro-demonstracao-sprint-2.md`.
+
+## Demonstração da Sprint 3
+
+Roteiro completo (OFX, Pluggy e isolamento entre A e B, web e mobile) em
+`documentacao-centralizador-financeiro/prompts/sprint3/dev2/roteiro-demonstracao-sprint-3.md`.
+
+Sem backend, os fluxos só rodam pelos testes automatizados (`pnpm test`), com `fetch`
+simulado. Com o backend local (passo 3), os dois fluxos precisam de credenciais no `.env`
+**do backend**:
+
+- **Importação OFX:** o backend guarda o arquivo da prévia no R2. Sem `R2_ENDPOINT`,
+  `R2_BUCKET_NAME`, `R2_ACCESS_KEY_ID` e `R2_SECRET_ACCESS_KEY` (as quatro juntas) no `.env` do backend, a prévia
+  responde 503 e a tela mostra que o serviço está indisponível. Arquivos sintéticos para testar
+  estão em `backend-centralizador-financeiro/test/fixtures/ofx/`.
+- **Conexão Pluggy:** sem `PLUGGY_CLIENT_ID` e `PLUGGY_CLIENT_SECRET` (Sandbox) no `.env` do
+  backend, abrir a sessão responde 503. O backend só sobe se as variáveis `PLUGGY_*`,
+  `QSTASH_*` e `PUBLIC_API_BASE_URL` vierem todas juntas (veja o `.env.example` do backend). O
+  cliente nunca recebe essas credenciais, só o `connectToken` de 30 minutos de cada tentativa.
+
+Limitações conhecidas:
+
+- Limite de 4 MiB por arquivo no web: o envio passa por Server Action, e a Vercel aceita até
+  4,5 MB por requisição (`SERVER_ACTION_BODY_LIMIT_BYTES` em `next.config.ts`). O backend e o
+  mobile aceitam 10 MiB.
+- A prévia não mostra quando expira (24 horas): `expiresAt` não está no contrato.
+- Não há lista de conexões (`GET /connections` não existe): a tela mostra só a conexão do fluxo
+  atual, e a URL `?conexao=<id>` reabre a mesma conexão depois de recarregar.
+- A conexão não importa transações nem associa contas ainda (importação inicial e mapeamento
+  ficam para a S3-08 no backend).
+- O widget do Pluggy roda num iframe com storage próprio, na origem do Pluggy.
 
 ## Ambiente
 
