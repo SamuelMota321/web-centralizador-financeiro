@@ -67,8 +67,8 @@
   font-weight: 750;
   box-shadow: var(--shadow-raised);
   transition:
-    background-color var(--duration) ease,
-    transform var(--duration-fast) var(--ease-out);
+    background-color var(--motion-hover) ease,
+    transform var(--motion-feedback) var(--ease-out);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -97,8 +97,8 @@
   box-shadow: var(--shadow-overlay);
   /* Entrada única ao carregar: a prévia assenta no lugar (primeira visita). */
   transition:
-    opacity 600ms var(--ease-out),
-    transform 600ms var(--ease-out);
+    opacity var(--motion-intro) var(--ease-out),
+    transform var(--motion-intro) var(--ease-out);
 }
 
 @starting-style {

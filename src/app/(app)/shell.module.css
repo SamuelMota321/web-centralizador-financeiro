@@ -82,8 +82,8 @@
   font-weight: 750;
   white-space: nowrap;
   transition:
-    background-color var(--duration) ease,
-    transform var(--duration-fast) var(--ease-out);
+    background-color var(--motion-hover) ease,
+    transform var(--motion-feedback) var(--ease-out);
 }
 
 .register:active {
@@ -136,8 +136,8 @@
   font-size: 0.875rem;
   font-weight: 650;
   transition:
-    background-color var(--duration) ease,
-    color var(--duration) ease;
+    background-color var(--motion-hover) ease,
+    color var(--motion-hover) ease;
 }
 
 .navItem > svg {
@@ -194,7 +194,7 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background-color var(--duration) ease;
+  transition: background-color var(--motion-hover) ease;
 }
 
 .accountTrigger {
@@ -420,11 +420,11 @@
     border-radius: 50%;
     background: var(--primary);
     color: var(--on-primary);
-    transition: transform var(--duration-fast) var(--ease-out);
+    transition: transform var(--motion-feedback) var(--ease-out);
   }
 
   .mobileRegister:active {
-    transform: scale(0.94);
+    transform: scale(0.97);
   }
 
   .mobileBar .avatar {
@@ -461,7 +461,7 @@
     color: var(--nav-muted);
     font-size: 0.6875rem;
     font-weight: 650;
-    transition: color var(--duration) ease;
+    transition: color var(--motion-hover) ease;
   }
 
   .tab[aria-current="page"] {

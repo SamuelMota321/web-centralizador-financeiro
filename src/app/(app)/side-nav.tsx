@@ -11,6 +11,9 @@ import {
 } from "@/components/icons";
 import shell from "./shell.module.css";
 
+// Só a navegação principal faz crossfade (ADR-002); o AppFrame anima apenas este tipo.
+const NAV_TRANSITION = ["nav"];
+
 interface NavItem {
   href: string;
   label: string;
@@ -53,6 +56,7 @@ export function SideNav() {
               <li key={href}>
                 <Link
                   href={href}
+                  transitionTypes={NAV_TRANSITION}
                   className={shell.navItem}
                   aria-current={isCurrent(pathname, href) ? "page" : undefined}
                 >
@@ -79,6 +83,7 @@ export function TabBar() {
         <Link
           key={href}
           href={href}
+          transitionTypes={NAV_TRANSITION}
           className={shell.tab}
           aria-current={isCurrent(pathname, href) ? "page" : undefined}
         >

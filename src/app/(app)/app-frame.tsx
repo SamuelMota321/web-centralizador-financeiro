@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, ViewTransition } from "react";
 import { BrandLockup, BrandSymbol } from "@/components/brand";
 import { IconPlus } from "@/components/icons";
 import { AppToaster } from "@/components/interactive";
@@ -63,7 +63,12 @@ export function AppFrame({ identity, children }: { identity: string; children: R
       </header>
 
       <main id="conteudo" className={shell.main} tabIndex={-1}>
-        <div className={shell.content}>{children}</div>
+        <div className={shell.content}>
+          {/* Só a navegação marcada com "nav" faz crossfade: salvar dados na página não pisca. */}
+          <ViewTransition default="none" update={{ nav: "page", default: "none" }}>
+            {children}
+          </ViewTransition>
+        </div>
       </main>
 
       <TabBar />

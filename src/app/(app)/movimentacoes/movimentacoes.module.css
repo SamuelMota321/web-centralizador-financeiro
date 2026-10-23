@@ -66,7 +66,7 @@
   column-gap: var(--space-5);
   row-gap: var(--space-3);
   padding: 14px 20px;
-  transition: background-color var(--duration) ease;
+  transition: background-color var(--motion-hover) ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -81,7 +81,7 @@
 
 /* Linha recém-criada: tinta verde que se dissolve e mostra onde o registro entrou. */
 .row[data-recent] {
-  animation: arrived 1600ms var(--ease-out) both;
+  animation: arrived var(--motion-arrival) var(--ease-out) both;
 }
 
 @keyframes arrived {
@@ -249,8 +249,8 @@
   background: var(--primary-tint);
   color: var(--primary-hover);
   transition:
-    transform 320ms var(--ease-out),
-    opacity 320ms var(--ease-out);
+    transform var(--motion-settle) var(--ease-out),
+    opacity var(--motion-settle) var(--ease-out);
 }
 
 @starting-style {
@@ -333,6 +333,6 @@
 /* Movimento reduzido não é zero: o destaque é só cor, sem deslocamento, e permanece. */
 @media (prefers-reduced-motion: reduce) {
   .row[data-recent] {
-    animation-duration: 1600ms !important;
+    animation-duration: var(--motion-arrival) !important;
   }
 }
