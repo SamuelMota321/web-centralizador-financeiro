@@ -9,6 +9,13 @@ Critério mínimo antes de considerar uma tela pronta. Curto de propósito; deta
 - [ ] Uma ação primária, sem CTA competindo
 - [ ] Loading, vazio, erro e sucesso implementados (não só o caminho feliz)
 - [ ] Ação destrutiva com confirmação e recuperação explicada
+- [ ] Dado de fonte externa mostra origem, data de referência e frescor
+
+## Movimento
+
+- [ ] Todo movimento tem propósito e usa duração e curva dos tokens do `DESIGN.md`
+- [ ] Testado com `prefers-reduced-motion: reduce`: sai o deslocamento, ficam opacidade e cor
+- [ ] Nenhum valor financeiro animado
 
 ## Visual
 

@@ -2,7 +2,8 @@
 
 Consolida padrões de experiência já implementados no app, espalhados hoje entre `PRODUCT.md` (princípios
 de produto) e `DESIGN.md` (componentes). Não redefine tokens visuais — isso é `DESIGN.md`. Fonte para as
-skills `ux-critic` e `visual-audit`, e para qualquer revisão de tela nova.
+skills `ux-critic` e `visual-audit` (em `documentacao-centralizador-financeiro/.agents/skills/`), e para
+qualquer revisão de tela nova.
 
 ## Hierarquia e ações
 
@@ -31,6 +32,15 @@ Estados sempre explícitos, nunca escondidos ou inferidos pela ausência de dado
 | Erro | `Notice` fixo com o problema e a recuperação; `error.tsx` de rota com "Tentar de novo" |
 | Sucesso | Toast, ou `Notice tone="success"` quando precisa persistir na tela |
 | Categorização | Sempre um dos 5 estados explícitos do domínio — nunca "sem categoria" tratado como erro |
+| Dado de fonte externa | Carimbo com origem, data de referência e frescor; desatualizado ou indisponível sempre visível (planejado) |
+| Sincronização | Aguardando, sincronizando, concluída ou falhou com recuperação; o último dado válido continua legível (planejado) |
+
+## Movimento
+
+- Anima só o que explica causa, mudança de estado ou de onde algo veio; nada que se repete dezenas de vezes por dia.
+- Valores financeiros nunca se movem, contam ou crescem.
+- Movimento reduzido não é zero: sai o deslocamento, ficam opacidade e cor. Tokens e tabela em `DESIGN.md`;
+  princípios na seção Movimento do Style Guide 2.0.
 
 ## Divulgação progressiva
 
@@ -48,8 +58,9 @@ Estados sempre explícitos, nunca escondidos ou inferidos pela ausência de dado
 
 ## Consistência
 
-- O mesmo vocabulário de estado (`categorizationLabel`, `StatusChip`) em toda tela que mostra uma
+- O mesmo vocabulário de estado (`categorizationLabel` + marcador; `StatusChip` até a aplicação da 2.0) em toda tela que mostra uma
   movimentação — nunca um rótulo ad hoc por tela.
+- Proveniência como linha de metadados (`Origem · ref. DD/MM HH:MM · Conta`) logo abaixo do dado — nunca em chip.
 - Data sempre DD/MM/AAAA digitada com máscara — nunca o seletor nativo do navegador.
 
 ## TODO
