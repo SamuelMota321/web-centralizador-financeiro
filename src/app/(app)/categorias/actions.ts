@@ -120,8 +120,9 @@ function invalidName(name: string, message: string | undefined): CategoryFormSta
 }
 
 /**
- * O backend responde 500 para nome repetido (indice unico sem tratamento @ fa9b62a).
- * A verificacao previne o caso comum; se a listagem falhar, o envio segue e o backend decide.
+ * Antecipa o nome repetido como erro de campo sem esperar o envio. O backend (@ e95d2af)
+ * tambem recusa com 409 CATEGORY_ALREADY_EXISTS, que cobre a corrida entre dois envios e
+ * a listagem que falhou (ver `formFailure`).
  */
 async function nameTaken(
   name: string,
@@ -148,6 +149,9 @@ function formFailure(error: unknown, name: string, fallback: string): CategoryFo
   if (isAuthFailure(error)) {
     return { status: "error", name, message: REAUTH_MESSAGE, reauth: true };
   }
+  if (error instanceof ProblemDetailsError && error.code === PROBLEM_CODES.categoryAlreadyExists) {
+    return { status: "invalid", name, message: DUPLICATE_NAME_MESSAGE };
+  }
   if (error instanceof ProblemDetailsError && error.status === 400) {
     // 400 sem `errors[]` na renomeacao indica categoria arquivada (InvalidCategoryState).
     const hasFieldErrors = (error.problem.errors ?? []).some((item) => item.path === "name");
@@ -159,12 +163,7 @@ function formFailure(error: unknown, name: string, fallback: string): CategoryFo
           message: "Esta categoria não pode ser alterada. Se ela foi arquivada, recarregue a página.",
         };
   }
-  // Inclui o 500 do nome repetido por corrida entre dois envios.
-  return {
-    status: "error",
-    name,
-    message: `${fallback} Se já existe uma categoria com este nome, use outro. Tente de novo.`,
-  };
+  return { status: "error", name, message: `${fallback} Tente de novo.` };
 }
 
 function goToCategorias(notice: NoticeKey): never {

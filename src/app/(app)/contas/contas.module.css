@@ -33,7 +33,7 @@
   align-items: center;
   row-gap: var(--space-3);
   padding: 14px 20px;
-  transition: background-color var(--duration) ease;
+  transition: background-color var(--motion-hover) ease;
 }
 
 .row[data-open] {

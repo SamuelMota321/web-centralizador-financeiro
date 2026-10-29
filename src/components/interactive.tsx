@@ -152,7 +152,10 @@ export function ActionMenu({
   disabled?: boolean;
 }) {
   return (
-    <Menu.Root>
+    // highlightItemOnHover=false separa o hover do mouse (:hover, sutil) do destaque por
+    // teclado (data-highlighted, com anel visível) — sem isso os dois usam o mesmo estado
+    // e o anel de foco ficaria pesado demais para um simples passar de mouse.
+    <Menu.Root highlightItemOnHover={false}>
       <Menu.Trigger
         className={`${ui.button} ${ui.ghost} ${ui.iconButton}`}
         aria-label={label}

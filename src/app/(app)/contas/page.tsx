@@ -39,9 +39,19 @@ export default async function ContasPage({
             : `${accounts.total} ${accounts.total === 1 ? "conta ativa" : "contas ativas"}`
         }
         actions={
-          <PanelToggle flag="nova" forceOpen={forceOpen}>
-            Nova conta
-          </PanelToggle>
+          <>
+            {accounts.total > 0 ? (
+              <Link className={`${ui.button} ${ui.secondary}`} href="/contas/importar-ofx">
+                Importar extrato OFX
+              </Link>
+            ) : null}
+            <Link className={`${ui.button} ${ui.secondary}`} href="/contas/conectar">
+              Conectar banco (Sandbox)
+            </Link>
+            <PanelToggle flag="nova" forceOpen={forceOpen}>
+              Nova conta
+            </PanelToggle>
+          </>
         }
       />
 

@@ -61,9 +61,18 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
-  --duration-fast: 120ms;
-  --duration: 180ms;
-  --duration-slow: 240ms;
+  /* Tokens por propósito (Style Guide 1.1, seção Movimento). */
+  --motion-feedback: 120ms;
+  --motion-hover: 180ms;
+  --motion-popover: 160ms;
+  --motion-reveal: 240ms;
+  --motion-settle: 320ms;
+  --motion-intro: 600ms;
+  --motion-arrival: 1600ms;
+  /* Apelidos dos nomes antigos, para código ainda não migrado de outras branches. */
+  --duration-fast: var(--motion-feedback);
+  --duration: var(--motion-hover);
+  --duration-slow: var(--motion-reveal);
 
   /* Camadas: popups da Base UI saem pelo portal, acima do .root isolado. */
   --z-sticky: 10;
@@ -228,6 +237,30 @@ textarea {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
-    transition-property: opacity, color, background-color, border-color !important;
+    transition-property: opacity, color, background-color, border-color, outline-color, text-decoration-color !important;
   }
+}
+
+/*
+ * Transição entre páginas (ADR-002): só crossfade do conteúdo. A estrutura (root)
+ * troca na hora e o grupo não desliza, então o crossfade vale também com movimento
+ * reduzido — o seletor `*` acima não alcança estes pseudo-elementos.
+ */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(.page) {
+  animation-duration: 0s;
+}
+
+::view-transition-old(.page),
+::view-transition-new(.page) {
+  animation-duration: var(--motion-hover);
+  animation-timing-function: var(--ease-out);
 }
