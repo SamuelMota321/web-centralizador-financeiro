@@ -15,7 +15,26 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-raised);
+}
+
+/* Cabeçalho de tabela: mesmas colunas da linha (Style Guide 2.0). */
+.listHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(8rem, auto);
+  align-items: center;
+  column-gap: var(--space-4);
+  min-height: 32px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.listHead > :last-child {
+  text-align: right;
 }
 
 /* O dia fica preso ao topo enquanto suas movimentações rolam por baixo. */
@@ -23,18 +42,13 @@
   position: sticky;
   top: var(--sticky-top);
   z-index: var(--z-sticky);
-  padding: 10px 20px;
+  padding: 6px 16px;
   border-bottom: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface-soft) 94%, transparent);
-  backdrop-filter: blur(8px);
-  color: var(--foreground);
-  font-size: 0.8125rem;
-  font-weight: 750;
+  background: var(--surface-sunken);
+  color: var(--body-text);
+  font-size: 0.75rem;
+  font-weight: 650;
   letter-spacing: 0;
-}
-
-.historyPanel > section:first-child .dayHeader {
-  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
 }
 
 .historyPanel > section + section .dayHeader {
@@ -63,9 +77,10 @@
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(8rem, auto);
   align-items: center;
-  column-gap: var(--space-5);
-  row-gap: var(--space-3);
-  padding: 14px 20px;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  min-height: 48px;
+  padding: 8px 16px;
   transition: background-color var(--motion-hover) ease;
 }
 
@@ -101,20 +116,18 @@
   min-width: 0;
 }
 
+/* Direção como glifo, sem círculo de fundo: o sinal do valor continua sendo o dado. */
 .rowIcon {
   display: grid;
   flex: none;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--surface-sunken);
+  width: 20px;
+  height: 20px;
   color: var(--muted);
 }
 
 .rowIcon[data-direction="in"] {
-  background: var(--primary-tint);
-  color: var(--primary-hover);
+  color: var(--primary);
 }
 
 .rowText {
@@ -124,7 +137,7 @@
 .rowTitle,
 .rowTitleMuted {
   overflow: hidden;
-  font-weight: 700;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -137,7 +150,7 @@
 .rowMeta {
   overflow: hidden;
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -152,9 +165,8 @@
 
 /* O valor é o dado mais forte da linha. */
 .rowAmount {
-  font-size: 1rem;
-  font-weight: 750;
-  letter-spacing: -0.01em;
+  font-size: 0.875rem;
+  font-weight: 650;
   text-align: right;
   white-space: nowrap;
 }
@@ -168,13 +180,17 @@
 @media (max-width: 48rem) {
   .row {
     grid-template-columns: minmax(0, 1fr) auto;
-    padding: 14px 16px;
+    padding: 8px 16px;
+  }
+
+  .listHead {
+    display: none;
   }
 
   .rowCategory {
     grid-column: 1 / -1;
     grid-row: 2;
-    padding-left: 46px;
+    padding-left: 32px;
   }
 
   .rowAmount {
@@ -183,7 +199,7 @@
   }
 
   .dayHeader {
-    padding: 10px 16px;
+    padding: 6px 16px;
   }
 }
 
@@ -193,7 +209,7 @@
   flex-direction: column;
   gap: var(--space-5);
   padding: var(--space-6);
-  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--line));
+  border: 1px solid var(--line);
   border-radius: var(--radius-panel);
   background: var(--surface);
 }

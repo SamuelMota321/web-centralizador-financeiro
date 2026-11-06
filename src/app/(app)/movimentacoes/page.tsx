@@ -170,6 +170,11 @@ export default async function MovimentacoesPage({
           ) : (
             <>
               <div className={styles.historyPanel}>
+                <div className={styles.listHead} aria-hidden>
+                  <span>Movimentação</span>
+                  <span>Categoria</span>
+                  <span>Valor</span>
+                </div>
                 {groupByDay(transactions.items).map((group) => (
                   <section key={group.date} aria-labelledby={`dia-${group.date}`}>
                     <h3 className={styles.dayHeader} id={`dia-${group.date}`}>

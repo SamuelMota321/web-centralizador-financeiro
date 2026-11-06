@@ -1,13 +1,13 @@
 /*
  * Casca do app. Três arranjos:
- *   >= 64rem  lateral completa de 248px (marca, atalho, grupos, conta)
- *   40–64rem  trilho de 112px com ícone e rótulo
- *   <  40rem  barra superior translúcida + abas inferiores
+ *   >= 64rem  lateral completa de 232px (marca, atalho, grupos, conta)
+ *   40–64rem  trilho de 72px só com ícones (rótulo acessível)
+ *   <  40rem  barra superior sólida + abas inferiores
  */
 .shell {
   display: grid;
   flex: 1;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: 232px minmax(0, 1fr);
   min-height: 100dvh;
 }
 
@@ -28,7 +28,7 @@
   top: 12px;
 }
 
-/* ---------- Lateral institucional ---------- */
+/* ---------- Lateral: plano rebaixado e neutro (Style Guide 2.0) ---------- */
 .sidebar {
   --brand-accent: var(--nav-accent);
 
@@ -40,14 +40,12 @@
   flex-direction: column;
   gap: var(--space-6);
   height: 100dvh;
-  padding: 20px 14px 14px;
+  padding: 16px 12px 12px;
   overflow-x: hidden;
   overflow-y: auto;
   background: var(--nav-bg);
   box-shadow: inset -1px 0 0 var(--nav-line);
   color: var(--nav-fg);
-  /* Foco visível sobre o fundo escuro. */
-  --primary: var(--nav-accent);
 }
 
 .brand {
@@ -67,19 +65,19 @@
   display: none;
 }
 
-/* Atalho global: o verde Clareza marca a única ação primária da estrutura. */
+/* Atalho global: o botão primário é o único verde da estrutura. */
 .register {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: 42px;
-  padding: 10px 14px;
+  min-height: 36px;
+  padding: 0 12px;
   border-radius: var(--radius-control);
   background: var(--nav-accent);
   color: var(--nav-on-accent);
-  font-size: 0.875rem;
-  font-weight: 750;
+  font-size: 0.8125rem;
+  font-weight: 650;
   white-space: nowrap;
   transition:
     background-color var(--motion-hover) ease,
@@ -92,7 +90,7 @@
 
 @media (hover: hover) and (pointer: fine) {
   .register:hover {
-    background: color-mix(in srgb, var(--nav-accent) 86%, white);
+    background: var(--primary-hover);
   }
 }
 
@@ -100,20 +98,23 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .navGroup {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
+/* Rótulo técnico, como em um instrumento. */
 .navGroupLabel {
-  padding: 0 12px;
+  padding: 0 10px 4px;
   color: var(--nav-muted);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .navList {
@@ -128,13 +129,13 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 40px;
-  padding: 9px 12px;
+  gap: 10px;
+  min-height: 32px;
+  padding: 6px 10px;
   border-radius: var(--radius-control);
-  color: var(--nav-muted);
-  font-size: 0.875rem;
-  font-weight: 650;
+  color: var(--body-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
   transition:
     background-color var(--motion-hover) ease,
     color var(--motion-hover) ease;
@@ -146,24 +147,21 @@
 
 .navItem[aria-current="page"] {
   background: var(--nav-active-bg);
+  box-shadow: inset 0 0 0 1px var(--nav-line);
   color: var(--nav-fg);
-  font-weight: 750;
+  font-weight: 650;
 }
 
-/* Barra Clareza à esquerda: onde você está, sem depender só da cor de fundo. */
+/* Linha verde de 2px: onde você está, sem bloco de cor. */
 .navItem[aria-current="page"]::before {
   content: "";
   position: absolute;
-  top: 9px;
-  bottom: 9px;
-  left: -14px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 2px;
+  border-radius: var(--radius-marker);
   background: var(--nav-accent);
-}
-
-.navItem[aria-current="page"] > svg {
-  color: var(--nav-accent);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -229,10 +227,11 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--nav-accent) 18%, transparent);
-  color: var(--nav-accent);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--foreground);
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.02em;
 }
 
@@ -286,7 +285,7 @@
 /* ---------- Conteúdo ---------- */
 .main {
   min-width: 0;
-  padding: 40px 48px 96px;
+  padding: 32px 40px 96px;
 }
 
 .main:focus {
@@ -294,7 +293,7 @@
 }
 
 .content {
-  max-width: 70rem;
+  max-width: 72rem;
   margin: 0 auto;
 }
 
@@ -306,7 +305,7 @@
 /* ---------- Tablet: trilho de ícones ---------- */
 @media (max-width: 64rem) {
   .shell {
-    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-columns: 72px minmax(0, 1fr);
   }
 
   .sidebar {
@@ -332,8 +331,8 @@
   }
 
   .register {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     min-height: 0;
     padding: 0;
   }
@@ -349,23 +348,20 @@
   }
 
   .navItem {
-    flex-direction: column;
-    gap: 4px;
-    width: 96px;
-    min-height: 58px;
-    padding: 8px 2px;
-    font-size: 0.6875rem;
-    text-align: center;
+    justify-content: center;
+    width: 44px;
+    min-height: 40px;
+    padding: 0;
   }
 
-  .navItem[aria-current="page"]::before {
-    left: -8px;
-  }
-
+  /* Só o ícone aparece; o rótulo continua sendo o nome acessível do link. */
   .navLabel {
-    max-width: 100%;
+    position: absolute;
+    width: 1px;
+    height: 1px;
     overflow: hidden;
-    text-overflow: ellipsis;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .sidebarFooter {
@@ -375,7 +371,7 @@
   }
 
   .main {
-    padding: 32px 32px 80px;
+    padding: 24px 24px 80px;
   }
 }
 
@@ -384,7 +380,7 @@
   .shell {
     display: flex;
     flex-direction: column;
-    --sticky-top: 60px;
+    --sticky-top: 56px;
   }
 
   .sidebar {
@@ -399,11 +395,11 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-3);
-    height: 60px;
+    height: 56px;
     padding: 0 12px 0 16px;
     padding-top: env(safe-area-inset-top);
-    background: color-mix(in srgb, var(--background) 82%, transparent);
-    backdrop-filter: saturate(1.6) blur(16px);
+    background: var(--surface);
+    box-shadow: inset 0 -1px 0 var(--line);
   }
 
   .mobileActions {
@@ -417,7 +413,7 @@
     place-items: center;
     width: 44px;
     height: 44px;
-    border-radius: 50%;
+    border-radius: var(--radius-control);
     background: var(--primary);
     color: var(--on-primary);
     transition: transform var(--motion-feedback) var(--ease-out);
@@ -425,11 +421,6 @@
 
   .mobileRegister:active {
     transform: scale(0.97);
-  }
-
-  .mobileBar .avatar {
-    background: var(--primary-tint);
-    color: var(--primary-hover);
   }
 
   .main {
@@ -445,69 +436,43 @@
     z-index: var(--z-nav);
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--nav-bg) 94%, transparent);
-    backdrop-filter: saturate(1.4) blur(16px);
+    padding: 0 6px env(safe-area-inset-bottom);
+    background: var(--surface);
+    box-shadow: inset 0 1px 0 var(--line);
   }
 
   .tab {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 3px;
-    min-height: 52px;
-    border-radius: var(--radius-control);
-    color: var(--nav-muted);
+    min-height: 56px;
+    color: var(--muted);
     font-size: 0.6875rem;
     font-weight: 650;
     transition: color var(--motion-hover) ease;
   }
 
   .tab[aria-current="page"] {
-    color: var(--nav-fg);
-    font-weight: 750;
+    color: var(--foreground);
   }
 
-  .tab[aria-current="page"] > svg {
-    color: var(--nav-accent);
+  /* Mesmo marcador de seleção da lateral: linha verde de 2px no topo. */
+  .tab[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 30%;
+    left: 30%;
+    height: 2px;
+    border-radius: var(--radius-marker);
+    background: var(--primary);
   }
 
   .tab:focus-visible {
-    outline-color: var(--nav-accent);
+    outline-color: var(--primary);
     outline-offset: -2px;
-  }
-}
-
-/* Sombra da barra superior só aparece quando o conteúdo rola por baixo dela. */
-@supports (animation-timeline: scroll()) {
-  @media (max-width: 40rem) {
-    .mobileBar {
-      animation: bar-edge linear both;
-      animation-range: 0 24px;
-      animation-timeline: scroll(root);
-    }
-  }
-}
-
-@keyframes bar-edge {
-  from {
-    box-shadow: none;
-  }
-
-  to {
-    box-shadow: var(--shadow-scroll);
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .mobileBar {
-    background: var(--background);
-    backdrop-filter: none;
-  }
-
-  .tabBar {
-    background: var(--nav-bg);
-    backdrop-filter: none;
   }
 }

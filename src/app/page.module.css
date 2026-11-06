@@ -4,13 +4,7 @@
   flex-direction: column;
   min-height: 100dvh;
   padding: 24px clamp(16px, 5vw, 64px);
-  background:
-    radial-gradient(
-      80% 60% at 100% 0%,
-      color-mix(in srgb, var(--clareza) 14%, transparent) 0%,
-      transparent 60%
-    ),
-    var(--background);
+  background: var(--background);
 }
 
 .header {
@@ -52,20 +46,19 @@
 .lead {
   max-width: 34ch;
   color: var(--body-text);
-  font-size: 1.125rem;
+  font-size: 1rem;
   line-height: 1.6;
 }
 
 .action {
   display: inline-flex;
   align-items: center;
-  min-height: 48px;
-  padding: 12px 28px;
+  min-height: 40px;
+  padding: 8px 20px;
   border-radius: var(--radius-control);
   background: var(--primary);
   color: var(--on-primary);
-  font-weight: 750;
-  box-shadow: var(--shadow-raised);
+  font-weight: 650;
   transition:
     background-color var(--motion-hover) ease,
     transform var(--motion-feedback) var(--ease-out);
@@ -85,16 +78,15 @@
 .preview {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
 }
 
 .previewPanel {
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-frame);
   background: var(--surface);
-  box-shadow: var(--shadow-overlay);
   /* Entrada única ao carregar: a prévia assenta no lugar (primeira visita). */
   transition:
     opacity var(--motion-intro) var(--ease-out),
@@ -108,12 +100,33 @@
   }
 }
 
-.previewDay {
-  padding: 12px 20px;
+/* Cabeçalho de tabela, como nas listas do app. */
+.previewHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--line);
-  background: var(--surface-soft);
-  font-size: 0.8125rem;
-  font-weight: 750;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.previewHead > :last-child {
+  text-align: right;
+}
+
+.previewDay {
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-sunken);
+  color: var(--body-text);
+  font-size: 0.75rem;
+  font-weight: 650;
 }
 
 .previewList {
@@ -125,7 +138,38 @@
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
-  padding: 13px 20px;
+  min-height: 48px;
+  padding: 8px 16px;
+}
+
+/* Linhas entram em sequência dentro da entrada da prévia: cada lançamento é lido por vez. */
+.previewRow {
+  transition: opacity var(--motion-reveal) var(--ease-out);
+  transition-delay: calc(200ms + var(--row, 0) * 50ms);
+}
+
+.previewRow:nth-child(2) {
+  --row: 1;
+}
+
+.previewRow:nth-child(3) {
+  --row: 2;
+}
+
+.previewRow:nth-child(4) {
+  --row: 3;
+}
+
+@starting-style {
+  .previewRow {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .previewRow {
+    transition-delay: 0ms;
+  }
 }
 
 .previewRow + .previewRow {
@@ -135,16 +179,13 @@
 .previewIcon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--surface-sunken);
+  width: 20px;
+  height: 20px;
   color: var(--muted);
 }
 
 .previewIcon[data-direction="in"] {
-  background: var(--primary-tint);
-  color: var(--primary-hover);
+  color: var(--primary);
 }
 
 .previewText {
@@ -156,7 +197,7 @@
 .previewTitle {
   overflow: hidden;
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -167,7 +208,8 @@
 }
 
 .previewAmount {
-  font-weight: 750;
+  font-size: 0.875rem;
+  font-weight: 650;
   text-align: right;
   white-space: nowrap;
 }
@@ -177,25 +219,25 @@
 }
 
 .previewRule {
-  padding: 14px 20px;
+  padding: 10px 16px;
   border-top: 1px solid var(--line);
-  background: var(--surface-soft);
+  background: var(--surface-sunken);
   color: var(--body-text);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .previewValue {
   padding: 1px 6px;
-  border-radius: 6px;
-  background: var(--surface-sunken);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
   color: var(--foreground);
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .caption {
   color: var(--muted);
-  font-size: 0.8125rem;
-  text-align: center;
+  font-size: 0.75rem;
 }
 
 .footer {
@@ -226,6 +268,6 @@
 
 @media (max-width: 30rem) {
   .previewRow {
-    padding: 12px 14px;
+    padding: 8px 12px;
   }
 }

@@ -164,7 +164,7 @@ components:
 
 # Coinciente — sistema visual do app web
 
-> **Versão 2.0 aprovada; o código ainda segue a 1.x até a fase de aplicação.** Enquanto a aplicação não acontecer, `globals.css` e os módulos CSS continuam com a paleta esverdeada, a lateral em Confiança e as etiquetas em pílula. Telas novas devem nascer na 2.0.
+> **Versão 2.0 aplicada no código** (tokens em `globals.css`, lateral neutra, marcador no `StatusChip`, listas como tabelas e página inicial). Ainda não existem no código, porque dependem de telas futuras: a faixa de números e os gráficos (dashboard, Sprint 5) e o carimbo do dado e o estado de sincronização (F6, contrato HU-008/HU-009).
 
 Fonte de verdade: Style Guide 2.0 (`documentacao-centralizador-financeiro/docs/design/style-guide.html`). Este arquivo traduz o guia para a interface de produto; quando divergir do guia, o guia vence e este arquivo é corrigido. A divergência anterior (lateral em Confiança) foi encerrada na 2.0: a estrutura é neutra.
 
@@ -243,6 +243,9 @@ Critério (emil-design-eng): anima só o que acontece de vez em quando e ganha s
 | Controle segmentado | indicador desliza, 240ms ease-in-out | de onde para onde a escolha mudou |
 | Linha recém-criada | tinta verde que se dissolve em 1,6s | causa e efeito |
 | Passo concluído (primeiros passos) | marca assenta com escala 0,8 → 1 | momento raro |
+| Conclusão de importação OFX ou de conexão Pluggy | símbolo se consolida: arcos se desenham (400ms, interno +80ms) e o ponto assenta (320ms); só logo após concluir e quando dados entraram | momento raro com significado de marca: fontes reunidas, usuário no centro |
+| Etapa de fluxo (OFX, Conectar) | entra com opacidade + 6px (`.reveal`), 240ms | o fluxo avançou |
+| Aviso de resultado (erro, sucesso) | entra com opacidade + 4px, 160ms; ajuda fixa não se move | chama o olho para o que acabou de mudar |
 
 Não se movem: hover de linhas (só cor), valores. Navegação entre páginas: só crossfade de 180ms, disparado apenas pelos links da lateral e das abas (tipo `nav`), com a estrutura parada (ADR-002 em `documentacao-centralizador-financeiro/docs/arquitetura/`). Curvas: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)`, `--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1)`, `--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1)`. Hover só com `(hover: hover) and (pointer: fine)`. Com `prefers-reduced-motion`, sai o deslocamento e ficam as mudanças de opacidade e cor; a regra global preserva também `text-decoration-color` e `outline-color`, e o painel `.reveal`, o menu e o bloco recolhível declaram a própria lista para sair só por opacidade.
 
@@ -271,7 +274,7 @@ Tokens de movimento (Style Guide 2.0, seção Movimento), declarados em `globals
 - **Diálogo de confirmação** (Base UI AlertDialog): só para ações definitivas. Foco inicial em "Cancelar"; não fecha durante o envio; erro exibido dentro dele.
 - **Toast** (Sonner): confirmação transitória de sucesso, em `surface` com linha e marcador. Erros ficam fixos, perto de onde aconteceram.
 - **Carimbo do dado** (planejado, F6; depende do contrato HU-008/HU-009 — hoje só a conta tem origem e data de referência): linha de metadados com origem e referência + marcador de frescor (atualizado, desatualizado, indisponível). O prazo de "desatualizado" vem do contrato de cada história.
-- **Estado de sincronização** (planejado, F6; depende do contrato HU-008): marcador + texto para aguardando, sincronizando, concluída e falhou com caminho de recuperação; o último dado válido continua visível. Só opacidade e ícone mudam; nenhum número se anima.
+- **Estado de sincronização** (planejado, F6; contrato público consolidado no C-03 da S4-01, ainda não implementado no backend): marcador + texto para os seis estados da API — `queued` ("Na fila", neutro), `running` ("Sincronizando", informação), `action_required` ("Ação necessária", atenção, com o botão do que fazer), `succeeded` ("Concluída", sinal), `partial` ("Concluída em parte", atenção, dizendo o que ficou de fora) e `failed` ("Falhou", negativo, com recuperação) — mais o estado de interface "sem execução ativa". Os três primeiros não são finais. O último dado válido continua visível com sua referência. Só opacidade e ícone mudam; nenhum número se anima.
 - **Bloco recolhível:** explicações permanentes (como as regras funcionam), com linha de 1px e rótulo em `body-small`/600; aberto quando a lista está vazia.
 - **Primeiros passos:** conta → movimentação → categoria, como lista numerada com marcador; o próximo passo leva o botão primário. Some quando os três estão feitos.
 - **Paginação:** 20 itens por página; "1–20 de 214" em `meta` à esquerda, Anterior/Próxima e números à direita. No celular, só Anterior, "6 de 12" e Próxima.
