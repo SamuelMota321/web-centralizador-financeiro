@@ -27,9 +27,26 @@ export const balancesSummarySchema = z.object({
       freshness: z.enum(["current", "stale", "unavailable"]),
     }),
   ),
+  history: z.array(z.object({ month, available: decimal })),
 });
 
+export const recentMovementsSchema = z.array(
+  z.object({
+    transactionId: z.uuid(),
+    date: z.iso.date(),
+    description: z.string().nullable(),
+    direction: z.enum(["inflow", "outflow", "transfer"]),
+    amount: nonNegativeDecimal,
+    accountName: z.string().min(1),
+    categoryId: z.uuid().nullable(),
+    categoryName: z.string().nullable(),
+    toReview: z.boolean(),
+  }),
+);
+
 export const flowSummarySchema = z.object({
+  page: z.number().int().positive(),
+  pages: z.number().int().positive(),
   months: z.array(
     z.object({
       month,
@@ -52,6 +69,24 @@ export const spendingSummarySchema = z.object({
       archived: z.boolean(),
       amount: nonNegativeDecimal,
       count: z.number().int().nonnegative(),
+    }),
+  ),
+});
+
+export const spendingMovementsPageSchema = z.object({
+  page: z.number().int().positive(),
+  pages: z.number().int().positive(),
+  total: z.number().int().nonnegative(),
+  items: z.array(
+    z.object({
+      transactionId: z.uuid(),
+      date: z.iso.date(),
+      description: z.string().nullable(),
+      amount: nonNegativeDecimal,
+      accountName: z.string().min(1),
+      categoryId: z.uuid().nullable(),
+      categoryName: z.string().nullable(),
+      toReview: z.boolean(),
     }),
   ),
 });

@@ -35,6 +35,28 @@ export interface BalancesSummary {
   /** Alguma conta somada está desatualizada. */
   includesStale: boolean;
   accounts: AccountBalance[];
+  /**
+   * Disponível no fim de cada mês, do mais antigo ao período escolhido (o último é o
+   * próprio `available`). Acréscimo pedido ao Developer 1 para a tendência e a variação.
+   */
+  history: { month: string; available: string }[];
+}
+
+/** Lançamento para "Últimas movimentações": vem de GET /transactions quando ligado. */
+export interface RecentMovement {
+  transactionId: string;
+  /** AAAA-MM-DD. */
+  date: string;
+  description: string | null;
+  direction: "inflow" | "outflow" | "transfer";
+  /** Valor positivo; o sinal vem de `direction`. */
+  amount: string;
+  accountName: string;
+  /** null: sem categoria ou transferência. */
+  categoryId: string | null;
+  categoryName: string | null;
+  /** Sem categoria segura (`unclassified`, `uncertain`, `unrecognized`). */
+  toReview: boolean;
 }
 
 export interface FlowMonth {
@@ -51,8 +73,11 @@ export interface FlowMonth {
 }
 
 export interface FlowSummary {
-  /** Do mais antigo ao mais recente; o último é o período escolhido. */
+  /** Do mais antigo ao mais recente; na página 1, o último é o período escolhido. */
   months: FlowMonth[];
+  /** Página de meses: 1 termina no período; as seguintes vão para trás. */
+  page: number;
+  pages: number;
 }
 
 export interface SpendingCategory {
@@ -71,4 +96,26 @@ export interface SpendingSummary {
   /** Soma de `unclassified`, `uncertain` e `unrecognized` (D-06). */
   toReview: { amount: string; count: number };
   categories: SpendingCategory[];
+}
+
+/** Saída do período para a lista sob a rosca; vem de GET /transactions com filtros. */
+export interface SpendingMovement {
+  transactionId: string;
+  /** AAAA-MM-DD. */
+  date: string;
+  description: string | null;
+  /** Valor positivo (é sempre saída). */
+  amount: string;
+  accountName: string;
+  /** null quando ainda não tem categoria segura. */
+  categoryId: string | null;
+  categoryName: string | null;
+  toReview: boolean;
+}
+
+export interface Page<T> {
+  items: T[];
+  page: number;
+  pages: number;
+  total: number;
 }

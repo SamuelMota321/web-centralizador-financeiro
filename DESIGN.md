@@ -170,7 +170,7 @@ Fonte de verdade: Style Guide 2.0 (`documentacao-centralizador-financeiro/docs/d
 
 ## Overview
 
-Direção "Instrumento de precisão". A interface é uma ferramenta de leitura de dados financeiros: neutros frios, grade de 4px, linhas finas de 1px, tabelas alinhadas e números tabulares. A marca aparece no símbolo, no verde usado como **sinal** e na Newsreader da página inicial — nunca competindo com os dados. Densa e legível, nunca apressada. Nada que lembre banco, promessa de rendimento, estética de criptomoeda ou kit de dashboard (grade de cartões de KPI, roscas, pílulas em toda linha).
+Direção "Instrumento de precisão". A interface é uma ferramenta de leitura de dados financeiros: neutros frios, grade de 4px, linhas finas de 1px, tabelas alinhadas e números tabulares. A marca aparece no símbolo, no verde usado como **sinal** e na Newsreader da página inicial — nunca competindo com os dados. Densa e legível, nunca apressada. Nada que lembre banco, promessa de rendimento, estética de criptomoeda ou kit de dashboard (grade de cartões de KPI soltos, pílulas em toda linha). Cor de categoria existe desde a 2.1, só para dizer qual categoria é qual.
 
 Referências de princípio, não de layout: Linear (estrutura neutra, densidade, navegação previsível), Mercury (número como dado mais forte, sobriedade) e instrumentos de medição (rótulo técnico, legenda junto da leitura).
 
@@ -198,6 +198,7 @@ Neutros frios carregam toda a interface; o verde é sinal, não superfície.
 - `brand-confianca` fica fora da interface: só em ativos de marca (assinatura em fundo institucional, materiais).
 - Tema escuro quase preto e neutro, sem tom esverdeado; a lateral usa `dark-sunken`, um degrau abaixo do fundo do conteúdo.
 - Sem gradientes e sem sombras tingidas.
+- **Cores de categoria (Style Guide 2.1, ADR-005):** `--cat-1` a `--cat-6` (azul, terracota, verde-azulado, âmbar, rosa, violeta), com passos próprios para o tema escuro e `--cat-other` neutro. Só identificam a categoria (rosca, lista de gastos, marca das movimentações); nunca estado, ganho ou perda. A cor é fixa por categoria: a ordem de criação das categorias do usuário (arquivadas incluídas) escolhe o tom (`category-colors.ts`), então Moradia é a mesma cor em todo mês. Da 7ª em diante, neutra. Paleta validada para daltonismo em pares adjacentes; o âmbar fica abaixo de 3:1 no claro, por isso nome e valor vão sempre escritos ao lado da cor.
 - Contrastes medidos (WCAG 2.2): texto 18,6:1; secundário 8,7:1; terciário ≥ 5,0:1 em fundo, superfície e rebaixado; `signal` ≥ 4,7:1 (claro) e ≥ 9,6:1 (escuro); `negative` ≥ 4,7:1; `warning` ≥ 4,69:1 (ajustado de #A86512, que dava 4,31:1 sobre o fundo); `info` ≥ 4,96:1; borda de campo ≥ 3,14:1 (claro) e ≥ 3,04:1 (escuro); texto sobre `signal` 5,35:1 (claro) e 10,3:1 (escuro).
 
 ## Typography
@@ -215,7 +216,7 @@ Neutros frios carregam toda a interface; o verde é sinal, não superfície.
 - **Faixa de números** no lugar de cartões de KPI: até 4 valores em `figure`, separados por linhas verticais de 1px, cada um com `label` acima e uma linha de metadados abaixo.
 - Histórico de movimentações agrupado por dia, com o cabeçalho do dia em `sunken`, preso ao topo ao rolar ("Hoje · 10/09"). Sem totais por dia: saldos pertencem ao dashboard.
 - Formulários de criação abrem em painel na própria página pela ação do cabeçalho (`?nova=1` e `?registrar=1` continuam funcionando). Lista vazia abre o painel sozinha.
-- Gráficos (`src/components/charts/`, ADR-004): linha de 1,5px em `foreground` com pontos, grade tracejada em `line`, último ponto em `signal`; entradas e saídas em barras pareadas na rampa neutra (entradas `ramp-1`, saídas `ramp-3`, mês parcial a 45%); gastos em barras horizontais ordenadas com valor e percentual em texto, "A revisar" hachurado em `warning`; alocação como barra 100% com tabela ao lado, "Não classificado" hachurado. Eixo sempre a partir de zero. Todo gráfico traz os valores em tabela ou lista; o SVG fica fora da leitura de tela. Sem área preenchida, sem rosca, sem eixo duplo. Escalas com `@visx/scale`; desenho e estilo próprios.
+- Gráficos (`src/components/charts/`, ADR-004): linha de 1,5px em `foreground` com pontos, grade tracejada em `line`, último ponto em `signal`; entradas e saídas em barras pareadas na rampa neutra (entradas `ramp-1`, saídas `ramp-3`, mês parcial a 45%); gastos em rosca (anel de 18px, 2px de superfície entre fatias, total no centro) com a lista ao lado — cor, nome, valor, percentual e barrinha —, no máximo seis fatias com cor (o excedente vira "Outras", neutra) e "A revisar" hachurado em `warning`, sempre por último; barras horizontais ordenadas continuam para listas sem cor; alocação como barra 100% com tabela ao lado, "Não classificado" hachurado. Eixo sempre a partir de zero. Todo gráfico traz os valores em tabela ou lista; o SVG fica fora da leitura de tela. Números da faixa com minigráfico de tendência (120×40, linha `muted`, último ponto em `signal`; mês em andamento tracejado com ponto vazado) e variação em texto secundário sobre o mês anterior, sem verde/vermelho; mês em andamento não tem comparação. Barras pareadas mostram a caixa de detalhe do mês sob o cursor. Sem área preenchida, sem eixo duplo. Escalas com `@visx/scale`; desenho e estilo próprios.
 
 ## Elevation & Depth
 
@@ -246,7 +247,7 @@ Critério (emil-design-eng): anima só o que acontece de vez em quando e ganha s
 | Conclusão de importação OFX ou de conexão Pluggy | símbolo se consolida: arcos se desenham (400ms, interno +80ms) e o ponto assenta (320ms); só logo após concluir e quando dados entraram | momento raro com significado de marca: fontes reunidas, usuário no centro |
 | Etapa de fluxo (OFX, Conectar) | entra com opacidade + 6px (`.reveal`), 240ms | o fluxo avançou |
 | Aviso de resultado (erro, sucesso) | entra com opacidade + 4px, 160ms; ajuda fixa não se move | chama o olho para o que acabou de mudar |
-| Gráfico com dados novos (troca de período) | barras e pontos transitam da altura antiga para a nova, 240ms; o número em texto troca direto; nada anima na primeira pintura | o que mudou entre os períodos |
+| Gráfico com dados novos (troca de período) | barras, pontos e fatias da rosca transitam do tamanho antigo para o novo, 240ms; o número em texto troca direto; nada anima na primeira pintura | o que mudou entre os períodos |
 | Destaque gráfico ↔ tabela | o mês sob o cursor fica, os outros recuam a 35% de opacidade, 180ms; só com mouse | liga a barra ao valor exato |
 | Prévia de gráfico na página inicial | barras sobem da linha de base uma vez, 600ms, a partir de 200ms e 50ms entre meses | entrada única da página inicial |
 
@@ -287,4 +288,4 @@ Tokens de movimento (Style Guide 2.0, seção Movimento), declarados em `globals
 ## Do's and Don'ts
 
 - Faça: mostrar período, fonte e data de referência como linha de metadados; comparar valores em tabelas alinhadas; reservar o verde para ação, seleção, foco e "+"; uma ação primária por tela; nomear a ação em cada botão; dizer o problema e a recuperação em cada erro.
-- Evite: promessas de rentabilidade; gradientes e fundos verdes; grades de cartões de KPI, roscas e pílulas; sombras em conteúdo; Newsreader em dados; esconder indisponibilidade ou defasagem; cor como único indicador; movimento decorativo em ações frequentes.
+- Evite: promessas de rentabilidade; gradientes e fundos verdes; grades de cartões de KPI soltos e pílulas; rosca com mais de seis fatias ou sem os valores escritos; cor de categoria como estado; sombras em conteúdo; Newsreader em dados; esconder indisponibilidade ou defasagem; cor como único indicador; movimento decorativo em ações frequentes.

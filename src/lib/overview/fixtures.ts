@@ -1,4 +1,11 @@
-import type { AccountBalance, BalancesSummary, FlowMonth, SpendingSummary } from "./types";
+import type {
+  AccountBalance,
+  BalancesSummary,
+  FlowMonth,
+  RecentMovement,
+  SpendingMovement,
+  SpendingSummary,
+} from "./types";
 
 // Dados de exemplo da prévia da Visão geral, enquanto as rotas de agregação não existem.
 // Seguem as recomendações D-01 a D-08 do Developer 2 (cartão fora do Disponível,
@@ -36,8 +43,22 @@ function accounts(
   ];
 }
 
+/** Disponível no fim de cada mês (outubro: na referência mais antiga). */
+const AVAILABLE_HISTORY = [
+  { month: "2026-05", available: "13980.40" },
+  { month: "2026-06", available: "14620.75" },
+  { month: "2026-07", available: "14810.30" },
+  { month: "2026-08", available: "15431.10" },
+  { month: "2026-09", available: "16630.20" },
+  { month: "2026-10", available: "17340.95" },
+];
+
+const historyUntil = (month: string) =>
+  AVAILABLE_HISTORY.slice(0, AVAILABLE_HISTORY.findIndex((entry) => entry.month === month) + 1);
+
 export const SAMPLE_BALANCES: Record<(typeof SAMPLE_PERIODS)[number], BalancesSummary> = {
   "2026-10": {
+    history: historyUntil("2026-10"),
     available: "17340.95",
     availableAccounts: 4,
     asOf: "2026-10-01T18:40:00-03:00",
@@ -47,6 +68,7 @@ export const SAMPLE_BALANCES: Record<(typeof SAMPLE_PERIODS)[number], BalancesSu
     }),
   },
   "2026-09": {
+    history: historyUntil("2026-09"),
     available: "16630.20",
     availableAccounts: 4,
     asOf: "2026-09-30T23:59:00-03:00",
@@ -54,6 +76,7 @@ export const SAMPLE_BALANCES: Record<(typeof SAMPLE_PERIODS)[number], BalancesSu
     accounts: accounts("2026-09-30T23:59:00-03:00", ["3890.20", "11500.00", "220.00", "1020.00", "-980.10"]),
   },
   "2026-08": {
+    history: historyUntil("2026-08"),
     available: "15431.10",
     availableAccounts: 4,
     asOf: "2026-08-31T23:59:00-03:00",
@@ -120,4 +143,140 @@ export const SAMPLE_SPENDING: Record<(typeof SAMPLE_PERIODS)[number], SpendingSu
       category(5, "Lazer", "610.50", 5),
     ],
   },
+};
+
+/** Categorias na ordem de criação (arquivadas incluídas): decide a cor de cada uma. */
+export const SAMPLE_CATEGORY_ORDER: readonly string[] = [1, 2, 3, 4, 5, 6].map(categoryId);
+
+const movementId = (n: number) => `9a2f4b6c-1d3e-4a5b-8c7d-${String(n).padStart(12, "0")}`;
+
+/** Os lançamentos mais recentes, de qualquer período (como em Movimentações). */
+export const SAMPLE_RECENT: readonly RecentMovement[] = [
+  {
+    transactionId: movementId(1),
+    date: "2026-10-05",
+    description: "Mercado do bairro",
+    direction: "outflow",
+    amount: "184.90",
+    accountName: "Conta do dia a dia",
+    categoryId: categoryId(2),
+    categoryName: "Alimentação",
+    toReview: false,
+  },
+  {
+    transactionId: movementId(2),
+    date: "2026-10-05",
+    description: "Padaria",
+    direction: "outflow",
+    amount: "23.50",
+    accountName: "Conta do dia a dia",
+    categoryId: null,
+    categoryName: null,
+    toReview: true,
+  },
+  {
+    transactionId: movementId(3),
+    date: "2026-10-03",
+    description: "Aplicativo de transporte",
+    direction: "outflow",
+    amount: "32.40",
+    accountName: "Cartão do dia a dia",
+    categoryId: categoryId(3),
+    categoryName: "Transporte",
+    toReview: false,
+  },
+  {
+    transactionId: movementId(4),
+    date: "2026-10-02",
+    description: "Reserva do mês",
+    direction: "transfer",
+    amount: "500.00",
+    accountName: "Conta do dia a dia → Reserva",
+    categoryId: null,
+    categoryName: null,
+    toReview: false,
+  },
+  {
+    transactionId: movementId(5),
+    date: "2026-10-01",
+    description: "Salário (fictício)",
+    direction: "inflow",
+    amount: "6800.00",
+    accountName: "Conta do dia a dia",
+    categoryId: null,
+    categoryName: "Renda",
+    toReview: false,
+  },
+];
+
+const DESCRIPTIONS: Record<string, readonly string[]> = {
+  Moradia: ["Aluguel", "Condomínio", "Conta de luz", "Internet"],
+  Alimentação: ["Mercado do bairro", "Padaria", "Restaurante", "Feira", "Lanchonete", "Açougue"],
+  Transporte: ["Aplicativo de transporte", "Combustível", "Estacionamento", "Ônibus"],
+  Saúde: ["Farmácia", "Consulta", "Exame"],
+  Lazer: ["Cinema", "Streaming", "Livraria"],
+  Educação: ["Curso online"],
+};
+const REVIEW_DESCRIPTIONS = ["Compra no débito", "Pagamento por QR", "Pix enviado", "Débito automático", "Compra online"];
+
+/** Último dia com lançamentos: outubro é o mês corrente da prévia, até 05/10. */
+const LAST_DAY: Record<(typeof SAMPLE_PERIODS)[number], number> = { "2026-10": 5, "2026-09": 30, "2026-08": 31 };
+
+/** Divide um valor em `count` partes em centavos; a sobra fica na primeira. */
+function split(amount: string, count: number): string[] {
+  const cents = Number(amount.replace(".", ""));
+  const base = Math.floor(cents / count);
+  const toText = (value: number) => `${Math.floor(value / 100)}.${String(value % 100).padStart(2, "0")}`;
+  return Array.from({ length: count }, (_, index) => toText(index === 0 ? base + (cents - base * count) : base));
+}
+
+/**
+ * Saídas de cada mês, montadas a partir dos gastos por categoria: a soma de cada categoria
+ * e a quantidade de lançamentos batem com SAMPLE_SPENDING (os testes conferem).
+ */
+function spendingMovements(period: (typeof SAMPLE_PERIODS)[number]): SpendingMovement[] {
+  const spending = SAMPLE_SPENDING[period];
+  const groups = [
+    ...spending.categories.map((category) => ({
+      categoryId: category.categoryId as string | null,
+      categoryName: category.name as string | null,
+      amount: category.amount,
+      count: category.count,
+      names: DESCRIPTIONS[category.name] ?? [category.name],
+      toReview: false,
+    })),
+    {
+      categoryId: null,
+      categoryName: null,
+      amount: spending.toReview.amount,
+      count: spending.toReview.count,
+      names: REVIEW_DESCRIPTIONS,
+      toReview: true,
+    },
+  ];
+  let sequence = 0;
+  const items = groups.flatMap((group, groupIndex) =>
+    split(group.amount, group.count).map((amount, index) => {
+      sequence += 1;
+      const day = 1 + ((index * 7 + groupIndex * 3) % LAST_DAY[period]);
+      return {
+        transactionId: `b4d2c6e8-3f5a-4b7c-9e1d-${period.replace("-", "")}${String(sequence).padStart(6, "0")}`,
+        date: `${period}-${String(day).padStart(2, "0")}`,
+        description: group.names[index % group.names.length],
+        amount,
+        accountName: index % 3 === 2 ? "Cartão do dia a dia" : "Conta do dia a dia",
+        categoryId: group.categoryId,
+        categoryName: group.categoryName,
+        toReview: group.toReview,
+      };
+    }),
+  );
+  // Mais recentes primeiro; no mesmo dia, o maior valor antes.
+  return items.sort((a, b) => b.date.localeCompare(a.date) || Number(b.amount) - Number(a.amount));
+}
+
+export const SAMPLE_SPENDING_MOVEMENTS: Record<(typeof SAMPLE_PERIODS)[number], readonly SpendingMovement[]> = {
+  "2026-10": spendingMovements("2026-10"),
+  "2026-09": spendingMovements("2026-09"),
+  "2026-08": spendingMovements("2026-08"),
 };

@@ -1,15 +1,44 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { categoryColors } from "@/components/charts/category-colors";
+import { DonutChart } from "@/components/charts/donut-chart";
+import { DONUT_OTHER_ID } from "@/components/charts/model";
 import { PairedBarsChart } from "@/components/charts/paired-bars";
-import { RankedBars } from "@/components/charts/ranked-bars";
-import { IconAccounts } from "@/components/icons";
-import { EmptyState, Notice, PageHeader, ui } from "@/components/ui";
-import { formatMoney } from "@/lib/money";
+import { IconAccounts, IconChevronDown } from "@/components/icons";
+import { SyncedDetails, SyncedDetailsGroup } from "@/components/synced-details";
+import { EmptyState, Notice, PageHeader, Pagination, ui } from "@/components/ui";
 import { overviewPreviewEnabled } from "@/lib/overview/flag";
-import { getBalances, getFlow, getSpending, listPeriods, parsePeriod } from "@/lib/overview/source";
-import { BalancesTable, Block, BlockError, FigureStrip } from "./blocks";
+import {
+  getBalances,
+  getCategoryOrder,
+  getFlow,
+  getRecentMovements,
+  getSpending,
+  getSpendingMovements,
+  listPeriods,
+  MOVEMENTS_PAGE_SIZE,
+  parseCategory,
+  parsePage,
+  parsePeriod,
+  REVIEW_FILTER,
+} from "@/lib/overview/source";
+import { AttentionList, BalancesTable, Block, BlockError, FigureStrip, RecentList } from "./blocks";
 import { PeriodSelector } from "./period-selector";
-import { monthName, periodOption, periodTitle, toChartFlow, toRankedItems } from "./presentation";
+import {
+  attentionItems,
+  monthName,
+  monthRange,
+  movementsTitle,
+  overviewHref,
+  pageRange,
+  periodOption,
+  periodTitle,
+  toChartFlow,
+  toDonutItems,
+  toRecentLines,
+  toSpendingLines,
+} from "./presentation";
+import chartStyles from "@/components/charts/charts.module.css";
 import styles from "./visao-geral.module.css";
 
 const SAMPLE_META = "Dados de exemplo";
@@ -22,22 +51,54 @@ export default async function VisaoGeralPage({
   // Prévia com dados de exemplo: sem a flag, a rota não existe.
   if (!overviewPreviewEnabled()) notFound();
 
-  const { periodo } = await searchParams;
-  const period = parsePeriod(periodo);
+  const params = await searchParams;
+  const period = parsePeriod(params.periodo);
+  const monthsPage = parsePage(params.meses);
   const periods = listPeriods();
-  const retryHref = `/visao-geral?periodo=${period}`;
+  const retryHref = overviewHref({ periodo: period });
 
   // Cada bloco depende de uma agregação; uma falha não esconde os outros (RNF-008).
-  const [balancesResult, flowResult, spendingResult] = await Promise.allSettled([
-    getBalances(period),
-    getFlow(period),
-    getSpending(period),
-  ]);
+  // A faixa de números usa sempre os meses mais recentes, mesmo com o fluxo paginado.
+  const [balancesResult, latestFlowResult, flowResult, spendingResult, recentResult, orderResult] =
+    await Promise.allSettled([
+      getBalances(period),
+      getFlow(period),
+      monthsPage > 1 ? getFlow(period, monthsPage) : Promise.resolve(null),
+      getSpending(period),
+      getRecentMovements(),
+      getCategoryOrder(),
+    ]);
   const balances = balancesResult.status === "fulfilled" ? balancesResult.value : null;
-  const flow = flowResult.status === "fulfilled" ? flowResult.value : null;
+  const latestFlow = latestFlowResult.status === "fulfilled" ? latestFlowResult.value : null;
+  const flow = monthsPage > 1 ? (flowResult.status === "fulfilled" ? flowResult.value : null) : latestFlow;
   const spending = spendingResult.status === "fulfilled" ? spendingResult.value : null;
-  const month = flow?.months.at(-1) ?? null;
+  const recent = recentResult.status === "fulfilled" ? recentResult.value : null;
+  // Sem a ordem das categorias, as cores ficam neutras; nomes e valores continuam.
+  const colors = categoryColors(orderResult.status === "fulfilled" ? orderResult.value : []);
   const current = periods[0];
+
+  // O filtro só vale para uma categoria com gasto no período; o resto mostra todas.
+  const category = parseCategory(params.categoria, spending);
+  const movements = spending
+    ? await getSpendingMovements(period, { category, page: parsePage(params.pagina) }).catch(() => null)
+    : null;
+  // Com filtro ou página na URL, a pessoa veio ver a lista: o grupo já começa aberto.
+  const detailsOpen = category !== null || parsePage(params.pagina) > 1 || monthsPage > 1;
+  const categoryLabel =
+    category === REVIEW_FILTER
+      ? "A revisar"
+      : (spending?.categories.find((item) => item.categoryId === category)?.name ?? null);
+
+  const donutItems = spending ? toDonutItems(spending, colors) : [];
+  // Clicar na categoria filtra; clicar de novo na mesma tira o filtro. Página volta à 1.
+  const donutLinks = Object.fromEntries(
+    donutItems
+      .filter((item) => item.id !== DONUT_OTHER_ID)
+      .map((item) => [
+        item.id,
+        overviewHref({ periodo: period, categoria: item.id === category ? null : item.id, meses: monthsPage }),
+      ]),
+  );
 
   return (
     <div className={styles.page}>
@@ -72,67 +133,166 @@ export default async function VisaoGeralPage({
         </EmptyState>
       ) : (
         <>
-          <FigureStrip balances={balances} month={month} />
+          <FigureStrip balances={balances} months={latestFlow?.months ?? null} />
 
-          <Block
-            id="saldos"
-            title="Saldos por conta"
-            meta={balances ? SAMPLE_META : undefined}
-          >
+          {/* Saídas e valores por mês abrem e fecham juntos: os dois blocos ficam alinhados. */}
+          <SyncedDetailsGroup defaultOpen={detailsOpen} openKey={category}>
+            <div className={styles.columns}>
+              <Block
+                id="gastos"
+                title="Gastos por categoria"
+                meta={spending ? `${monthName(period)} · ${SAMPLE_META}` : undefined}
+              >
+                {spending ? (
+                  spending.total === "0.00" ? (
+                    <p className={styles.meta}>Nenhuma saída no período.</p>
+                  ) : (
+                    <>
+                      <DonutChart
+                        caption={`Gastos de ${monthName(period)} por categoria, do maior para o menor. Escolha uma categoria para ver as saídas dela.`}
+                        items={donutItems}
+                        total={spending.total}
+                        links={donutLinks}
+                        selectedId={category}
+                      />
+
+                      <section className={styles.subsection} aria-labelledby="saidas">
+                        <header className={styles.panelHead}>
+                          <h3 className={styles.subsectionTitle} id="saidas">
+                            {movementsTitle(period, categoryLabel)}
+                          </h3>
+                          {movements ? (
+                            <p className={styles.meta}>
+                              {pageRange(movements.page, MOVEMENTS_PAGE_SIZE, movements.total)}
+                              {category ? (
+                                <>
+                                  {" · "}
+                                  <Link
+                                    className={ui.inlineLink}
+                                    href={overviewHref({ periodo: period, meses: monthsPage })}
+                                    scroll={false}
+                                  >
+                                    Mostrar todas
+                                  </Link>
+                                </>
+                              ) : null}
+                            </p>
+                          ) : null}
+                        </header>
+                        {movements ? (
+                          <SyncedDetails
+                            className={chartStyles.values}
+                            summaryClassName={chartStyles.valuesSummary}
+                            summary={
+                              <>
+                                Ver saídas
+                                <IconChevronDown className={chartStyles.valuesChevron} size={16} />
+                              </>
+                            }
+                          >
+                            <RecentList lines={toSpendingLines(movements.items, colors)} compact />
+                          </SyncedDetails>
+                        ) : (
+                          <BlockError what="as saídas do período" retryHref={retryHref} />
+                        )}
+                        {/* Fora do "Ver saídas", como a do fluxo: fica visível com a lista recolhida. */}
+                        <div className={styles.paginationSlot}>
+                          {movements ? (
+                            <Pagination
+                              page={movements.page}
+                              pages={movements.pages}
+                              href={(target) =>
+                                overviewHref({ periodo: period, categoria: category, pagina: target, meses: monthsPage })
+                              }
+                              label="Páginas das saídas"
+                            />
+                          ) : null}
+                        </div>
+                      </section>
+                    </>
+                  )
+                ) : (
+                  <BlockError what="os gastos por categoria" retryHref={retryHref} />
+                )}
+              </Block>
+
+              <Block
+                id="fluxo"
+                title="Entradas e saídas por mês"
+                meta={
+                  flow
+                    ? `${monthRange(flow.months[0].month, flow.months[flow.months.length - 1].month)} · ${SAMPLE_META}`
+                    : undefined
+                }
+              >
+                {flow ? (
+                  <div className={styles.flowBody}>
+                    <PairedBarsChart
+                      caption={`Entradas, saídas e resultado por mês, de ${monthName(flow.months[0].month)} a ${monthName(flow.months[flow.months.length - 1].month)}`}
+                      data={toChartFlow(flow.months)}
+                      height={240}
+                      tableCollapsed
+                      tableOrder="newest-first"
+                      tableHeader={
+                        <header className={`${styles.panelHead} ${styles.subsectionHead}`}>
+                          <h3 className={styles.subsectionTitle}>
+                            Valores de {monthRange(flow.months[0].month, flow.months[flow.months.length - 1].month)}
+                          </h3>
+                          <p className={styles.meta}>
+                            {flow.months.length} {flow.months.length === 1 ? "mês" : "meses"}
+                          </p>
+                        </header>
+                      }
+                    />
+                    {/* Página 1 = meses mais recentes; "Próxima" anda para trás no tempo. No rodapé
+                        do bloco, na mesma linha da paginação das saídas ao lado. */}
+                    <div className={`${styles.flowPagination} ${styles.paginationSlot}`}>
+                      <Pagination
+                        page={flow.page}
+                        pages={flow.pages}
+                        href={(target) =>
+                          overviewHref({ periodo: period, categoria: category, pagina: movements?.page, meses: target })
+                        }
+                        label="Páginas dos meses, dos mais recentes aos mais antigos"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <BlockError what="o fluxo por mês" retryHref={retryHref} />
+                )}
+              </Block>
+            </div>
+          </SyncedDetailsGroup>
+
+          <div className={styles.columns}>
+            <Block
+              id="ultimas"
+              title="Últimas movimentações"
+              meta={
+                <Link className={ui.inlineLink} href="/movimentacoes">
+                  Ver todas
+                </Link>
+              }
+            >
+              {recent ? (
+                <RecentList lines={toRecentLines(recent, colors)} />
+              ) : (
+                <BlockError what="as últimas movimentações" retryHref={retryHref} />
+              )}
+            </Block>
+
+            <Block id="atencao" title="Pede sua atenção" meta="Fatos dos seus registros">
+              <AttentionList items={attentionItems(balances, spending)} />
+            </Block>
+          </div>
+
+          <Block id="saldos" title="Saldos por conta" meta={balances ? SAMPLE_META : undefined}>
             {balances ? (
               <BalancesTable accounts={balances.accounts} />
             ) : (
               <BlockError what="os saldos das contas" retryHref={retryHref} />
             )}
           </Block>
-
-          <div className={styles.columns}>
-            <Block
-              id="fluxo"
-              title="Entradas e saídas por mês"
-              meta={flow ? `Últimos ${flow.months.length} meses · ${SAMPLE_META}` : undefined}
-            >
-              {flow ? (
-                <PairedBarsChart
-                  caption={`Entradas, saídas e resultado por mês, até ${monthName(period)}`}
-                  data={toChartFlow(flow.months)}
-                />
-              ) : (
-                <BlockError what="o fluxo por mês" retryHref={retryHref} />
-              )}
-            </Block>
-
-            <Block
-              id="gastos"
-              title="Gastos por categoria"
-              meta={spending ? `Total ${formatMoney(spending.total)} · ${SAMPLE_META}` : undefined}
-            >
-              {spending ? (
-                spending.total === "0.00" ? (
-                  <p className={styles.meta}>Nenhuma saída no período.</p>
-                ) : (
-                  <>
-                    <RankedBars
-                      caption={`Gastos de ${monthName(period)} por categoria, do maior para o menor`}
-                      items={toRankedItems(spending)}
-                      total={spending.total}
-                    />
-                    {spending.toReview.amount !== "0.00" ? (
-                      <p className={styles.panelFoot}>
-                        {spending.toReview.count}{" "}
-                        {spending.toReview.count === 1 ? "saída ainda sem categoria segura" : "saídas ainda sem categoria segura"}.{" "}
-                        <Link className={ui.inlineLink} href="/movimentacoes">
-                          Revisar em Movimentações
-                        </Link>
-                      </p>
-                    ) : null}
-                  </>
-                )
-              ) : (
-                <BlockError what="os gastos por categoria" retryHref={retryHref} />
-              )}
-            </Block>
-          </div>
         </>
       )}
     </div>

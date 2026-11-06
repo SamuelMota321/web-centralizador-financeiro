@@ -14,11 +14,27 @@
 }
 
 .figure {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4) var(--space-5);
+}
+
+.figureBody {
   display: grid;
   align-content: start;
   gap: var(--space-1);
   min-width: 0;
-  padding: var(--space-4);
+}
+
+/* Variação em texto secundário: subir ou descer não é bom nem ruim por si (sem verde/vermelho). */
+.change {
+  color: var(--body-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .figure + .figure {
@@ -60,15 +76,23 @@
 }
 
 /* ---------- Blocos ---------- */
+/*
+ * Blocos lado a lado com a mesma altura: as bordas alinham mesmo com conteúdo diferente.
+ * --values-min-height: área das listas que abrem juntas, 6 saídas × 52px = 32px de
+ * cabeçalho + 7 meses × 40px. Mudar uma dessas alturas pede mudar este valor.
+ */
 .columns {
+  --values-min-height: 312px;
+
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  align-items: start;
+  align-items: stretch;
   gap: var(--space-6);
 }
 
 .panel {
   display: grid;
+  align-content: start;
   gap: var(--space-3);
   min-width: 0;
   padding: var(--space-4);
@@ -159,15 +183,6 @@
 
 /* Referência e frescor ficam embaixo do saldo no celular: a tabela não rola de lado. */
 @media (max-width: 40rem) {
-  .figures {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .figure + .figure {
-    border-top: 1px solid var(--line);
-    border-left: 0;
-  }
-
   .referenceColumn {
     display: none;
   }
@@ -179,10 +194,124 @@
   }
 }
 
+/* Número de 28px + tendência de 120px não cabem em três colunas abaixo do desktop. */
 @media (max-width: 64rem) {
   .columns {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .figures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .figure + .figure {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+}
+
+/* ---------- Últimas movimentações e "Pede sua atenção" ---------- */
+.recent {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recentRow,
+.attentionRow {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.recentRow:first-child,
+.attentionRow:first-child {
+  border-top: 0;
+}
+
+.attentionRow {
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: start;
+}
+
+/* Marca da categoria: faixa de 3px na cor fixa, sobre o plano rebaixado. */
+.recentMark {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+  box-shadow: inset 3px 0 0 var(--mark, transparent);
+}
+
+.hatched {
+  background: repeating-linear-gradient(135deg, var(--warning) 0 2px, transparent 2px 5px);
+  box-shadow: inset 0 0 0 1px var(--warning);
+}
+
+.recentText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recentTitle {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentAmount {
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.recentAmount[data-direction="inflow"] {
+  color: var(--positive);
+}
+
+.attentionMark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+}
+
+.attentionMark::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-marker);
+  background: var(--info);
+}
+
+.attentionMark[data-tone="warning"]::after {
+  background: var(--warning);
+}
+
+.attentionMark[data-tone="review"] {
+  background: repeating-linear-gradient(135deg, var(--warning) 0 2px, transparent 2px 5px);
+  box-shadow: inset 0 0 0 1px var(--warning);
+}
+
+.attentionMark[data-tone="review"]::after {
+  content: none;
+}
+
+.attentionText {
+  color: var(--body-text);
+  font-size: 0.8125rem;
 }
 
 /* ---------- Esqueleto ---------- */
@@ -193,4 +322,95 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
   background: var(--surface);
+}
+
+/* ---------- Saídas sob a rosca ---------- */
+/*
+ * Saídas e fluxo têm a mesma sequência no rodapé do bloco: título, 8px, "Ver…", lista,
+ * paginação (que traz a própria margem de 8px). Sem gap aqui para não somar com ela.
+ */
+.subsection {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.subsection > header {
+  margin-bottom: var(--space-2);
+}
+
+.subsectionTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Saídas sob a rosca: linhas mais baixas que as das últimas movimentações. */
+/*
+ * Altura fixa: 6 saídas × 52px = 312px, o mesmo da tabela de meses ao lado (32px de
+ * cabeçalho + 7 linhas × 40px). Mudar uma altura pede mudar a outra.
+ */
+/* Lista curta (filtro) ainda ocupa a área toda: as primeiras linhas seguem alinhadas. */
+.recent.compact {
+  align-content: start;
+  min-height: var(--values-min-height, 0);
+}
+
+.compact .recentRow {
+  box-sizing: border-box;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-3);
+  height: 52px;
+  padding: 0;
+}
+
+.compact .recentMark {
+  width: 24px;
+  height: 24px;
+}
+
+.compact .recentTitle,
+.compact .recentAmount {
+  font-size: 0.8125rem;
+}
+
+.compact .meta {
+  font-size: 0.6875rem;
+}
+
+/* Fluxo: o corpo ocupa o resto do bloco e a paginação desce para o rodapé. */
+.panel:has(> .flowBody) {
+  grid-template-rows: auto 1fr;
+}
+
+.flowBody {
+  display: flex;
+  flex-direction: column;
+  /* A paginação já traz 8px de margem; um gap aqui somaria 8px só deste lado. */
+  gap: 0;
+  min-width: 0;
+}
+
+.flowPagination {
+  margin-top: auto;
+}
+
+/* Título da tabela do fluxo no mesmo desenho do título das saídas ao lado. */
+.subsectionHead {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+/* Saídas também descem para o rodapé: os dois lados começam na mesma altura. */
+.panel:has(> .subsection) {
+  grid-template-rows: auto auto 1fr;
+}
+
+.subsection {
+  align-self: end;
+}
+
+/* Lugar da paginação (36px + 8px de margem) reservado mesmo com uma página só. */
+.paginationSlot {
+  min-height: 44px;
 }
