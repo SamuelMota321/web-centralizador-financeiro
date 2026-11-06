@@ -22,53 +22,56 @@ export function LineChart({
   /** Cabeçalho da coluna de valores ("Saldo"). */
   valueLabel: string;
 }) {
-  const [ref, width] = useChartWidth<HTMLDivElement>(520);
+  const [ref, width] = useChartWidth<HTMLDivElement>();
   const transition = useGeometryTransition();
   const { active, bind } = useLinkedHighlight();
-  const layout = lineLayout(points, width, HEIGHT);
-  const last = layout.points.length - 1;
+  const layout = width === null ? null : lineLayout(points, width, HEIGHT);
+  const last = points.length - 1;
 
   return (
     <figure className={styles.chart}>
-      <div ref={ref}>
-        <svg
-          className={styles.svg}
-          width={width}
-          height={HEIGHT}
-          viewBox={`0 0 ${width} ${HEIGHT}`}
-          aria-hidden
-          data-active={active === null ? undefined : ""}
-        >
-          {layout.ticks.map((tick) => (
-            <g key={tick.value}>
-              {tick.value > 0 ? (
-                <path className={styles.grid} d={`M${layout.plot.left} ${tick.y}H${layout.plot.right}`} />
-              ) : null}
-              <text x={0} y={tick.y + 3}>
-                {formatTick(tick.value)}
-              </text>
-            </g>
-          ))}
-          <path className={styles.axis} d={`M${layout.plot.left} ${layout.plot.bottom}H${layout.plot.right}`} />
+      <div ref={ref} style={{ height: HEIGHT }}>
+        {layout && width !== null ? (
+          <svg
+            className={styles.svg}
+            width={width}
+            height={HEIGHT}
+            viewBox={`0 0 ${width} ${HEIGHT}`}
+            aria-hidden
+            data-active={active === null ? undefined : ""}
+          >
+            {layout.ticks.map((tick) => (
+              <g key={tick.value}>
+                {tick.value > 0 ? (
+                  <path className={styles.grid} d={`M${layout.plot.left} ${tick.y}H${layout.plot.right}`} />
+                ) : null}
+                <text x={0} y={tick.y + 3}>
+                  {formatTick(tick.value)}
+                </text>
+              </g>
+            ))}
+            <path className={styles.axis} d={`M${layout.plot.left} ${layout.plot.bottom}H${layout.plot.right}`} />
 
-          <m.path className={styles.series} initial={false} animate={{ d: layout.path }} transition={transition} />
+            <m.path className={styles.series} initial={false} animate={{ d: layout.path }} transition={transition} />
 
-          {layout.points.map((point, index) => (
-            <g key={point.label} {...bind(index)}>
-              <m.circle
-                className={index === last ? `${styles.point} ${styles.last}` : styles.point}
-                data-active={active === index ? "" : undefined}
-                r={3.5}
-                initial={false}
-                animate={{ cx: point.x, cy: point.y }}
-                transition={transition}
-              />
-              <text x={point.x} y={HEIGHT - 6} textAnchor="middle">
-                {point.label}
-              </text>
-            </g>
-          ))}
-        </svg>
+            {layout.points.map((point, index) => (
+              <g key={point.label} {...bind(index)}>
+                <m.circle
+                  className={index === last ? `${styles.point} ${styles.last}` : styles.point}
+                  data-active={active === index ? "" : undefined}
+                  r={3.5}
+                  cx={point.x}
+                  initial={false}
+                  animate={{ cy: point.y }}
+                  transition={transition}
+                />
+                <text x={point.x} y={HEIGHT - 6} textAnchor="middle">
+                  {point.label}
+                </text>
+              </g>
+            ))}
+          </svg>
+        ) : null}
       </div>
 
       <table className={styles.table}>

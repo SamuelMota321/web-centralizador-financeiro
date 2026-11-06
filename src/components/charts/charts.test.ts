@@ -11,7 +11,7 @@ import { ShareBar } from "./share-bar";
 // gráfico e o que aparece antes de qualquer JavaScript.
 
 describe("gráficos renderizados no servidor", () => {
-  it("barras pareadas trazem a tabela com o mês parcial marcado e o SVG fora da leitura", () => {
+  it("barras pareadas trazem a tabela com o mês parcial marcado; o SVG espera a largura real", () => {
     const html = renderToStaticMarkup(
       createElement(PairedBarsChart, { caption: "Entradas e saídas por mês", data: SAMPLE_FLOW }),
     );
@@ -19,16 +19,23 @@ describe("gráficos renderizados no servidor", () => {
     expect(html).toContain("outubro de 2026");
     expect(html).toContain("parcial");
     expect(html).toContain("R$ 7.100,00");
-    expect(html).toMatch(/<svg[^>]*aria-hidden="true"/);
-    expect(html.match(/<rect/g)?.length).toBe(SAMPLE_FLOW.length * 3);
+    expect(html).not.toContain("<svg");
+    expect(html).toContain("height:190px");
   });
 
-  it("linha traz um ponto e uma linha de tabela por data", () => {
+  it("linha traz uma linha de tabela por data", () => {
     const html = renderToStaticMarkup(
       createElement(LineChart, { caption: "Saldo", points: SAMPLE_BALANCE, valueLabel: "Saldo" }),
     );
-    expect(html.match(/<circle/g)?.length).toBe(SAMPLE_BALANCE.length);
+    expect(html.match(/<tr/g)?.length).toBe(SAMPLE_BALANCE.length + 1);
     expect(html).toContain("R$ 28.237,70");
+  });
+
+  it("prévia mantém a tabela para leitores de tela, fora da vista", () => {
+    const html = renderToStaticMarkup(
+      createElement(PairedBarsChart, { caption: "Fluxo", data: SAMPLE_FLOW, intro: true, tableVisible: false }),
+    );
+    expect(html).toMatch(/<table class="[^"]*visually-hidden/);
   });
 
   it("barras ordenadas mostram valor e percentual em texto, com A revisar no fim", () => {

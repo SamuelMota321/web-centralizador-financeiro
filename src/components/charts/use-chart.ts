@@ -4,11 +4,12 @@ import { motionDuration, motionEase } from "@/lib/motion";
 
 /**
  * Largura real do contêiner, para o SVG desenhar em pixels de tela (texto do eixo sem
- * escalar). No servidor e na primeira pintura usa `fallback`, com viewBox proporcional.
+ * escalar). É null até a primeira medição: o SVG só monta com a largura certa, senão as
+ * barras deslizariam de uma largura suposta para a real. O contêiner reserva a altura.
  */
-export function useChartWidth<T extends Element>(fallback: number) {
+export function useChartWidth<T extends Element>() {
   const ref = useRef<T>(null);
-  const [width, setWidth] = useState(fallback);
+  const [width, setWidth] = useState<number | null>(null);
 
   useEffect(() => {
     const element = ref.current;
@@ -34,6 +35,18 @@ export function useGeometryTransition(): Transition {
   return reduce
     ? { duration: 0 }
     : { duration: motionDuration.reveal, ease: motionEase.out };
+}
+
+/**
+ * Entrada única das barras a partir da linha de base (página inicial, `--motion-intro`),
+ * em sequência curta depois que o painel assenta. Com movimento reduzido, aparecem prontas.
+ */
+export function useIntroTransition(): (index: number) => Transition {
+  const reduce = useReducedMotion();
+  return (index) =>
+    reduce
+      ? { duration: 0 }
+      : { duration: motionDuration.intro, ease: motionEase.out, delay: 0.2 + index * 0.05 };
 }
 
 /** Destaque ligado entre gráfico e tabela; só cursor de mouse, não toque. */
