@@ -62,6 +62,37 @@ describe("gráficos renderizados no servidor", () => {
     expect(html).toMatch(/<div class="[^"]*_tableFrame_[^"]*"><table/);
   });
 
+  it("sem foco, nenhuma caixa de detalhe nem faixa é desenhada no servidor", () => {
+    const bars = renderToStaticMarkup(createElement(PairedBarsChart, { caption: "Fluxo", data: SAMPLE_FLOW }));
+    expect(bars).not.toMatch(/_tooltip_|_focusBand_/);
+    const line = renderToStaticMarkup(
+      createElement(LineChart, { caption: "Saldo", points: SAMPLE_BALANCE, valueLabel: "Saldo" }),
+    );
+    expect(line).not.toMatch(/_tooltip_|_guide_/);
+    expect(line).toContain("_plotArea_");
+  });
+
+  it("gráfico de linha pode recolher a tabela", () => {
+    const html = renderToStaticMarkup(
+      createElement(LineChart, { caption: "Saldo", points: SAMPLE_BALANCE, valueLabel: "Saldo", tableCollapsed: true }),
+    );
+    expect(html).toMatch(/<details class="[^"]*"><summary[^>]*>Ver valores/);
+    expect(html).toContain("R$ 28.237,70");
+  });
+
+  it("linha dia a dia: rótulos espaçados contados a partir do último ponto", () => {
+    const points = Array.from({ length: 30 }, (_, index) => ({
+      label: `d${index}`,
+      labelName: `dia ${index}`,
+      value: `${100 + index}.00`,
+    }));
+    const html = renderToStaticMarkup(
+      createElement(LineChart, { caption: "Disponível", points, valueLabel: "Disponível", drawIn: true, quietPoints: true }),
+    );
+    // A tabela tem todos os dias; o SVG (com os rótulos) só monta no navegador.
+    expect(html.match(/<tr/g)?.length).toBe(31);
+  });
+
   it("barras ordenadas mostram valor e percentual em texto, com A revisar no fim", () => {
     const html = renderToStaticMarkup(createElement(RankedBars, { caption: "Gastos", ...SAMPLE_SPENDING }));
     expect(html).toContain("R$ 1.450,00");

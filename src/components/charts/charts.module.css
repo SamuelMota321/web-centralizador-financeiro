@@ -86,10 +86,25 @@
   fill: var(--ramp-3);
 }
 
+/* O par do mês em foco ganha 6% de largura; a altura (o valor) não muda. */
 .inflow,
-.outflow,
+.outflow {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity var(--motion-hover) ease,
+    transform 220ms var(--ease-out);
+}
+
+.inflow[data-active],
+.outflow[data-active] {
+  transform: scaleX(1.06);
+}
+
 .point {
-  transition: opacity var(--motion-hover) ease;
+  transition:
+    opacity var(--motion-hover) ease,
+    transform 220ms var(--ease-out);
 }
 
 .partial {
@@ -118,6 +133,28 @@
   fill: var(--surface);
   stroke: var(--foreground);
   stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Ponto em foco cresce: diz qual leitura a caixa mostra. */
+.point[data-active] {
+  transform: scale(1.45);
+}
+
+.guide {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 220ms var(--ease-out),
+    opacity 120ms ease;
+}
+
+.guide[data-visible] {
+  opacity: 1;
 }
 
 .point.last {
@@ -302,7 +339,8 @@
 .tooltip {
   position: absolute;
   top: 4px;
-  z-index: 1;
+  left: 0;
+  z-index: 2;
   display: grid;
   gap: var(--space-1);
   width: 184px;
@@ -313,7 +351,11 @@
   box-shadow: var(--shadow-overlay);
   font-size: 0.75rem;
   pointer-events: none;
-  transform: translateX(-50%);
+  opacity: 0;
+  /* Desliza de um mês ao outro; surge e some por opacidade. */
+  transition:
+    transform 220ms var(--ease-out),
+    opacity 120ms ease;
 }
 
 .tooltipTitle {
@@ -386,8 +428,10 @@
   place-items: center;
 }
 
+/* A fatia em foco cresce 8% e passa da borda do quadro: não cortar. */
 .donut {
   display: block;
+  overflow: visible;
 }
 
 .donutTrack {
@@ -397,11 +441,21 @@
 
 .donutArc {
   fill: none;
-  transition: opacity var(--motion-hover) ease;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity var(--motion-hover) ease,
+    transform 220ms var(--ease-out);
+}
+
+/* Fatia sob o mouse ou filtrada cresce 8% a partir do centro: diz qual é, sem afastar. */
+.donutArc[data-active],
+.donutArc[data-selected] {
+  transform: scale(1.08);
 }
 
 .donut[data-active] .donutArc:not([data-active]) {
-  opacity: 0.35;
+  opacity: 0.25;
 }
 
 .hatchStripe {
@@ -489,7 +543,7 @@
 }
 
 .donut[data-selected] .donutArc:not([data-selected]) {
-  opacity: 0.35;
+  opacity: 0.25;
 }
 
 .donutSwatch {
@@ -546,6 +600,39 @@
 .values {
   display: grid;
   gap: var(--space-2);
+  interpolate-size: allow-keywords;
+}
+
+/*
+ * Abre e fecha com altura e opacidade, como o bloco recolhível do app (ui.module.css):
+ * melhoria progressiva; sem suporte a `::details-content`, abre na hora.
+ */
+.values::details-content {
+  block-size: 0;
+  opacity: 0;
+  overflow-y: clip;
+  transition:
+    block-size var(--motion-reveal) var(--ease-out),
+    opacity var(--motion-reveal) var(--ease-out),
+    content-visibility var(--motion-reveal) allow-discrete;
+}
+
+.values[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
+/* Saída mais curta que a entrada. */
+.values:not([open])::details-content {
+  transition-duration: var(--motion-feedback);
+}
+
+/* Movimento reduzido: só a opacidade; a altura muda na hora. */
+@media (prefers-reduced-motion: reduce) {
+  .values::details-content {
+    transition-property: opacity, content-visibility !important;
+    transition-behavior: normal, allow-discrete;
+  }
 }
 
 .valuesSummary {
@@ -610,4 +697,67 @@
 /* Altura mínima definida por quem usa (--values-min-height), para alinhar com um vizinho. */
 .tableFrame {
   min-height: var(--values-min-height, 0);
+}
+
+/* ---------- Foco que segue o mouse (barras e linha) ---------- */
+
+/* O SVG fica acima da faixa de foco, que pinta o fundo do mês. */
+.plotArea > .svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* Texto principal a 7%: aparece no claro e no escuro (o rebaixado some no escuro). */
+.focusBand {
+  position: absolute;
+  left: 0;
+  z-index: 0;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 220ms var(--ease-out),
+    opacity 120ms ease;
+}
+
+/* Linha-guia no centro do mês, que desliza junto com a faixa. */
+.focusBand::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px dashed var(--line-strong);
+}
+
+.tooltip[data-visible],
+.focusBand[data-visible] {
+  opacity: 1;
+}
+
+/* Na primeira vez que monta, só aparece; dali em diante desliza. */
+@starting-style {
+  .tooltip[data-visible],
+  .focusBand[data-visible] {
+    opacity: 0;
+  }
+}
+
+/* ---------- Linha dia a dia ---------- */
+
+/* Muitos pontos: só o ponto em foco e o último ficam visíveis. */
+.quiet .point:not([data-active]):not(.last) {
+  opacity: 0;
+}
+
+/* Último ponto chega quando a linha termina de se desenhar (600ms). */
+.arrive {
+  animation: point-arrive var(--motion-feedback) var(--ease-out) var(--motion-intro) both;
+}
+
+@keyframes point-arrive {
+  from {
+    opacity: 0;
+  }
 }

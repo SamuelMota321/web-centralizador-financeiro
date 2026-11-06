@@ -23,6 +23,7 @@ import {
   splitAccounts,
   toChartFlow,
   toDonutItems,
+  toDailyPoints,
   toRecentLines,
 } from "./presentation";
 
@@ -153,5 +154,18 @@ describe("monthRange", () => {
     expect(monthRange("2026-04", "2026-10")).toBe("abril a outubro de 2026");
     expect(monthRange("2025-11", "2026-03")).toBe("novembro de 2025 a março de 2026");
     expect(monthRange("2026-03", "2026-03")).toBe("março de 2026");
+  });
+});
+
+describe("toDailyPoints", () => {
+  it("usa o dia curto no eixo e a data completa na tabela", () => {
+    expect(toDailyPoints([{ date: "2026-10-05", available: "17340.95" }])).toEqual([
+      { label: "05/10", labelName: "05/10/2026", value: "17340.95" },
+    ]);
+  });
+
+  it("o link do painel entra e sai da URL", () => {
+    expect(overviewHref({ periodo: "2026-10", disponivel: true })).toBe("/visao-geral?periodo=2026-10&disponivel=1");
+    expect(overviewHref({ periodo: "2026-10", disponivel: false })).toBe("/visao-geral?periodo=2026-10");
   });
 });

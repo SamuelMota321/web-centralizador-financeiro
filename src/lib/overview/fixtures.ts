@@ -1,6 +1,7 @@
 import type {
   AccountBalance,
   BalancesSummary,
+  DailyAvailable,
   FlowMonth,
   RecentMovement,
   SpendingMovement,
@@ -279,4 +280,45 @@ export const SAMPLE_SPENDING_MOVEMENTS: Record<(typeof SAMPLE_PERIODS)[number], 
   "2026-10": spendingMovements("2026-10"),
   "2026-09": spendingMovements("2026-09"),
   "2026-08": spendingMovements("2026-08"),
+};
+
+/** Dias no gráfico do Disponível. */
+export const DAILY_WINDOW = 30;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const toDate = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
+const toIso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+const toCentsNumber = (value: string) => Number(value.replace(".", ""));
+const fromCentsNumber = (cents: number) => `${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
+
+/** Fechamentos conhecidos: fim de cada mês e, no mês corrente, o último dia com dados. */
+const DAILY_ANCHORS = AVAILABLE_HISTORY.map((entry) => {
+  const period = entry.month as (typeof SAMPLE_PERIODS)[number];
+  const day = LAST_DAY[period] ?? new Date(Date.UTC(Number(entry.month.slice(0, 4)), Number(entry.month.slice(5, 7)), 0)).getUTCDate();
+  return { ms: toDate(`${entry.month}-${String(day).padStart(2, "0")}`), cents: toCentsNumber(entry.available) };
+});
+
+/**
+ * Disponível dia a dia, passando exatamente pelos fechamentos de mês: entre dois
+ * fechamentos, a reta entre eles mais uma oscilação que some nas pontas (gastos no meio
+ * do mês, entradas no começo). Os testes conferem que os fechamentos batem.
+ */
+function dailyAvailable(period: (typeof SAMPLE_PERIODS)[number]): DailyAvailable[] {
+  const end = toDate(`${period}-${String(LAST_DAY[period]).padStart(2, "0")}`);
+  return Array.from({ length: DAILY_WINDOW }, (_, index) => {
+    const ms = end - (DAILY_WINDOW - 1 - index) * DAY_MS;
+    const after = DAILY_ANCHORS.findIndex((anchor) => anchor.ms >= ms);
+    const right = DAILY_ANCHORS[after];
+    const left = DAILY_ANCHORS[Math.max(0, after - 1)];
+    const t = right.ms === left.ms ? 1 : (ms - left.ms) / (right.ms - left.ms);
+    const line = left.cents + (right.cents - left.cents) * t;
+    const wave = -32000 * Math.sin(Math.PI * t) + 11000 * Math.sin(3 * Math.PI * t);
+    return { date: toIso(ms), available: fromCentsNumber(Math.round(line + wave)) };
+  });
+}
+
+export const SAMPLE_DAILY_AVAILABLE: Record<(typeof SAMPLE_PERIODS)[number], readonly DailyAvailable[]> = {
+  "2026-10": dailyAvailable("2026-10"),
+  "2026-09": dailyAvailable("2026-09"),
+  "2026-08": dailyAvailable("2026-08"),
 };

@@ -1,6 +1,7 @@
 import {
   SAMPLE_BALANCES,
   SAMPLE_CATEGORY_ORDER,
+  SAMPLE_DAILY_AVAILABLE,
   SAMPLE_FLOW_MONTHS,
   SAMPLE_PERIODS,
   SAMPLE_RECENT,
@@ -9,6 +10,7 @@ import {
 } from "./fixtures";
 import type {
   BalancesSummary,
+  DailyAvailableSummary,
   FlowSummary,
   Page,
   RecentMovement,
@@ -116,4 +118,12 @@ export async function getRecentMovements(): Promise<readonly RecentMovement[]> {
  */
 export async function getCategoryOrder(): Promise<readonly string[]> {
   return SAMPLE_CATEGORY_ORDER;
+}
+
+/**
+ * Disponível nos últimos 30 dias até a referência do período, para o painel que abre ao
+ * clicar no Disponível. Ligado: saldo diário consolidado, que o backend ainda não tem.
+ */
+export async function getAvailableDaily(period: OverviewPeriod): Promise<DailyAvailableSummary> {
+  return { points: [...SAMPLE_DAILY_AVAILABLE[period]] };
 }

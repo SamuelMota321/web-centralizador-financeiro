@@ -3,6 +3,7 @@ import { toCents } from "@/components/charts/model";
 import {
   SAMPLE_BALANCES,
   SAMPLE_CATEGORY_ORDER,
+  SAMPLE_DAILY_AVAILABLE,
   SAMPLE_FLOW_MONTHS,
   SAMPLE_PERIODS,
   SAMPLE_RECENT,
@@ -12,6 +13,7 @@ import {
 import { overviewPreviewEnabled } from "./flag";
 import {
   balancesSummarySchema,
+  dailyAvailableSchema,
   flowSummarySchema,
   recentMovementsSchema,
   spendingMovementsPageSchema,
@@ -19,6 +21,7 @@ import {
 } from "./schema";
 import {
   FLOW_WINDOW,
+  getAvailableDaily,
   getFlow,
   getSpendingMovements,
   MOVEMENTS_PAGE_SIZE,
@@ -170,6 +173,26 @@ describe("saídas sob a rosca", () => {
     const review = await getSpendingMovements("2026-10", { category: REVIEW_FILTER, page: 1 });
     expect(review.items.every((item) => item.toReview)).toBe(true);
     expect(review.total).toBe(4);
+  });
+});
+
+describe("Disponível dia a dia", () => {
+  it.each(SAMPLE_PERIODS)("%s: trinta dias seguidos, terminando no Disponível da faixa", async (period) => {
+    const { points } = await getAvailableDaily(period);
+    expect(points).toHaveLength(30);
+    expect(points.at(-1)?.available).toBe(SAMPLE_BALANCES[period].available);
+    for (let index = 1; index < points.length; index += 1) {
+      const gap = Date.parse(points[index].date) - Date.parse(points[index - 1].date);
+      expect(gap).toBe(24 * 60 * 60 * 1000);
+    }
+    expect(() => dailyAvailableSchema.parse({ points })).not.toThrow();
+  });
+
+  it("passa exatamente pelos fechamentos de mês", () => {
+    const october = SAMPLE_DAILY_AVAILABLE["2026-10"];
+    expect(october.find((point) => point.date === "2026-09-30")?.available).toBe("16630.20");
+    // Setembro vai de 01/09 a 30/09: começa logo depois do fechamento de agosto.
+    expect(SAMPLE_DAILY_AVAILABLE["2026-09"][0].date).toBe("2026-09-01");
   });
 });
 

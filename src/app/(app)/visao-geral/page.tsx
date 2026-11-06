@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { categoryColors } from "@/components/charts/category-colors";
 import { DonutChart } from "@/components/charts/donut-chart";
+import { LineChart } from "@/components/charts/line-chart";
 import { DONUT_OTHER_ID } from "@/components/charts/model";
 import { PairedBarsChart } from "@/components/charts/paired-bars";
 import { IconAccounts, IconChevronDown } from "@/components/icons";
@@ -9,6 +10,7 @@ import { SyncedDetails, SyncedDetailsGroup } from "@/components/synced-details";
 import { EmptyState, Notice, PageHeader, Pagination, ui } from "@/components/ui";
 import { overviewPreviewEnabled } from "@/lib/overview/flag";
 import {
+  getAvailableDaily,
   getBalances,
   getCategoryOrder,
   getFlow,
@@ -27,13 +29,16 @@ import { PeriodSelector } from "./period-selector";
 import {
   attentionItems,
   monthName,
+  formatDay,
   monthRange,
   movementsTitle,
   overviewHref,
+  type OverviewQuery,
   pageRange,
   periodOption,
   periodTitle,
   toChartFlow,
+  toDailyPoints,
   toDonutItems,
   toRecentLines,
   toSpendingLines,
@@ -42,6 +47,7 @@ import chartStyles from "@/components/charts/charts.module.css";
 import styles from "./visao-geral.module.css";
 
 const SAMPLE_META = "Dados de exemplo";
+const AVAILABLE_PANEL = "disponivel-30-dias";
 
 export default async function VisaoGeralPage({
   searchParams,
@@ -54,6 +60,7 @@ export default async function VisaoGeralPage({
   const params = await searchParams;
   const period = parsePeriod(params.periodo);
   const monthsPage = parsePage(params.meses);
+  const availableOpen = params.disponivel === "1";
   const periods = listPeriods();
   const retryHref = overviewHref({ periodo: period });
 
@@ -79,6 +86,17 @@ export default async function VisaoGeralPage({
 
   // O filtro só vale para uma categoria com gasto no período; o resto mostra todas.
   const category = parseCategory(params.categoria, spending);
+  const daily = availableOpen ? await getAvailableDaily(period).catch(() => null) : null;
+  // Links que mudam uma parte da URL mantêm o resto (filtro, páginas, painel aberto).
+  const hrefWith = (change: Partial<OverviewQuery>) =>
+    overviewHref({
+      periodo: period,
+      categoria: category,
+      pagina: movements?.page,
+      meses: monthsPage,
+      disponivel: availableOpen,
+      ...change,
+    });
   const movements = spending
     ? await getSpendingMovements(period, { category, page: parsePage(params.pagina) }).catch(() => null)
     : null;
@@ -96,7 +114,7 @@ export default async function VisaoGeralPage({
       .filter((item) => item.id !== DONUT_OTHER_ID)
       .map((item) => [
         item.id,
-        overviewHref({ periodo: period, categoria: item.id === category ? null : item.id, meses: monthsPage }),
+        hrefWith({ categoria: item.id === category ? null : item.id, pagina: 1 }),
       ]),
   );
 
@@ -133,7 +151,48 @@ export default async function VisaoGeralPage({
         </EmptyState>
       ) : (
         <>
-          <FigureStrip balances={balances} months={latestFlow?.months ?? null} />
+          <FigureStrip
+            balances={balances}
+            months={latestFlow?.months ?? null}
+            availableToggle={{
+              href: hrefWith({ disponivel: !availableOpen }),
+              open: availableOpen,
+              controls: AVAILABLE_PANEL,
+            }}
+          />
+
+          {/* Painel dos últimos 30 dias: abre ao clicar no Disponível e entra com animação. */}
+          {availableOpen ? (
+            <div className={styles.reveal} id={AVAILABLE_PANEL}>
+              <Block
+                id="disponivel-dias"
+                title="Disponível nos últimos 30 dias"
+                meta={
+                  <>
+                    {daily && daily.points.length > 0
+                      ? `${formatDay(daily.points[0].date)} a ${formatDay(daily.points[daily.points.length - 1].date)} · ${SAMPLE_META} · `
+                      : null}
+                    <Link className={ui.inlineLink} href={hrefWith({ disponivel: false })} scroll={false}>
+                      Fechar
+                    </Link>
+                  </>
+                }
+              >
+                {daily ? (
+                  <LineChart
+                    caption="Disponível no fim de cada um dos últimos 30 dias"
+                    points={toDailyPoints(daily.points)}
+                    valueLabel="Disponível"
+                    tableCollapsed
+                    drawIn
+                    quietPoints
+                  />
+                ) : (
+                  <BlockError what="o Disponível dos últimos 30 dias" retryHref={hrefWith({ disponivel: true })} />
+                )}
+              </Block>
+            </div>
+          ) : null}
 
           {/* Saídas e valores por mês abrem e fecham juntos: os dois blocos ficam alinhados. */}
           <SyncedDetailsGroup defaultOpen={detailsOpen} openKey={category}>
@@ -169,7 +228,7 @@ export default async function VisaoGeralPage({
                                   {" · "}
                                   <Link
                                     className={ui.inlineLink}
-                                    href={overviewHref({ periodo: period, meses: monthsPage })}
+                                    href={hrefWith({ categoria: null, pagina: 1 })}
                                     scroll={false}
                                   >
                                     Mostrar todas
@@ -202,7 +261,7 @@ export default async function VisaoGeralPage({
                               page={movements.page}
                               pages={movements.pages}
                               href={(target) =>
-                                overviewHref({ periodo: period, categoria: category, pagina: target, meses: monthsPage })
+                                hrefWith({ pagina: target })
                               }
                               label="Páginas das saídas"
                             />
@@ -251,7 +310,7 @@ export default async function VisaoGeralPage({
                         page={flow.page}
                         pages={flow.pages}
                         href={(target) =>
-                          overviewHref({ periodo: period, categoria: category, pagina: movements?.page, meses: target })
+                          hrefWith({ meses: target })
                         }
                         label="Páginas dos meses, dos mais recentes aos mais antigos"
                       />

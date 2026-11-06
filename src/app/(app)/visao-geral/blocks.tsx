@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Sparkline } from "@/components/charts/sparkline";
+import { IconChevronDown } from "@/components/icons";
 import { Notice, StatusChip, ui } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import type { AccountBalance, BalancesSummary, FlowMonth } from "@/lib/overview/types";
@@ -65,6 +66,7 @@ function Figure({
   meta,
   marker,
   spark,
+  toggle,
 }: {
   label: string;
   /** null: indisponível, escrito como indisponível e nunca como zero. */
@@ -74,9 +76,11 @@ function Figure({
   meta: ReactNode;
   marker?: ReactNode;
   spark?: ReactNode;
+  /** O número abre e fecha um painel de detalhe logo abaixo da faixa. */
+  toggle?: { href: string; open: boolean; controls: string; label: string };
 }) {
-  return (
-    <div className={styles.figure}>
+  const body = (
+    <>
       <div className={styles.figureBody}>
         <p className={styles.label}>{label}</p>
         {value === null ? (
@@ -89,9 +93,29 @@ function Figure({
         {change ? <p className={styles.change}>{change}</p> : null}
         <p className={styles.meta}>{meta}</p>
         {marker ? <div className={styles.figureMarker}>{marker}</div> : null}
+        {toggle ? (
+          <span className={styles.figureToggle} data-open={toggle.open ? "" : undefined}>
+            {toggle.open ? "Fechar" : toggle.label}
+            <IconChevronDown size={14} />
+          </span>
+        ) : null}
       </div>
       {spark}
-    </div>
+    </>
+  );
+
+  return toggle ? (
+    <Link
+      className={`${styles.figure} ${styles.figureLink}`}
+      href={toggle.href}
+      scroll={false}
+      aria-expanded={toggle.open}
+      aria-controls={toggle.controls}
+    >
+      {body}
+    </Link>
+  ) : (
+    <div className={styles.figure}>{body}</div>
   );
 }
 
@@ -101,8 +125,11 @@ const NO_COMPARISON = "Mês em andamento: sem comparação";
 export function FigureStrip({
   balances,
   months,
+  availableToggle,
 }: {
   balances: BalancesSummary | null;
+  /** Abre os últimos 30 dias do Disponível. */
+  availableToggle?: { href: string; open: boolean; controls: string };
   /** Fluxo até o período escolhido; null quando a agregação falhou. */
   months: readonly FlowMonth[] | null;
 }) {
@@ -132,6 +159,7 @@ export function FigureStrip({
           ) : null
         }
         spark={balances ? <Sparkline values={balances.history.map((entry) => entry.available)} /> : null}
+        toggle={balances && availableToggle ? { ...availableToggle, label: "Ver últimos 30 dias" } : undefined}
       />
       <Figure
         label="Entradas do período"
@@ -234,8 +262,8 @@ export function RecentList({
   if (lines.length === 0) return <p className={styles.meta}>Nenhuma movimentação registrada.</p>;
   return (
     <ul className={compact ? `${styles.recent} ${styles.compact}` : styles.recent}>
-      {lines.map((line) => (
-        <li key={line.id} className={styles.recentRow}>
+      {lines.map((line, index) => (
+        <li key={line.id} className={styles.recentRow} style={{ "--i": index } as React.CSSProperties}>
           <span
             className={line.toReview ? `${styles.recentMark} ${styles.hatched}` : styles.recentMark}
             style={line.color ? ({ "--mark": line.color } as React.CSSProperties) : undefined}

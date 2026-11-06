@@ -90,3 +90,7 @@ export const spendingMovementsPageSchema = z.object({
     }),
   ),
 });
+
+export const dailyAvailableSchema = z.object({
+  points: z.array(z.object({ date: z.iso.date(), available: decimal })),
+});

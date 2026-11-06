@@ -1,11 +1,12 @@
 import { CATEGORY_OTHER, colorOf } from "@/components/charts/category-colors";
-import { donutItems, toCents, type DonutItem, type MonthFlow } from "@/components/charts/model";
+import { donutItems, toCents, type DonutItem, type LinePoint, type MonthFlow } from "@/components/charts/model";
 import type { ChipTone } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import type {
   AccountBalance,
   BalanceSource,
   BalancesSummary,
+  DailyAvailable,
   Freshness,
   FlowMonth,
   RecentMovement,
@@ -253,13 +254,16 @@ export interface OverviewQuery {
   categoria?: string | null;
   pagina?: number;
   meses?: number;
+  /** Painel dos últimos 30 dias do Disponível aberto. */
+  disponivel?: boolean;
 }
 
-export function overviewHref({ periodo, categoria, pagina, meses }: OverviewQuery): string {
+export function overviewHref({ periodo, categoria, pagina, meses, disponivel }: OverviewQuery): string {
   const params = new URLSearchParams({ periodo });
   if (categoria) params.set("categoria", categoria);
   if (pagina && pagina > 1) params.set("pagina", String(pagina));
   if (meses && meses > 1) params.set("meses", String(meses));
+  if (disponivel) params.set("disponivel", "1");
   return `/visao-geral?${params.toString()}`;
 }
 
@@ -284,4 +288,15 @@ export function pageRange(page: number, pageSize: number, total: number): string
   if (total === 0) return "Nenhuma saída";
   const start = (page - 1) * pageSize + 1;
   return `${start}–${Math.min(page * pageSize, total)} de ${total}`;
+}
+
+const fullDay = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" });
+
+/** Disponível dia a dia para o gráfico: "06/09" no eixo, "06/09/2026" na caixa e na tabela. */
+export function toDailyPoints(points: readonly DailyAvailable[]): LinePoint[] {
+  return points.map((point) => ({
+    label: formatDay(point.date),
+    labelName: fullDay.format(new Date(`${point.date}T12:00:00-03:00`)),
+    value: point.available,
+  }));
 }

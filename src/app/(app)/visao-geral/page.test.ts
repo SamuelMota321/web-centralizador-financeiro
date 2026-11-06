@@ -130,5 +130,32 @@ describe("Visão geral", () => {
     expect(html).not.toContain('aria-label="Páginas das saídas"');
     expect(html).toMatch(/<div class="[^"]*_paginationSlot_[^"]*"><\/div>/);
   });
+
+  it("linhas das saídas levam a ordem para a entrada em sequência", async () => {
+    vi.stubEnv("OVERVIEW_PREVIEW", "true");
+    const html = await render();
+    expect(html).toContain('style="--i:0"');
+    expect(html).toContain('style="--i:5"');
+  });
+
+  it("Disponível abre os últimos 30 dias pela URL, e o bloco fixo de evolução saiu", async () => {
+    vi.stubEnv("OVERVIEW_PREVIEW", "true");
+    const closed = await render();
+    expect(closed).not.toContain("Evolução do Disponível");
+    expect(closed).toContain('href="/visao-geral?periodo=2026-10&amp;disponivel=1"');
+    expect(closed).toContain('aria-expanded="false"');
+    expect(closed).toContain("Ver últimos 30 dias");
+    expect(closed).not.toContain("Disponível nos últimos 30 dias");
+
+    const open = await render("2026-10", { disponivel: "1" });
+    expect(open).toContain("Disponível nos últimos 30 dias");
+    expect(open).toContain("06/09 a 05/10 · Dados de exemplo");
+    expect(open).toContain('aria-expanded="true"');
+    expect(open).toContain('aria-controls="disponivel-30-dias"');
+    expect(open).toContain('id="disponivel-30-dias"');
+    // Fechar tira o parâmetro; os outros links mantêm o painel aberto.
+    expect(open).toContain('href="/visao-geral?periodo=2026-10"');
+    expect(open).toContain("&amp;pagina=2&amp;disponivel=1");
+  });
 });
 

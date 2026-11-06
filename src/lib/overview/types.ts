@@ -119,3 +119,15 @@ export interface Page<T> {
   pages: number;
   total: number;
 }
+
+/** Disponível no fim de um dia; ligado: saldo diário consolidado (pedido ao Developer 1). */
+export interface DailyAvailable {
+  /** AAAA-MM-DD. */
+  date: string;
+  available: string;
+}
+
+export interface DailyAvailableSummary {
+  /** Do mais antigo ao mais recente; o último é a referência do período. */
+  points: DailyAvailable[];
+}
