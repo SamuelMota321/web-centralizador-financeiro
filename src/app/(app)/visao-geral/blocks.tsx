@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Sparkline } from "@/components/charts/sparkline";
-import { IconChevronDown } from "@/components/icons";
 import { Notice, StatusChip, ui } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import type { AccountBalance, BalancesSummary, FlowMonth } from "@/lib/overview/types";
 import { TYPE_LABELS } from "../contas/account-type-labels";
+import { PanelToggle } from "./figure-panels";
+import type { PanelId } from "./panel-ids";
 import {
   type AttentionItem,
   formatChange,
@@ -76,11 +77,11 @@ function Figure({
   meta: ReactNode;
   marker?: ReactNode;
   spark?: ReactNode;
-  /** O número abre e fecha um painel de detalhe logo abaixo da faixa. */
-  toggle?: { href: string; open: boolean; controls: string; label: string };
+  /** O número abre e fecha o painel dos últimos 30 dias, logo abaixo da faixa. */
+  toggle?: { id: PanelId; name: string };
 }) {
-  const body = (
-    <>
+  return (
+    <div className={toggle ? `${styles.figure} ${styles.figureToggleable}` : styles.figure}>
       <div className={styles.figureBody}>
         <p className={styles.label}>{label}</p>
         {value === null ? (
@@ -93,29 +94,10 @@ function Figure({
         {change ? <p className={styles.change}>{change}</p> : null}
         <p className={styles.meta}>{meta}</p>
         {marker ? <div className={styles.figureMarker}>{marker}</div> : null}
-        {toggle ? (
-          <span className={styles.figureToggle} data-open={toggle.open ? "" : undefined}>
-            {toggle.open ? "Fechar" : toggle.label}
-            <IconChevronDown size={14} />
-          </span>
-        ) : null}
+        {toggle ? <PanelToggle id={toggle.id} name={toggle.name} /> : null}
       </div>
       {spark}
-    </>
-  );
-
-  return toggle ? (
-    <Link
-      className={`${styles.figure} ${styles.figureLink}`}
-      href={toggle.href}
-      scroll={false}
-      aria-expanded={toggle.open}
-      aria-controls={toggle.controls}
-    >
-      {body}
-    </Link>
-  ) : (
-    <div className={styles.figure}>{body}</div>
+    </div>
   );
 }
 
@@ -125,11 +107,11 @@ const NO_COMPARISON = "Mês em andamento: sem comparação";
 export function FigureStrip({
   balances,
   months,
-  availableToggle,
+  panels = false,
 }: {
   balances: BalancesSummary | null;
-  /** Abre os últimos 30 dias do Disponível. */
-  availableToggle?: { href: string; open: boolean; controls: string };
+  /** Cada número abre os próprios últimos 30 dias (dentro de PanelsProvider). */
+  panels?: boolean;
   /** Fluxo até o período escolhido; null quando a agregação falhou. */
   months: readonly FlowMonth[] | null;
 }) {
@@ -159,13 +141,14 @@ export function FigureStrip({
           ) : null
         }
         spark={balances ? <Sparkline values={balances.history.map((entry) => entry.available)} /> : null}
-        toggle={balances && availableToggle ? { ...availableToggle, label: "Ver últimos 30 dias" } : undefined}
+        toggle={panels && balances ? { id: "disponivel", name: "Disponível" } : undefined}
       />
       <Figure
         label="Entradas do período"
         value={month?.inflow ?? null}
         change={flowChange((m) => m.inflow)}
         meta={month ? zero(month.inflow, "Nenhuma entrada no período") : period}
+        toggle={panels && month ? { id: "entradas", name: "Entradas" } : undefined}
         spark={months ? <Sparkline values={months.map((m) => m.inflow)} partialLast={month?.partial} /> : null}
       />
       <Figure
@@ -173,6 +156,7 @@ export function FigureStrip({
         value={month?.outflow ?? null}
         change={flowChange((m) => m.outflow)}
         meta={month ? zero(month.outflow, "Nenhuma saída no período") : period}
+        toggle={panels && month ? { id: "saidas", name: "Saídas" } : undefined}
         spark={months ? <Sparkline values={months.map((m) => m.outflow)} partialLast={month?.partial} /> : null}
       />
     </section>

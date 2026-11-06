@@ -131,3 +131,16 @@ export interface DailyAvailableSummary {
   /** Do mais antigo ao mais recente; o último é a referência do período. */
   points: DailyAvailable[];
 }
+
+/** Soma de um dia (entradas ou saídas); ligado: somas diárias do fluxo (pedido ao Developer 1). */
+export interface DailyAmount {
+  /** AAAA-MM-DD. */
+  date: string;
+  /** Soma do dia, sem transferências (D-04); zero quando não houve lançamento. */
+  amount: string;
+}
+
+export interface DailyFlowSummary {
+  /** Do mais antigo ao mais recente; o último é a referência do período. */
+  points: DailyAmount[];
+}

@@ -2,6 +2,7 @@ import {
   SAMPLE_BALANCES,
   SAMPLE_CATEGORY_ORDER,
   SAMPLE_DAILY_AVAILABLE,
+  SAMPLE_DAILY_FLOW,
   SAMPLE_FLOW_MONTHS,
   SAMPLE_PERIODS,
   SAMPLE_RECENT,
@@ -11,6 +12,7 @@ import {
 import type {
   BalancesSummary,
   DailyAvailableSummary,
+  DailyFlowSummary,
   FlowSummary,
   Page,
   RecentMovement,
@@ -126,4 +128,12 @@ export async function getCategoryOrder(): Promise<readonly string[]> {
  */
 export async function getAvailableDaily(period: OverviewPeriod): Promise<DailyAvailableSummary> {
   return { points: [...SAMPLE_DAILY_AVAILABLE[period]] };
+}
+
+/**
+ * Entradas ou saídas de cada dia nos últimos 30 dias até a referência do período, para os
+ * painéis dos números da faixa. Ligado: somas diárias do fluxo, que o backend ainda não tem.
+ */
+export async function getDailyFlow(period: OverviewPeriod, kind: "inflow" | "outflow"): Promise<DailyFlowSummary> {
+  return { points: [...SAMPLE_DAILY_FLOW[kind][period]] };
 }

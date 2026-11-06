@@ -1,6 +1,7 @@
 import type {
   AccountBalance,
   BalancesSummary,
+  DailyAmount,
   DailyAvailable,
   FlowMonth,
   RecentMovement,
@@ -321,4 +322,49 @@ export const SAMPLE_DAILY_AVAILABLE: Record<(typeof SAMPLE_PERIODS)[number], rea
   "2026-10": dailyAvailable("2026-10"),
   "2026-09": dailyAvailable("2026-09"),
   "2026-08": dailyAvailable("2026-08"),
+};
+
+/** Dias da janela de 30 dias que termina na referência do período. */
+function windowDates(period: (typeof SAMPLE_PERIODS)[number]): string[] {
+  const end = toDate(`${period}-${String(LAST_DAY[period]).padStart(2, "0")}`);
+  return Array.from({ length: DAILY_WINDOW }, (_, index) => toIso(end - (DAILY_WINDOW - 1 - index) * DAY_MS));
+}
+
+/** Entradas de exemplo: salário fictício no dia 5 e pequenas entradas; fecham com o fluxo do mês. */
+const INFLOW_EVENTS: readonly { date: string; amount: string }[] = [
+  { date: "2026-08-05", amount: "6800.00" },
+  { date: "2026-09-05", amount: "6800.00" },
+  { date: "2026-09-18", amount: "150.00" },
+  { date: "2026-10-02", amount: "300.00" },
+  { date: "2026-10-05", amount: "6800.00" },
+];
+
+function sumByDate(entries: readonly { date: string; amount: string }[]): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const entry of entries) totals.set(entry.date, (totals.get(entry.date) ?? 0) + toCentsNumber(entry.amount));
+  return totals;
+}
+
+const OUTFLOW_BY_DATE = sumByDate(SAMPLE_PERIODS.flatMap((period) => SAMPLE_SPENDING_MOVEMENTS[period]));
+const INFLOW_BY_DATE = sumByDate(INFLOW_EVENTS);
+
+function dailyFlow(period: (typeof SAMPLE_PERIODS)[number], totals: Map<string, number>): DailyAmount[] {
+  return windowDates(period).map((date) => ({ date, amount: fromCentsNumber(totals.get(date) ?? 0) }));
+}
+
+/** Entradas e saídas de cada dia na janela de 30 dias de cada período. */
+export const SAMPLE_DAILY_FLOW: Record<
+  "inflow" | "outflow",
+  Record<(typeof SAMPLE_PERIODS)[number], readonly DailyAmount[]>
+> = {
+  inflow: {
+    "2026-10": dailyFlow("2026-10", INFLOW_BY_DATE),
+    "2026-09": dailyFlow("2026-09", INFLOW_BY_DATE),
+    "2026-08": dailyFlow("2026-08", INFLOW_BY_DATE),
+  },
+  outflow: {
+    "2026-10": dailyFlow("2026-10", OUTFLOW_BY_DATE),
+    "2026-09": dailyFlow("2026-09", OUTFLOW_BY_DATE),
+    "2026-08": dailyFlow("2026-08", OUTFLOW_BY_DATE),
+  },
 };

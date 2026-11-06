@@ -138,24 +138,25 @@ describe("Visão geral", () => {
     expect(html).toContain('style="--i:5"');
   });
 
-  it("Disponível abre os últimos 30 dias pela URL, e o bloco fixo de evolução saiu", async () => {
+  it("os três números abrem os próprios últimos 30 dias; sem parâmetro, nenhum painel", async () => {
     vi.stubEnv("OVERVIEW_PREVIEW", "true");
     const closed = await render();
     expect(closed).not.toContain("Evolução do Disponível");
-    expect(closed).toContain('href="/visao-geral?periodo=2026-10&amp;disponivel=1"');
-    expect(closed).toContain('aria-expanded="false"');
-    expect(closed).toContain("Ver últimos 30 dias");
-    expect(closed).not.toContain("Disponível nos últimos 30 dias");
+    expect(closed.match(/aria-expanded="false"/g)?.length).toBeGreaterThanOrEqual(3);
+    for (const id of ["disponivel", "entradas", "saidas"]) {
+      expect(closed).toContain(`aria-controls="painel-${id}"`);
+    }
+    expect(closed).toContain("Ver últimos 30 dias<span class=\"visually-hidden\"> de Entradas</span>");
+    expect(closed).not.toContain("nos últimos 30 dias");
 
-    const open = await render("2026-10", { disponivel: "1" });
-    expect(open).toContain("Disponível nos últimos 30 dias");
-    expect(open).toContain("06/09 a 05/10 · Dados de exemplo");
-    expect(open).toContain('aria-expanded="true"');
-    expect(open).toContain('aria-controls="disponivel-30-dias"');
-    expect(open).toContain('id="disponivel-30-dias"');
-    // Fechar tira o parâmetro; os outros links mantêm o painel aberto.
-    expect(open).toContain('href="/visao-geral?periodo=2026-10"');
-    expect(open).toContain("&amp;pagina=2&amp;disponivel=1");
+    const inflow = await render("2026-10", { painel: "entradas" });
+    expect(inflow).toContain('id="painel-entradas"');
+    expect(inflow).toContain("Entradas nos últimos 30 dias");
+    expect(inflow).toContain("06/09 a 05/10 · Dados de exemplo");
+    expect(inflow).toContain('aria-expanded="true"');
+    expect(inflow).not.toContain("Saídas nos últimos 30 dias");
+
+    expect(await render("2026-10", { painel: "outro" })).not.toContain("nos últimos 30 dias");
   });
 });
 

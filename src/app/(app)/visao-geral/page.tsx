@@ -12,6 +12,7 @@ import { overviewPreviewEnabled } from "@/lib/overview/flag";
 import {
   getAvailableDaily,
   getBalances,
+  getDailyFlow,
   getCategoryOrder,
   getFlow,
   getRecentMovements,
@@ -25,6 +26,8 @@ import {
   REVIEW_FILTER,
 } from "@/lib/overview/source";
 import { AttentionList, BalancesTable, Block, BlockError, FigureStrip, RecentList } from "./blocks";
+import { PanelArea, PanelClose, PanelsProvider } from "./figure-panels";
+import { parsePanel } from "./panel-ids";
 import { PeriodSelector } from "./period-selector";
 import {
   attentionItems,
@@ -47,7 +50,53 @@ import chartStyles from "@/components/charts/charts.module.css";
 import styles from "./visao-geral.module.css";
 
 const SAMPLE_META = "Dados de exemplo";
-const AVAILABLE_PANEL = "disponivel-30-dias";
+
+/** Painel de 30 dias de um número da faixa: título, intervalo, fechar e a linha que se desenha. */
+function dailyPanel({
+  id,
+  retryHref,
+  title,
+  what,
+  caption,
+  valueLabel,
+  points,
+}: {
+  id: string;
+  retryHref: string;
+  title: string;
+  what: string;
+  caption: string;
+  valueLabel: string;
+  points: { date: string; value: string }[] | undefined;
+}) {
+  return (
+    <Block
+      id={id}
+      title={title}
+      meta={
+        <>
+          {points && points.length > 0
+            ? `${formatDay(points[0].date)} a ${formatDay(points[points.length - 1].date)} · ${SAMPLE_META} · `
+            : null}
+          <PanelClose />
+        </>
+      }
+    >
+      {points ? (
+        <LineChart
+          caption={caption}
+          points={toDailyPoints(points)}
+          valueLabel={valueLabel}
+          tableCollapsed
+          drawIn
+          quietPoints
+        />
+      ) : (
+        <BlockError what={what} retryHref={retryHref} />
+      )}
+    </Block>
+  );
+}
 
 export default async function VisaoGeralPage({
   searchParams,
@@ -60,7 +109,6 @@ export default async function VisaoGeralPage({
   const params = await searchParams;
   const period = parsePeriod(params.periodo);
   const monthsPage = parsePage(params.meses);
-  const availableOpen = params.disponivel === "1";
   const periods = listPeriods();
   const retryHref = overviewHref({ periodo: period });
 
@@ -86,7 +134,12 @@ export default async function VisaoGeralPage({
 
   // O filtro só vale para uma categoria com gasto no período; o resto mostra todas.
   const category = parseCategory(params.categoria, spending);
-  const daily = availableOpen ? await getAvailableDaily(period).catch(() => null) : null;
+  // Os três painéis de 30 dias já vêm prontos: abrir e fechar é no navegador, sem nova carga.
+  const [dailyAvailable, dailyInflow, dailyOutflow] = await Promise.all([
+    getAvailableDaily(period).catch(() => null),
+    getDailyFlow(period, "inflow").catch(() => null),
+    getDailyFlow(period, "outflow").catch(() => null),
+  ]);
   // Links que mudam uma parte da URL mantêm o resto (filtro, páginas, painel aberto).
   const hrefWith = (change: Partial<OverviewQuery>) =>
     overviewHref({
@@ -94,7 +147,6 @@ export default async function VisaoGeralPage({
       categoria: category,
       pagina: movements?.page,
       meses: monthsPage,
-      disponivel: availableOpen,
       ...change,
     });
   const movements = spending
@@ -151,48 +203,43 @@ export default async function VisaoGeralPage({
         </EmptyState>
       ) : (
         <>
-          <FigureStrip
-            balances={balances}
-            months={latestFlow?.months ?? null}
-            availableToggle={{
-              href: hrefWith({ disponivel: !availableOpen }),
-              open: availableOpen,
-              controls: AVAILABLE_PANEL,
-            }}
-          />
-
-          {/* Painel dos últimos 30 dias: abre ao clicar no Disponível e entra com animação. */}
-          {availableOpen ? (
-            <div className={styles.reveal} id={AVAILABLE_PANEL}>
-              <Block
-                id="disponivel-dias"
-                title="Disponível nos últimos 30 dias"
-                meta={
-                  <>
-                    {daily && daily.points.length > 0
-                      ? `${formatDay(daily.points[0].date)} a ${formatDay(daily.points[daily.points.length - 1].date)} · ${SAMPLE_META} · `
-                      : null}
-                    <Link className={ui.inlineLink} href={hrefWith({ disponivel: false })} scroll={false}>
-                      Fechar
-                    </Link>
-                  </>
-                }
-              >
-                {daily ? (
-                  <LineChart
-                    caption="Disponível no fim de cada um dos últimos 30 dias"
-                    points={toDailyPoints(daily.points)}
-                    valueLabel="Disponível"
-                    tableCollapsed
-                    drawIn
-                    quietPoints
-                  />
-                ) : (
-                  <BlockError what="o Disponível dos últimos 30 dias" retryHref={hrefWith({ disponivel: true })} />
-                )}
-              </Block>
+          <PanelsProvider initialOpen={parsePanel(params.painel)}>
+            {/* Faixa e painel juntos, sem o espaço da página entre eles: o painel traz o próprio. */}
+            <div>
+              <FigureStrip balances={balances} months={latestFlow?.months ?? null} panels />
+              <PanelArea
+                panels={{
+                  disponivel: dailyPanel({
+                    id: "dias-disponivel",
+                    retryHref,
+                    title: "Disponível nos últimos 30 dias",
+                    what: "o Disponível dos últimos 30 dias",
+                    caption: "Disponível no fim de cada um dos últimos 30 dias",
+                    valueLabel: "Disponível",
+                    points: dailyAvailable?.points.map((point) => ({ date: point.date, value: point.available })),
+                  }),
+                  entradas: dailyPanel({
+                    id: "dias-entradas",
+                    retryHref,
+                    title: "Entradas nos últimos 30 dias",
+                    what: "as entradas dos últimos 30 dias",
+                    caption: "Entradas de cada um dos últimos 30 dias, sem transferências",
+                    valueLabel: "Entradas do dia",
+                    points: dailyInflow?.points.map((point) => ({ date: point.date, value: point.amount })),
+                  }),
+                  saidas: dailyPanel({
+                    id: "dias-saidas",
+                    retryHref,
+                    title: "Saídas nos últimos 30 dias",
+                    what: "as saídas dos últimos 30 dias",
+                    caption: "Saídas de cada um dos últimos 30 dias, sem transferências",
+                    valueLabel: "Saídas do dia",
+                    points: dailyOutflow?.points.map((point) => ({ date: point.date, value: point.amount })),
+                  }),
+                }}
+              />
             </div>
-          ) : null}
+          </PanelsProvider>
 
           {/* Saídas e valores por mês abrem e fecham juntos: os dois blocos ficam alinhados. */}
           <SyncedDetailsGroup defaultOpen={detailsOpen} openKey={category}>

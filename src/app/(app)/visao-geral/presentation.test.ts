@@ -159,13 +159,9 @@ describe("monthRange", () => {
 
 describe("toDailyPoints", () => {
   it("usa o dia curto no eixo e a data completa na tabela", () => {
-    expect(toDailyPoints([{ date: "2026-10-05", available: "17340.95" }])).toEqual([
+    expect(toDailyPoints([{ date: "2026-10-05", value: "17340.95" }])).toEqual([
       { label: "05/10", labelName: "05/10/2026", value: "17340.95" },
     ]);
   });
 
-  it("o link do painel entra e sai da URL", () => {
-    expect(overviewHref({ periodo: "2026-10", disponivel: true })).toBe("/visao-geral?periodo=2026-10&disponivel=1");
-    expect(overviewHref({ periodo: "2026-10", disponivel: false })).toBe("/visao-geral?periodo=2026-10");
-  });
 });

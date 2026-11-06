@@ -4,6 +4,7 @@ import {
   SAMPLE_BALANCES,
   SAMPLE_CATEGORY_ORDER,
   SAMPLE_DAILY_AVAILABLE,
+  SAMPLE_DAILY_FLOW,
   SAMPLE_FLOW_MONTHS,
   SAMPLE_PERIODS,
   SAMPLE_RECENT,
@@ -14,6 +15,7 @@ import { overviewPreviewEnabled } from "./flag";
 import {
   balancesSummarySchema,
   dailyAvailableSchema,
+  dailyFlowSchema,
   flowSummarySchema,
   recentMovementsSchema,
   spendingMovementsPageSchema,
@@ -22,6 +24,7 @@ import {
 import {
   FLOW_WINDOW,
   getAvailableDaily,
+  getDailyFlow,
   getFlow,
   getSpendingMovements,
   MOVEMENTS_PAGE_SIZE,
@@ -193,6 +196,29 @@ describe("Disponível dia a dia", () => {
     expect(october.find((point) => point.date === "2026-09-30")?.available).toBe("16630.20");
     // Setembro vai de 01/09 a 30/09: começa logo depois do fechamento de agosto.
     expect(SAMPLE_DAILY_AVAILABLE["2026-09"][0].date).toBe("2026-09-01");
+  });
+});
+
+describe("entradas e saídas por dia", () => {
+  it.each(SAMPLE_PERIODS)("%s: trinta dias terminando na referência, no esquema", async (period) => {
+    for (const kind of ["inflow", "outflow"] as const) {
+      const { points } = await getDailyFlow(period, kind);
+      expect(points).toHaveLength(30);
+      expect(points.at(-1)?.date).toBe(SAMPLE_DAILY_AVAILABLE[period].at(-1)?.date);
+      expect(() => dailyFlowSchema.parse({ points })).not.toThrow();
+    }
+  });
+
+  it.each([
+    ["2026-10", "2026-10"],
+    ["2026-09", "2026-09"],
+  ] as const)("%s: os dias do mês somam o fluxo do mês", (period, month) => {
+    const flow = SAMPLE_FLOW_MONTHS.find((entry) => entry.month === month);
+    for (const kind of ["inflow", "outflow"] as const) {
+      const inMonth = SAMPLE_DAILY_FLOW[kind][period].filter((point) => point.date.startsWith(month));
+      const total = kind === "inflow" ? flow?.inflow : flow?.outflow;
+      expect(sum(inMonth.map((point) => point.amount))).toBe(toCents(total ?? "0.00"));
+    }
   });
 });
 

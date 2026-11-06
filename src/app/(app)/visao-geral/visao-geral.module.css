@@ -430,21 +430,40 @@
   }
 }
 
-/* ---------- Disponível que abre os últimos 30 dias ---------- */
-.figureLink {
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
+/* ---------- Números que abrem os últimos 30 dias ---------- */
+.figureToggleable {
+  position: relative;
   transition: background-color var(--motion-hover) ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .figureLink:hover {
+  .figureToggleable:hover {
     background: color-mix(in srgb, var(--foreground) 4%, transparent);
   }
 }
 
-.figureLink:focus-visible {
+/* O botão mostra "Ver últimos 30 dias", mas a área de clique cobre o número inteiro. */
+.figureButton {
+  justify-self: start;
+  margin-top: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.figureButton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.figureButton:focus-visible {
+  outline: none;
+}
+
+.figureToggleable:has(.figureButton:focus-visible) {
   outline: 2px solid var(--primary);
   outline-offset: -2px;
 }
@@ -453,7 +472,6 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  margin-top: var(--space-1);
   color: var(--primary);
   font-size: 0.75rem;
   font-weight: 650;
@@ -467,16 +485,27 @@
   transform: rotate(180deg);
 }
 
-/* Painel entra com opacidade e 6px de cima; com movimento reduzido, só opacidade. */
-.reveal {
-  transition:
-    opacity var(--motion-reveal) var(--ease-out),
-    transform var(--motion-reveal) var(--ease-out);
+/* Painel aberto: a altura anima no Motion; o recorte esconde o conteúdo enquanto cresce. */
+.panelSlot {
+  overflow: hidden;
 }
 
-@starting-style {
-  .reveal {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
+.panelSlotInner {
+  padding-top: var(--space-3);
+}
+
+.panelClose {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary-hover);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.panelClose:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
