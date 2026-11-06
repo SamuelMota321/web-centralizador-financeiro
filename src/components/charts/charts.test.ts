@@ -38,6 +38,30 @@ describe("gráficos renderizados no servidor", () => {
     expect(html).toMatch(/<table class="[^"]*visually-hidden/);
   });
 
+  it("tabela recolhida fica num details fechado, ainda no HTML", () => {
+    const html = renderToStaticMarkup(
+      createElement(PairedBarsChart, { caption: "Fluxo", data: SAMPLE_FLOW, tableCollapsed: true }),
+    );
+    expect(html).toMatch(/<details class="[^"]*"><summary[^>]*>Ver valores por mês/);
+    expect(html).not.toMatch(/<details[^>]* open/);
+    expect(html).toContain("R$ 7.100,00");
+  });
+
+  it("tabela pode vir do mês mais novo para o mais antigo, com título acima", () => {
+    const html = renderToStaticMarkup(
+      createElement(PairedBarsChart, {
+        caption: "Fluxo",
+        data: SAMPLE_FLOW,
+        tableOrder: "newest-first",
+        tableHeader: createElement("h3", null, "Valores"),
+      }),
+    );
+    expect(html.indexOf("outubro de 2026")).toBeLessThan(html.indexOf("maio de 2026"));
+    expect(html.indexOf("<h3>Valores</h3>")).toBeLessThan(html.indexOf("<table"));
+    // Com título, a tabela vem num quadro que recebe a altura mínima do bloco vizinho.
+    expect(html).toMatch(/<div class="[^"]*_tableFrame_[^"]*"><table/);
+  });
+
   it("barras ordenadas mostram valor e percentual em texto, com A revisar no fim", () => {
     const html = renderToStaticMarkup(createElement(RankedBars, { caption: "Gastos", ...SAMPLE_SPENDING }));
     expect(html).toContain("R$ 1.450,00");

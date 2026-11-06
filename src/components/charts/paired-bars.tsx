@@ -1,6 +1,9 @@
 "use client";
 
 import * as m from "motion/react-m";
+import type { ReactNode } from "react";
+import { IconChevronDown } from "@/components/icons";
+import { SyncedDetails } from "@/components/synced-details";
 import { formatMoney } from "@/lib/money";
 import styles from "./charts.module.css";
 import { formatTick, pairedBarsLayout, type MonthFlow } from "./model";
@@ -11,7 +14,9 @@ import {
   useLinkedHighlight,
 } from "./use-chart";
 
-const HEIGHT = 190;
+const DEFAULT_HEIGHT = 190;
+/** Metade da largura da caixa de detalhe: ela não sai pelas bordas do gráfico. */
+const TOOLTIP_HALF = 92;
 
 /**
  * Entradas e saídas por mês (bloco 4 da Visão geral). Barras em neutros, sem cor de
@@ -23,6 +28,10 @@ export function PairedBarsChart({
   data,
   intro = false,
   tableVisible = true,
+  tableCollapsed = false,
+  height = DEFAULT_HEIGHT,
+  tableOrder = "oldest-first",
+  tableHeader,
 }: {
   /** Descrição do gráfico, usada como legenda da tabela. */
   caption: string;
@@ -31,15 +40,83 @@ export function PairedBarsChart({
   intro?: boolean;
   /** false: a tabela continua para leitores de tela, fora da vista (prévias). */
   tableVisible?: boolean;
+  /** true: a tabela fica recolhida sob "Ver valores por mês" (blocos lado a lado). */
+  tableCollapsed?: boolean;
+  /** Altura do gráfico em px. */
+  height?: number;
+  /** Só a tabela: o gráfico segue sempre do mais antigo (esquerda) ao mais novo. */
+  tableOrder?: "oldest-first" | "newest-first";
+  /**
+   * Título da tabela, acima do "Ver valores por mês". Com ele, título e tabela descem para
+   * o rodapé do bloco, alinhados com um bloco vizinho de mesma forma.
+   */
+  tableHeader?: ReactNode;
 }) {
   const [ref, width] = useChartWidth<HTMLDivElement>();
   const transition = useGeometryTransition();
   const introTransition = useIntroTransition();
   const { active, bind } = useLinkedHighlight();
-  const layout = width === null ? null : pairedBarsLayout(data, width, HEIGHT);
+  const layout = width === null ? null : pairedBarsLayout(data, width, height);
+
+  // A linha guarda o índice do mês no gráfico, para o destaque ligado seguir certo.
+  const rows = data.map((month, index) => ({ month, index }));
+  if (tableOrder === "newest-first") rows.reverse();
+
+  const table = (
+    <table className={tableVisible ? styles.table : `${styles.table} visually-hidden`}>
+      <caption className="visually-hidden">{caption}</caption>
+      <thead>
+        <tr>
+          <th scope="col">Mês</th>
+          <th scope="col" className={styles.num}>
+            Entradas
+          </th>
+          <th scope="col" className={styles.num}>
+            Saídas
+          </th>
+          <th scope="col" className={styles.num}>
+            Resultado
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(({ month, index }) => (
+          <tr key={month.month} data-active={active === index ? "" : undefined} {...bind(index)}>
+            <th scope="row">
+              {month.monthName}
+              {month.partial ? <span className={styles.note}> · parcial</span> : null}
+            </th>
+            <td className={styles.num}>{formatMoney(month.inflow)}</td>
+            <td className={styles.num}>{formatMoney(month.outflow)}</td>
+            <td className={styles.num}>{formatMoney(month.net)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  // Com título, a tabela ganha um quadro com altura mínima vinda do bloco vizinho.
+  const framed = tableHeader ? <div className={styles.tableFrame}>{table}</div> : table;
+
+  const tableValues = tableCollapsed ? (
+    <SyncedDetails
+      className={styles.values}
+      summaryClassName={styles.valuesSummary}
+      summary={
+        <>
+          Ver valores por mês
+          <IconChevronDown className={styles.valuesChevron} size={16} />
+        </>
+      }
+    >
+      {framed}
+    </SyncedDetails>
+  ) : (
+    framed
+  );
 
   return (
-    <figure className={styles.chart}>
+    <figure className={tableHeader ? `${styles.chart} ${styles.chartFill}` : styles.chart}>
       <ul className={styles.legend} aria-hidden>
         <li>
           <span className={styles.swatch} style={{ "--swatch": "var(--ramp-1)" } as React.CSSProperties} />
@@ -51,13 +128,13 @@ export function PairedBarsChart({
         </li>
       </ul>
 
-      <div ref={ref} style={{ height: HEIGHT }}>
+      <div ref={ref} className={styles.plotArea} style={{ height }}>
         {layout && width !== null ? (
           <svg
             className={styles.svg}
             width={width}
-            height={HEIGHT}
-            viewBox={`0 0 ${width} ${HEIGHT}`}
+            height={height}
+            viewBox={`0 0 ${width} ${height}`}
             aria-hidden
             data-active={active === null ? undefined : ""}
           >
@@ -100,7 +177,7 @@ export function PairedBarsChart({
                     animate={{ y: month.outflow.y, height: month.outflow.height }}
                     transition={intro ? introTransition(index) : transition}
                   />
-                  <text x={month.center} y={HEIGHT - 6} textAnchor="middle">
+                  <text x={month.center} y={height - 6} textAnchor="middle">
                     {partial ? `${month.month}*` : month.month}
                   </text>
                 </g>
@@ -108,38 +185,41 @@ export function PairedBarsChart({
             })}
           </svg>
         ) : null}
+        {/* Detalhe do mês sob o cursor; decorativo, os mesmos valores estão na tabela. */}
+        {layout && width !== null && active !== null ? (
+          <div
+            className={styles.tooltip}
+            style={{ left: Math.min(Math.max(layout.months[active].center, TOOLTIP_HALF), width - TOOLTIP_HALF) }}
+            aria-hidden
+          >
+            <p className={styles.tooltipTitle}>
+              {data[active].monthName}
+              {data[active].partial ? " · parcial" : ""}
+            </p>
+            <p className={styles.tooltipRow}>
+              <span>Entradas</span>
+              <span className={styles.num}>{formatMoney(data[active].inflow)}</span>
+            </p>
+            <p className={styles.tooltipRow}>
+              <span>Saídas</span>
+              <span className={styles.num}>{formatMoney(data[active].outflow)}</span>
+            </p>
+            <p className={styles.tooltipRow}>
+              <span>Resultado</span>
+              <span className={styles.num}>{formatMoney(data[active].net)}</span>
+            </p>
+          </div>
+        ) : null}
       </div>
 
-      <table className={tableVisible ? styles.table : `${styles.table} visually-hidden`}>
-        <caption className="visually-hidden">{caption}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Mês</th>
-            <th scope="col" className={styles.num}>
-              Entradas
-            </th>
-            <th scope="col" className={styles.num}>
-              Saídas
-            </th>
-            <th scope="col" className={styles.num}>
-              Resultado
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((month, index) => (
-            <tr key={month.month} data-active={active === index ? "" : undefined} {...bind(index)}>
-              <th scope="row">
-                {month.monthName}
-                {month.partial ? <span className={styles.note}> · parcial</span> : null}
-              </th>
-              <td className={styles.num}>{formatMoney(month.inflow)}</td>
-              <td className={styles.num}>{formatMoney(month.outflow)}</td>
-              <td className={styles.num}>{formatMoney(month.net)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {tableHeader ? (
+        <div className={styles.tableBlock}>
+          {tableHeader}
+          {tableValues}
+        </div>
+      ) : (
+        tableValues
+      )}
     </figure>
   );
 }

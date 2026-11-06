@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SAMPLE_FLOW, SAMPLE_SPENDING } from "./fixtures";
 import {
+  MAX_BAR_WIDTH,
   barRatio,
   formatShare,
   formatTick,
@@ -86,6 +87,14 @@ describe("pairedBarsLayout", () => {
     for (const month of layout.months) {
       expect(month.outflow.x).toBeGreaterThan(month.inflow.x + month.inflow.width);
     }
+  });
+
+  it("com poucos meses a barra não passa do máximo e o par fica centralizado", () => {
+    const single = pairedBarsLayout([SAMPLE_FLOW[0]], 520, 190);
+    const month = single.months[0];
+    expect(month.inflow.width).toBe(MAX_BAR_WIDTH);
+    const pairCenter = (month.inflow.x + month.outflow.x + month.outflow.width) / 2;
+    expect(pairCenter).toBeCloseTo(month.center, 5);
   });
 
   it("período sem movimentação desenha barras de altura zero", () => {

@@ -85,6 +85,8 @@ export interface PairedBarsLayout {
 
 const PAIRED_MARGIN = { top: 8, right: 8, bottom: 22, left: 44 };
 const PAIR_GAP = 4;
+/** Com poucos meses a banda fica larga; a barra não passa disto e o par centraliza. */
+export const MAX_BAR_WIDTH = 28;
 
 export function pairedBarsLayout(
   data: readonly MonthFlow[],
@@ -109,7 +111,9 @@ export function pairedBarsLayout(
     paddingInner: 0.35,
     paddingOuter: 0.2,
   });
-  const barWidth = Math.max(1, (x.bandwidth() - PAIR_GAP) / 2);
+  const barWidth = Math.max(1, Math.min(MAX_BAR_WIDTH, (x.bandwidth() - PAIR_GAP) / 2));
+  // Sobra da banda quando a barra bate no máximo: metade de cada lado do par.
+  const inset = (x.bandwidth() - (barWidth * 2 + PAIR_GAP)) / 2;
   const bar = (left: number, value: string): BarRect => {
     const top = y(toGeometry(value));
     return { x: left, y: top, width: barWidth, height: plot.bottom - top };
@@ -119,12 +123,12 @@ export function pairedBarsLayout(
     plot,
     ticks: y.ticks(3).map((value) => ({ value, y: y(value) })),
     months: data.map((d) => {
-      const left = x(d.month) ?? plot.left;
+      const left = (x(d.month) ?? plot.left) + inset;
       const step = x.step();
       return {
         month: d.month,
-        center: left + x.bandwidth() / 2,
-        band: { x: left - (step - x.bandwidth()) / 2, y: plot.top, width: step, height: plot.bottom - plot.top },
+        center: left - inset + x.bandwidth() / 2,
+        band: { x: left - inset - (step - x.bandwidth()) / 2, y: plot.top, width: step, height: plot.bottom - plot.top },
         inflow: bar(left, d.inflow),
         outflow: bar(left + barWidth + PAIR_GAP, d.outflow),
       };
@@ -188,4 +192,112 @@ const compact = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFra
 /** Rótulo do eixo em reais: "8 mil", "1,5 mi", "0". */
 export function formatTick(value: number): string {
   return compact.format(value);
+}
+
+/** Centavos de volta para a string do contrato: BigInt(-1050) -> "-10.50". */
+export function fromCents(cents: bigint): string {
+  const negative = cents < ZERO;
+  const digits = (negative ? -cents : cents).toString().padStart(3, "0");
+  return `${negative ? "-" : ""}${digits.slice(0, -2)}.${digits.slice(-2)}`;
+}
+
+export function sumValues(values: readonly string[]): string {
+  return fromCents(values.reduce((total, value) => total + toCents(value), ZERO));
+}
+
+/* ---------- Rosca ---------- */
+
+export interface DonutItem {
+  id: string;
+  label: string;
+  value: string;
+  /** Cor da categoria (var(--cat-N)); ignorada em `review`. */
+  color: string;
+  /** "A revisar": hachurado, sempre a última fatia, nunca agrupado. */
+  review?: boolean;
+}
+
+/** Fatias além desta quantidade (sem contar "A revisar") viram "Outras". */
+export const DONUT_MAX_SLICES = 6;
+export const DONUT_OTHER_ID = "outras";
+
+/**
+ * Ordena do maior para o menor e junta o excedente em "Outras" (neutra), para a rosca
+ * não passar de seis fatias com cor; "A revisar" fica no fim, sempre separado.
+ */
+export function donutItems(items: readonly DonutItem[], otherColor: string): DonutItem[] {
+  const regular = rankByValue(items.filter((item) => !item.review));
+  const review = items.filter((item) => item.review);
+  if (regular.length <= DONUT_MAX_SLICES) return [...regular, ...review];
+  const kept = regular.slice(0, DONUT_MAX_SLICES - 1);
+  const rest = regular.slice(DONUT_MAX_SLICES - 1);
+  const other: DonutItem = {
+    id: DONUT_OTHER_ID,
+    label: `Outras (${rest.length})`,
+    value: sumValues(rest.map((item) => item.value)),
+    color: otherColor,
+  };
+  return [...kept, other, ...review];
+}
+
+export interface DonutArc {
+  id: string;
+  /** Comprimento visível do traço, já descontado o espaço entre fatias. */
+  length: number;
+  /** Onde a fatia começa no contorno (a partir do topo, sentido horário). */
+  start: number;
+}
+
+/** Espaço entre fatias, em px de contorno: a superfície aparece entre as cores. */
+export const DONUT_GAP = 2;
+
+export function donutArcs(items: readonly DonutItem[], total: string, circumference: number): DonutArc[] {
+  const totalCents = toCents(total);
+  if (totalCents <= ZERO) return items.map((item) => ({ id: item.id, length: 0, start: 0 }));
+  const gap = items.length > 1 ? DONUT_GAP : 0;
+  let start = 0;
+  return items.map((item) => {
+    const span = (Number(toCents(item.value)) / Number(totalCents)) * circumference;
+    const arc = { id: item.id, length: Math.max(0, span - gap), start };
+    start += span;
+    return arc;
+  });
+}
+
+/* ---------- Minigráfico ---------- */
+
+export interface Sparkline {
+  /** Trecho dos meses fechados. */
+  solid: string;
+  /** Último trecho, tracejado, quando o último mês está em andamento. */
+  partial: string | null;
+  last: { x: number; y: number };
+}
+
+/**
+ * Linha curta de tendência ao lado de um número. A escala vai do menor ao maior valor
+ * da própria série: mostra o desenho, não a magnitude (o número ao lado diz o valor).
+ */
+export function sparkline(
+  values: readonly string[],
+  width: number,
+  height: number,
+  partialLast = false,
+): Sparkline {
+  const pad = 4;
+  const numbers = values.map(toGeometry);
+  const min = Math.min(...numbers);
+  const max = Math.max(...numbers);
+  const step = numbers.length > 1 ? width / (numbers.length - 1) : 0;
+  const points = numbers.map((value, index) => ({
+    x: round(step * index),
+    y: round(max === min ? height / 2 : height - pad - ((value - min) / (max - min)) * (height - 2 * pad)),
+  }));
+  const path = (list: typeof points) => list.map((p, i) => `${i === 0 ? "M" : "L"}${p.x} ${p.y}`).join("");
+  const split = partialLast && points.length > 1;
+  return {
+    solid: path(split ? points.slice(0, -1) : points),
+    partial: split ? path(points.slice(-2)) : null,
+    last: points[points.length - 1] ?? { x: 0, y: height / 2 },
+  };
 }

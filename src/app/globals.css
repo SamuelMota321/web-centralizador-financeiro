@@ -28,6 +28,20 @@
   --warning: #9a5d0f;
   --info: #2b6f89;
 
+  /*
+   * Cores de categoria (Style Guide 2.1): só identificam a categoria nos gráficos, nunca
+   * estado nem ganho/perda. Ordem fixa, validada para daltonismo em par adjacente; âmbar
+   * fica abaixo de 3:1 no claro, por isso nome e valor vão sempre escritos ao lado.
+   */
+  --cat-1: #3b72c4;
+  --cat-2: #d0683a;
+  --cat-3: #1f9a8a;
+  --cat-4: #d39a1a;
+  --cat-5: #c95b8a;
+  --cat-6: #6c5bd0;
+  /* Da 7ª categoria em diante, e em "Outras". */
+  --cat-other: #808a87;
+
   /* Estrutura neutra: a lateral é um plano rebaixado; o item atual ganha superfície e barra verde. */
   --nav-bg: var(--surface-sunken);
   --nav-fg: var(--foreground);
@@ -115,6 +129,15 @@
     --negative: #ff9188;
     --warning: #f3b866;
     --info: #75c4df;
+
+    /* Mesmos tons, em passos validados para o fundo escuro. */
+    --cat-1: #4a80d6;
+    --cat-2: #d0683a;
+    --cat-3: #219a89;
+    --cat-4: #b88518;
+    --cat-5: #cc5f8e;
+    --cat-6: #8576e0;
+    --cat-other: #6b7673;
 
     /* A lateral fica um degrau abaixo do fundo do conteúdo. */
     --nav-hover: rgba(233, 237, 236, 0.05);
