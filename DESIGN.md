@@ -164,7 +164,7 @@ components:
 
 # Coinciente — sistema visual do app web
 
-> **Versão 2.0 aplicada no código** (tokens em `globals.css`, lateral neutra, marcador no `StatusChip`, listas como tabelas e página inicial). Ainda não existem no código, porque dependem de telas futuras: a faixa de números e os gráficos (dashboard, Sprint 5) e o carimbo do dado e o estado de sincronização (F6, contrato HU-008/HU-009).
+> **Versão 2.0 aplicada no código** (tokens em `globals.css`, lateral neutra, marcador no `StatusChip`, listas como tabelas e página inicial). Os gráficos existem como componentes em `src/components/charts/` (barras pareadas, linha, barras ordenadas e barra 100%), com prévia fictícia na página inicial; nenhuma tela de dados os usa ainda. Ainda não existem no código, porque dependem de telas futuras: a faixa de números e a tela de dashboard (Sprint 5) e o carimbo do dado e o estado de sincronização (F6, contrato HU-008/HU-009).
 
 Fonte de verdade: Style Guide 2.0 (`documentacao-centralizador-financeiro/docs/design/style-guide.html`). Este arquivo traduz o guia para a interface de produto; quando divergir do guia, o guia vence e este arquivo é corrigido. A divergência anterior (lateral em Confiança) foi encerrada na 2.0: a estrutura é neutra.
 
@@ -215,7 +215,7 @@ Neutros frios carregam toda a interface; o verde é sinal, não superfície.
 - **Faixa de números** no lugar de cartões de KPI: até 4 valores em `figure`, separados por linhas verticais de 1px, cada um com `label` acima e uma linha de metadados abaixo.
 - Histórico de movimentações agrupado por dia, com o cabeçalho do dia em `sunken`, preso ao topo ao rolar ("Hoje · 10/09"). Sem totais por dia: saldos pertencem ao dashboard.
 - Formulários de criação abrem em painel na própria página pela ação do cabeçalho (`?nova=1` e `?registrar=1` continuam funcionando). Lista vazia abre o painel sozinha.
-- Gráficos (dashboard, Sprint 5): linha de 1,5px em `foreground` com pontos, grade tracejada em `line`, último ponto em `signal`; alocação como barra 100% estática com tabela ao lado. Sem área preenchida, sem rosca.
+- Gráficos (`src/components/charts/`, ADR-004): linha de 1,5px em `foreground` com pontos, grade tracejada em `line`, último ponto em `signal`; entradas e saídas em barras pareadas na rampa neutra (entradas `ramp-1`, saídas `ramp-3`, mês parcial a 45%); gastos em barras horizontais ordenadas com valor e percentual em texto, "A revisar" hachurado em `warning`; alocação como barra 100% com tabela ao lado, "Não classificado" hachurado. Eixo sempre a partir de zero. Todo gráfico traz os valores em tabela ou lista; o SVG fica fora da leitura de tela. Sem área preenchida, sem rosca, sem eixo duplo. Escalas com `@visx/scale`; desenho e estilo próprios.
 
 ## Elevation & Depth
 
@@ -246,8 +246,11 @@ Critério (emil-design-eng): anima só o que acontece de vez em quando e ganha s
 | Conclusão de importação OFX ou de conexão Pluggy | símbolo se consolida: arcos se desenham (400ms, interno +80ms) e o ponto assenta (320ms); só logo após concluir e quando dados entraram | momento raro com significado de marca: fontes reunidas, usuário no centro |
 | Etapa de fluxo (OFX, Conectar) | entra com opacidade + 6px (`.reveal`), 240ms | o fluxo avançou |
 | Aviso de resultado (erro, sucesso) | entra com opacidade + 4px, 160ms; ajuda fixa não se move | chama o olho para o que acabou de mudar |
+| Gráfico com dados novos (troca de período) | barras e pontos transitam da altura antiga para a nova, 240ms; o número em texto troca direto; nada anima na primeira pintura | o que mudou entre os períodos |
+| Destaque gráfico ↔ tabela | o mês sob o cursor fica, os outros recuam a 35% de opacidade, 180ms; só com mouse | liga a barra ao valor exato |
+| Prévia de gráfico na página inicial | barras sobem da linha de base uma vez, 600ms, a partir de 200ms e 50ms entre meses | entrada única da página inicial |
 
-Não se movem: hover de linhas (só cor), valores. Navegação entre páginas: só crossfade de 180ms, disparado apenas pelos links da lateral e das abas (tipo `nav`), com a estrutura parada (ADR-002 em `documentacao-centralizador-financeiro/docs/arquitetura/`). Curvas: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)`, `--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1)`, `--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1)`. Hover só com `(hover: hover) and (pointer: fine)`. Com `prefers-reduced-motion`, sai o deslocamento e ficam as mudanças de opacidade e cor; a regra global preserva também `text-decoration-color` e `outline-color`, e o painel `.reveal`, o menu e o bloco recolhível declaram a própria lista para sair só por opacidade.
+Não se movem: hover de linhas (só cor), valores em texto. Animação em JavaScript usa Motion (`m.*` dentro do `MotionProvider`, recursos carregados depois da primeira pintura) e só onde o CSS não alcança: atributos SVG e entrada de gráfico; o resto continua em CSS (ADR-004). Navegação entre páginas: só crossfade de 180ms, disparado apenas pelos links da lateral e das abas (tipo `nav`), com a estrutura parada (ADR-002 em `documentacao-centralizador-financeiro/docs/arquitetura/`). Curvas: `--ease-out: cubic-bezier(0.23, 1, 0.32, 1)`, `--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1)`, `--ease-drawer: cubic-bezier(0.32, 0.72, 0, 1)`. Hover só com `(hover: hover) and (pointer: fine)`. Com `prefers-reduced-motion`, sai o deslocamento e ficam as mudanças de opacidade e cor; a regra global preserva também `text-decoration-color` e `outline-color`, e o painel `.reveal`, o menu e o bloco recolhível declaram a própria lista para sair só por opacidade.
 
 Tokens de movimento (Style Guide 2.0, seção Movimento), declarados em `globals.css`. `--duration-fast`, `--duration` e `--duration-slow` ficam como apelidos para código de outras branches; código novo usa só os nomes abaixo. Exceções contínuas fora da escala: spinner (700ms) e brilho do esqueleto (1,4s).
 
