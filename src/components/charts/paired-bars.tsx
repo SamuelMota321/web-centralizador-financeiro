@@ -1,7 +1,7 @@
 "use client";
 
 import * as m from "motion/react-m";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { IconChevronDown } from "@/components/icons";
 import { SyncedDetails } from "@/components/synced-details";
 import { formatMoney } from "@/lib/money";
@@ -57,6 +57,12 @@ export function PairedBarsChart({
   const introTransition = useIntroTransition();
   const { active, bind } = useLinkedHighlight();
   const layout = width === null ? null : pairedBarsLayout(data, width, height);
+  // Último mês em foco: a caixa some por opacidade sem perder o conteúdo, e na próxima
+  // vez desliza dali para o mês novo. Só monta na primeira vez, já no lugar certo.
+  const [shown, setShown] = useState<number | null>(null);
+  if (active !== null && active !== shown) setShown(active);
+  // Outra página pode ter menos meses: um foco antigo fora da lista não é desenhado.
+  const focus = shown !== null && shown < data.length ? shown : null;
 
   // A linha guarda o índice do mês no gráfico, para o destaque ligado seguir certo.
   const rows = data.map((month, index) => ({ month, index }));
@@ -185,30 +191,46 @@ export function PairedBarsChart({
             })}
           </svg>
         ) : null}
-        {/* Detalhe do mês sob o cursor; decorativo, os mesmos valores estão na tabela. */}
-        {layout && width !== null && active !== null ? (
-          <div
-            className={styles.tooltip}
-            style={{ left: Math.min(Math.max(layout.months[active].center, TOOLTIP_HALF), width - TOOLTIP_HALF) }}
-            aria-hidden
-          >
-            <p className={styles.tooltipTitle}>
-              {data[active].monthName}
-              {data[active].partial ? " · parcial" : ""}
-            </p>
-            <p className={styles.tooltipRow}>
-              <span>Entradas</span>
-              <span className={styles.num}>{formatMoney(data[active].inflow)}</span>
-            </p>
-            <p className={styles.tooltipRow}>
-              <span>Saídas</span>
-              <span className={styles.num}>{formatMoney(data[active].outflow)}</span>
-            </p>
-            <p className={styles.tooltipRow}>
-              <span>Resultado</span>
-              <span className={styles.num}>{formatMoney(data[active].net)}</span>
-            </p>
-          </div>
+        {/* Faixa de foco e detalhe do mês sob o cursor; decorativos, os valores estão na tabela. */}
+        {layout && width !== null && focus !== null ? (
+          <>
+            <div
+              className={styles.focusBand}
+              data-visible={active === null ? undefined : ""}
+              style={{
+                top: layout.plot.top,
+                width: layout.months[focus].band.width,
+                height: layout.plot.bottom - layout.plot.top,
+                transform: `translateX(${layout.months[focus].band.x}px)`,
+              }}
+              aria-hidden
+            />
+            <div
+              className={styles.tooltip}
+              data-visible={active === null ? undefined : ""}
+              style={{
+                transform: `translateX(${Math.min(Math.max(layout.months[focus].center, TOOLTIP_HALF), width - TOOLTIP_HALF)}px) translateX(-50%)`,
+              }}
+              aria-hidden
+            >
+              <p className={styles.tooltipTitle}>
+                {data[focus].monthName}
+                {data[focus].partial ? " · parcial" : ""}
+              </p>
+              <p className={styles.tooltipRow}>
+                <span>Entradas</span>
+                <span className={styles.num}>{formatMoney(data[focus].inflow)}</span>
+              </p>
+              <p className={styles.tooltipRow}>
+                <span>Saídas</span>
+                <span className={styles.num}>{formatMoney(data[focus].outflow)}</span>
+              </p>
+              <p className={styles.tooltipRow}>
+                <span>Resultado</span>
+                <span className={styles.num}>{formatMoney(data[focus].net)}</span>
+              </p>
+            </div>
+          </>
         ) : null}
       </div>
 
