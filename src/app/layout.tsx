@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, Newsreader } from "next/font/google";
+import { MotionProvider } from "@/components/motion-provider";
 import "./globals.css";
 
 const newsreader = Newsreader({
@@ -22,7 +23,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="pt-BR" className={`${newsreader.variable} ${manrope.variable}`}>
       <body>
-        <div className="root">{children}</div>
+        <div className="root">
+          <MotionProvider>{children}</MotionProvider>
+        </div>
       </body>
     </html>
   );
