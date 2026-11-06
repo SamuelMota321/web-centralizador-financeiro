@@ -80,6 +80,11 @@ export function canDisconnect(status: ConnectionStatus): boolean {
   return status !== "disconnected";
 }
 
+/** Só uma conexão efetivamente conectada celebra a conclusão. */
+export function connectionCelebrates(status: ConnectionStatus): boolean {
+  return status === "connected";
+}
+
 /** Expirada, revogada ou desconectada: conectar de novo e o unico caminho. */
 export function needsReconnect(status: ConnectionStatus): boolean {
   return status === "expired" || status === "revoked" || status === "disconnected";

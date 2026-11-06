@@ -93,3 +93,11 @@ export function resultSummary(
   if (run.status === "failed") return { tone: "error", text: `A importação não foi concluída: ${counts}` };
   return { tone: run.failedItems > 0 ? "warning" : "success", text: counts };
 }
+
+/**
+ * A conclusão só é celebrada quando dados de fato entraram: importação terminada com ao
+ * menos uma movimentação. Falha total ou nada novo não merecem o símbolo.
+ */
+export function importCelebrates(run: Pick<ImportRun, "status" | "importedItems">): boolean {
+  return (run.status === "completed" || run.status === "completed_with_errors") && run.importedItems > 0;
+}

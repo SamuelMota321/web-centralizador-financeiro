@@ -12,6 +12,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import { BrandSymbol } from "@/components/brand";
 import { showToast } from "@/components/interactive";
 import { FieldError, Notice, PendingLabel, StatusChip, ui } from "@/components/ui";
 import { formatCivilDate } from "@/lib/civil-date";
@@ -30,6 +31,7 @@ import {
 import {
   countLabel,
   FAILED_ITEM_MESSAGE,
+  importCelebrates,
   itemAmount,
   itemSituation,
   previewSummary,
@@ -126,7 +128,7 @@ function SelectStep({
   const errorId = `${id}-file-error`;
 
   return (
-    <section className={ui.panel} aria-labelledby={`${id}-title`}>
+    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${id}-title`}>
       <div>
         <h2 id={`${id}-title`} className={ui.panelTitle}>
           Conta e arquivo
@@ -257,7 +259,7 @@ function ImportFlow({
 
   if (step === "processing") {
     return (
-      <section className={ui.panel} aria-labelledby={`${run.id}-title`}>
+      <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${run.id}-title`}>
         <StepTitle id={`${run.id}-title`} headingRef={headingRef}>
           Importação em processamento
         </StepTitle>
@@ -289,7 +291,7 @@ function ImportFlow({
 
   if (step === "expired") {
     return (
-      <section className={ui.panel} aria-labelledby={`${run.id}-title`}>
+      <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${run.id}-title`}>
         <StepTitle id={`${run.id}-title`} headingRef={headingRef}>
           Prévia expirada
         </StepTitle>
@@ -301,14 +303,23 @@ function ImportFlow({
   }
 
   if (step === "result") {
-    return <ResultStep run={run} destination={destination} headingRef={headingRef} onRestart={onRestart} />;
+    // So a conclusao que acabou de acontecer nesta sessao celebra; reabrir um resultado nao.
+    return (
+      <ResultStep
+        run={run}
+        destination={destination}
+        headingRef={headingRef}
+        onRestart={onRestart}
+        celebrate={confirm.status === "done" && importCelebrates(run)}
+      />
+    );
   }
 
   const summary = previewSummary(run.items);
   const nothingNew = summary.fresh === 0;
 
   return (
-    <section className={ui.panel} aria-labelledby={`${run.id}-title`}>
+    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${run.id}-title`}>
       <div>
         <StepTitle id={`${run.id}-title`} headingRef={headingRef}>
           Prévia da importação
@@ -403,20 +414,25 @@ function ResultStep({
   destination,
   headingRef,
   onRestart,
+  celebrate,
 }: {
   run: ImportRun;
   destination: string;
   headingRef: RefObject<HTMLHeadingElement | null>;
   onRestart: () => void;
+  celebrate: boolean;
 }) {
   const summary = resultSummary(run);
   const failed = run.items.filter((item) => item.status === "failed");
 
   return (
-    <section className={ui.panel} aria-labelledby={`${run.id}-title`}>
-      <StepTitle id={`${run.id}-title`} headingRef={headingRef}>
-        Resultado da importação
-      </StepTitle>
+    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${run.id}-title`}>
+      <div className={styles.resultHead}>
+        {celebrate ? <BrandSymbol size={40} animated /> : null}
+        <StepTitle id={`${run.id}-title`} headingRef={headingRef}>
+          Resultado da importação
+        </StepTitle>
+      </div>
       <Notice tone={summary.tone}>{summary.text}</Notice>
 
       <dl className={styles.summary}>

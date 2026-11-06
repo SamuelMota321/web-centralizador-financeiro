@@ -1,0 +1,66 @@
+/*
+ * Consolidacao do simbolo (Style Guide 2.0, Movimento): as fontes chegam (arcos se
+ * desenham) e o usuario assenta no centro (ponto). Toca uma vez, ao aparecer.
+ *
+ * Traco de 1 seguido de intervalo de 2: no inicio o arco fica todo dentro do intervalo.
+ * Com offset exatamente 1, a ponta arredondada de um traco de comprimento zero aparece
+ * como um ponto solto; 1.01 evita isso.
+ */
+.outer,
+.inner {
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 1.01;
+  animation: draw 400ms var(--ease-out) forwards;
+}
+
+.inner {
+  animation-delay: 80ms;
+}
+
+.dot {
+  opacity: 0;
+  transform: scale(0.8);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: settle var(--motion-settle) var(--ease-out) 400ms forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes settle {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Movimento reduzido: o simbolo ja aparece completo e so a opacidade muda. */
+@media (prefers-reduced-motion: reduce) {
+  .outer,
+  .inner {
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .dot {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  /* A regra global zera a duração; aqui o fade de opacidade continua (reduzido não é zero). */
+  .consolidate {
+    animation: fade var(--motion-reveal) var(--ease-out) both;
+    animation-duration: var(--motion-reveal) !important;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
