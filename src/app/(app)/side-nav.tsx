@@ -20,8 +20,34 @@ interface NavItem {
   Icon: ComponentType<{ size?: number }>;
 }
 
+// Visão geral: barras de leitura sobre a linha de base, no traço dos ícones do app.
+// Fica aqui enquanto a tela é prévia atrás de flag; vai para icons.tsx quando for definitiva.
+function IconOverview({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      <path d="M4 20h16M7 16v-5M12 16V6M17 16v-8" />
+    </svg>
+  );
+}
+
+const OVERVIEW_GROUP = {
+  label: "Resumo",
+  items: [{ href: "/visao-geral", label: "Visão geral", Icon: IconOverview }],
+} as const;
+
 /** Registros guardam o que aconteceu; Organização define como ler (categorias e regras). */
-export const NAV_GROUPS: readonly { label: string; items: readonly NavItem[] }[] = [
+const NAV_GROUPS: readonly { label: string; items: readonly NavItem[] }[] = [
   {
     label: "Registros",
     items: [
@@ -38,17 +64,22 @@ export const NAV_GROUPS: readonly { label: string; items: readonly NavItem[] }[]
   },
 ];
 
+/** Com a prévia ligada, a Visão geral entra no topo, acima de Registros. */
+export function navGroups(showOverview: boolean) {
+  return showOverview ? [OVERVIEW_GROUP, ...NAV_GROUPS] : NAV_GROUPS;
+}
+
 function isCurrent(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /** Navegação lateral (desktop e tablet): grupos com rótulo, item atual marcado. */
-export function SideNav() {
+export function SideNav({ showOverview }: { showOverview: boolean }) {
   const pathname = usePathname();
 
   return (
     <nav className={shell.nav} aria-label="Principal">
-      {NAV_GROUPS.map((group) => (
+      {navGroups(showOverview).map((group) => (
         <div key={group.label} className={shell.navGroup}>
           <p className={shell.navGroupLabel}>{group.label}</p>
           <ul className={shell.navList}>
@@ -72,13 +103,17 @@ export function SideNav() {
   );
 }
 
-/** Barra de abas do celular: os mesmos quatro destinos, ao alcance do polegar. */
-export function TabBar() {
+/** Barra de abas do celular: os mesmos destinos da lateral, ao alcance do polegar. */
+export function TabBar({ showOverview }: { showOverview: boolean }) {
   const pathname = usePathname();
-  const items = NAV_GROUPS.flatMap((group) => group.items);
+  const items = navGroups(showOverview).flatMap((group) => group.items);
 
   return (
-    <nav className={shell.tabBar} aria-label="Principal">
+    <nav
+      className={shell.tabBar}
+      aria-label="Principal"
+      style={{ "--tabs": items.length } as React.CSSProperties}
+    >
       {items.map(({ href, label, Icon }) => (
         <Link
           key={href}

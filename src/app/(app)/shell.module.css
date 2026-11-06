@@ -435,7 +435,7 @@
     left: 0;
     z-index: var(--z-nav);
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--tabs, 4), minmax(0, 1fr));
     padding: 0 6px env(safe-area-inset-bottom);
     background: var(--surface);
     box-shadow: inset 0 1px 0 var(--line);

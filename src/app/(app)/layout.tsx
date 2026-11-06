@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth0 } from "@/lib/auth0";
+import { overviewPreviewEnabled } from "@/lib/overview/flag";
 import { AppFrame } from "./app-frame";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -9,5 +10,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   const identity = session.user.name ?? session.user.email ?? "Sua conta";
 
-  return <AppFrame identity={identity}>{children}</AppFrame>;
+  return (
+    <AppFrame identity={identity} showOverview={overviewPreviewEnabled()}>
+      {children}
+    </AppFrame>
+  );
 }

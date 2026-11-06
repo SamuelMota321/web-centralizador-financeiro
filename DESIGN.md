@@ -164,7 +164,7 @@ components:
 
 # Coinciente — sistema visual do app web
 
-> **Versão 2.0 aplicada no código** (tokens em `globals.css`, lateral neutra, marcador no `StatusChip`, listas como tabelas e página inicial). Os gráficos existem como componentes em `src/components/charts/` (barras pareadas, linha, barras ordenadas e barra 100%), com prévia fictícia na página inicial; nenhuma tela de dados os usa ainda. Ainda não existem no código, porque dependem de telas futuras: a faixa de números e a tela de dashboard (Sprint 5) e o carimbo do dado e o estado de sincronização (F6, contrato HU-008/HU-009).
+> **Versão 2.0 aplicada no código** (tokens em `globals.css`, lateral neutra, marcador no `StatusChip`, listas como tabelas e página inicial). Os gráficos existem como componentes em `src/components/charts/` (barras pareadas, linha, barras ordenadas e barra 100%), com prévia fictícia na página inicial. A tela "Visão geral" (`/visao-geral`, blocos 1 a 5) existe como prévia com dados de exemplo, atrás de `OVERVIEW_PREVIEW=true`: sem a flag, a rota responde 404 e o destino não aparece na navegação; com ela, um aviso no topo diz que os números não são do usuário. A fonte provisória fica em `src/lib/overview/source.ts` até as rotas de agregação existirem. Ainda não existem no código, porque dependem de telas futuras: a faixa de números e a tela de dashboard (Sprint 5) e o carimbo do dado e o estado de sincronização (F6, contrato HU-008/HU-009).
 
 Fonte de verdade: Style Guide 2.0 (`documentacao-centralizador-financeiro/docs/design/style-guide.html`). Este arquivo traduz o guia para a interface de produto; quando divergir do guia, o guia vence e este arquivo é corrigido. A divergência anterior (lateral em Confiança) foi encerrada na 2.0: a estrutura é neutra.
 

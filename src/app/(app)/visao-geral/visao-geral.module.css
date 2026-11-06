@@ -1,0 +1,196 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ---------- Faixa de números (no lugar de cartões de KPI) ---------- */
+.figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.figure {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-4);
+}
+
+.figure + .figure {
+  border-left: 1px solid var(--line);
+}
+
+.label {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.figureValue {
+  color: var(--foreground);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.figureValue[data-unavailable] {
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.figureMarker {
+  margin-top: var(--space-1);
+}
+
+/* ---------- Blocos ---------- */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-6);
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+}
+
+.panelTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.panelFoot {
+  font-size: 0.8125rem;
+}
+
+/* ---------- Saldos por conta ---------- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: 0;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 0;
+}
+
+.table thead th {
+  height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.group th {
+  padding-top: var(--space-4);
+}
+
+.accountName {
+  display: block;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.balance {
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.reference {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+/* Referência e frescor ficam embaixo do saldo no celular: a tabela não rola de lado. */
+@media (max-width: 40rem) {
+  .figures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .figure + .figure {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .referenceColumn {
+    display: none;
+  }
+}
+
+@media (min-width: 40.0625rem) {
+  .referenceInline {
+    display: none;
+  }
+}
+
+@media (max-width: 64rem) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Esqueleto ---------- */
+.skeletonPanel {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}

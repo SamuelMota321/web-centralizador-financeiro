@@ -12,7 +12,16 @@ import shell from "./shell.module.css";
  * navegação agrupada e conta; no tablet vira trilho de ícones e no celular dá lugar
  * a uma barra superior e a abas inferiores.
  */
-export function AppFrame({ identity, children }: { identity: string; children: ReactNode }) {
+export function AppFrame({
+  identity,
+  showOverview,
+  children,
+}: {
+  identity: string;
+  /** Prévia da Visão geral ligada (OVERVIEW_PREVIEW): o destino entra na navegação. */
+  showOverview: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className={shell.shell}>
       <a className={shell.skipLink} href="#conteudo">
@@ -34,7 +43,7 @@ export function AppFrame({ identity, children }: { identity: string; children: R
           <span className={shell.registerLabel}>Registrar movimentação</span>
         </RegisterShortcut>
 
-        <SideNav />
+        <SideNav showOverview={showOverview} />
 
         <div className={shell.sidebarFooter}>
           <div className={shell.accountFull}>
@@ -71,7 +80,7 @@ export function AppFrame({ identity, children }: { identity: string; children: R
         </div>
       </main>
 
-      <TabBar />
+      <TabBar showOverview={showOverview} />
       <AppToaster />
     </div>
   );
