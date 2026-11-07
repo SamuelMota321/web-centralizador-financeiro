@@ -490,3 +490,30 @@
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+
+/*
+ * Entrada da Visão geral: cada bloco aparece com opacidade e 8px de baixo para cima,
+ * 50ms depois do anterior. Só ao montar (@starting-style): trocar filtro, página ou
+ * painel não repete. Com movimento reduzido, só a opacidade.
+ */
+.page > * {
+  transition:
+    opacity var(--motion-settle) var(--ease-out),
+    transform var(--motion-settle) var(--ease-out);
+  transition-delay: calc(var(--enter, 0) * 50ms);
+}
+
+.page > :nth-child(2) { --enter: 1; }
+.page > :nth-child(3) { --enter: 2; }
+.page > :nth-child(4) { --enter: 3; }
+.page > :nth-child(5) { --enter: 4; }
+.page > :nth-child(6) { --enter: 5; }
+.page > :nth-child(7) { --enter: 6; }
+.page > :nth-child(n + 8) { --enter: 7; }
+
+@starting-style {
+  .page > * {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}

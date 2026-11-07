@@ -770,3 +770,96 @@
     opacity: 0;
   }
 }
+
+/* ---------- Minigráfico: redesenho no hover e percorrer os meses ---------- */
+
+/* Acima da área clicável do número: aqui o mouse percorre os meses. */
+.sparkWrap {
+  position: relative;
+  z-index: 1;
+  display: block;
+  flex: none;
+}
+
+.sparkLast,
+.sparkOpen {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Ao entrar no número, a linha se desenha de novo (400ms) e o último ponto pulsa. */
+@media (hover: hover) and (pointer: fine) {
+  :hover > .sparkWrap .sparkDraw {
+    stroke-dasharray: 1;
+    animation: spark-draw 400ms var(--ease-out) both;
+  }
+
+  :hover > .sparkWrap .sparkLast,
+  :hover > .sparkWrap .sparkOpen {
+    animation: spark-pulse 240ms var(--ease-out) 400ms both;
+  }
+
+  :hover > .sparkWrap .sparkPartial {
+    animation: spark-fade var(--motion-popover) ease 400ms both;
+  }
+}
+
+@keyframes spark-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes spark-pulse {
+  50% {
+    transform: scale(1.6);
+  }
+}
+
+@keyframes spark-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Ponto que percorre os meses: desliza até o mais próximo do mouse. */
+.sparkScrub {
+  fill: var(--surface);
+  stroke: var(--foreground);
+  stroke-width: 1.5;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 120ms ease;
+}
+
+.sparkLabel {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  color: var(--foreground);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 120ms ease;
+}
+
+.sparkScrub[data-visible],
+.sparkLabel[data-visible] {
+  opacity: 1;
+}

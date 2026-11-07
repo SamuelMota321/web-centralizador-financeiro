@@ -14,6 +14,7 @@ import {
   formatReference,
   freshnessChip,
   monthName,
+  monthShort,
   type RecentLine,
   SOURCE_LABELS,
   splitAccounts,
@@ -141,7 +142,14 @@ export function FigureStrip({
             <StatusChip tone="warning">Inclui conta desatualizada</StatusChip>
           ) : null
         }
-        spark={balances ? <Sparkline values={balances.history.map((entry) => entry.available)} /> : null}
+        spark={
+          balances ? (
+            <Sparkline
+              values={balances.history.map((entry) => entry.available)}
+              labels={balances.history.map((entry) => monthShort(entry.month))}
+            />
+          ) : null
+        }
         toggle={panels && balances ? { id: "disponivel", name: "Disponível" } : undefined}
       />
       <Figure
@@ -150,7 +158,15 @@ export function FigureStrip({
         change={flowChange((m) => m.inflow)}
         meta={month ? zero(month.inflow, "Nenhuma entrada no período") : period}
         toggle={panels && month ? { id: "entradas", name: "Entradas" } : undefined}
-        spark={months ? <Sparkline values={months.map((m) => m.inflow)} partialLast={month?.partial} /> : null}
+        spark={
+          months ? (
+            <Sparkline
+              values={months.map((m) => m.inflow)}
+              labels={months.map((m) => monthShort(m.month))}
+              partialLast={month?.partial}
+            />
+          ) : null
+        }
       />
       <Figure
         label="Saídas do período"
@@ -158,7 +174,15 @@ export function FigureStrip({
         change={flowChange((m) => m.outflow)}
         meta={month ? zero(month.outflow, "Nenhuma saída no período") : period}
         toggle={panels && month ? { id: "saidas", name: "Saídas" } : undefined}
-        spark={months ? <Sparkline values={months.map((m) => m.outflow)} partialLast={month?.partial} /> : null}
+        spark={
+          months ? (
+            <Sparkline
+              values={months.map((m) => m.outflow)}
+              labels={months.map((m) => monthShort(m.month))}
+              partialLast={month?.partial}
+            />
+          ) : null
+        }
       />
     </section>
   );

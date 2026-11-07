@@ -272,6 +272,8 @@ export interface Sparkline {
   /** Último trecho, tracejado, quando o último mês está em andamento. */
   partial: string | null;
   last: { x: number; y: number };
+  /** Posição de cada valor, para o ponto que percorre os meses. */
+  points: { x: number; y: number }[];
 }
 
 /**
@@ -299,5 +301,6 @@ export function sparkline(
     solid: path(split ? points.slice(0, -1) : points),
     partial: split ? path(points.slice(-2)) : null,
     last: points[points.length - 1] ?? { x: 0, y: height / 2 },
+    points,
   };
 }

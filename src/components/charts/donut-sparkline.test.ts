@@ -85,6 +85,11 @@ describe("sparkline", () => {
     expect(line.solid).toBe("M0 36L60 20L120 4");
     expect(line.partial).toBeNull();
     expect(line.last).toEqual({ x: 120, y: 4 });
+    expect(line.points).toEqual([
+      { x: 0, y: 36 },
+      { x: 60, y: 20 },
+      { x: 120, y: 4 },
+    ]);
   });
 
   it("separa o último trecho quando o mês está em andamento", () => {
