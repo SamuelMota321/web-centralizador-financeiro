@@ -1,5 +1,6 @@
 import { CATEGORY_OTHER, colorOf } from "@/components/charts/category-colors";
 import { donutItems, toCents, type DonutItem, type LinePoint, type MonthFlow } from "@/components/charts/model";
+import type { CategoryMarkKind } from "@/components/category-mark";
 import type { ChipTone } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import type {
@@ -217,9 +218,13 @@ export interface RecentLine {
   meta: string;
   amount: string;
   direction: RecentMovement["direction"];
-  /** Cor da categoria; null: sem marcador (transferência). */
+  /** Cor da categoria; null: sem cor (transferência, a revisar). */
   color: string | null;
   toReview: boolean;
+  /** Quadrado da linha: ícone da categoria, a revisar, transferência ou direção. */
+  mark: CategoryMarkKind;
+  /** Nome que escolhe o ícone da categoria. */
+  iconName: string | null;
 }
 
 export function toRecentLines(movements: readonly RecentMovement[], colors: ReadonlyMap<string, string>): RecentLine[] {
@@ -243,6 +248,16 @@ export function toRecentLines(movements: readonly RecentMovement[], colors: Read
             ? colorOf(colors, movement.categoryId)
             : CATEGORY_OTHER,
       toReview: movement.toReview,
+      mark: movement.toReview
+        ? "review"
+        : movement.direction === "transfer"
+          ? "transfer"
+          : movement.categoryName
+            ? "category"
+            : movement.direction === "inflow"
+              ? "inflow"
+              : "outflow",
+      iconName: movement.categoryName,
     };
   });
 }

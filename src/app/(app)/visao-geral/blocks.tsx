@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Sparkline } from "@/components/charts/sparkline";
+import { CategoryMark } from "@/components/category-mark";
 import { Notice, StatusChip, ui } from "@/components/ui";
 import { formatMoney } from "@/lib/money";
 import type { AccountBalance, BalancesSummary, FlowMonth } from "@/lib/overview/types";
@@ -248,10 +249,11 @@ export function RecentList({
     <ul className={compact ? `${styles.recent} ${styles.compact}` : styles.recent}>
       {lines.map((line, index) => (
         <li key={line.id} className={styles.recentRow} style={{ "--i": index } as React.CSSProperties}>
-          <span
-            className={line.toReview ? `${styles.recentMark} ${styles.hatched}` : styles.recentMark}
-            style={line.color ? ({ "--mark": line.color } as React.CSSProperties) : undefined}
-            aria-hidden
+          <CategoryMark
+            kind={line.mark}
+            name={line.iconName}
+            color={line.color}
+            size={compact ? "compact" : "regular"}
           />
           <span className={styles.recentText}>
             <span className={styles.recentTitle}>{line.title}</span>

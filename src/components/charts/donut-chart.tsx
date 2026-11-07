@@ -4,6 +4,7 @@ import * as m from "motion/react-m";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId } from "react";
+import { CategoryIcon } from "@/components/category-mark";
 import { formatMoney } from "@/lib/money";
 import styles from "./charts.module.css";
 import { barRatio, donutArcs, formatShare, maxValue, type DonutItem } from "./model";
@@ -100,11 +101,13 @@ export function DonutChart({
           const selected = selectedId === item.id;
           const content = (
             <>
-              <span
-                className={item.review ? `${styles.donutSwatch} ${styles.hatched}` : styles.donutSwatch}
-                style={item.review ? undefined : { background: item.color }}
-                aria-hidden
-              />
+              {item.review ? (
+                <span className={`${styles.donutSwatch} ${styles.hatched}`} aria-hidden />
+              ) : (
+                <span className={styles.donutSwatch}>
+                  <CategoryIcon name={item.label} color={item.color} />
+                </span>
+              )}
               <span className={styles.donutName}>{item.label}</span>
               <span className={`${styles.donutValue} ${styles.num}`}>{formatMoney(item.value)}</span>
               <span className={`${styles.donutPct} ${styles.num}`}>{formatShare(item.value, total) ?? "—"}</span>

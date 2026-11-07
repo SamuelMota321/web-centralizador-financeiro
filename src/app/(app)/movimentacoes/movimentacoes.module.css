@@ -117,19 +117,6 @@
 }
 
 /* Direção como glifo, sem círculo de fundo: o sinal do valor continua sendo o dado. */
-.rowIcon {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  color: var(--muted);
-}
-
-.rowIcon[data-direction="in"] {
-  color: var(--primary);
-}
-
 .rowText {
   min-width: 0;
 }

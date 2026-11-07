@@ -113,15 +113,6 @@ export function categorizationTone(
   }
 }
 
-export type MovementDirection = "in" | "out" | "transfer";
-
-export function movementDirection(
-  transaction: Pick<Transaction, "type" | "transferSide">,
-): MovementDirection {
-  if (transaction.type === "transfer") return "transfer";
-  return transaction.type === "income" ? "in" : "out";
-}
-
 export interface DayGroup<T> {
   /** Data civil AAAA-MM-DD compartilhada pelas movimentações do grupo. */
   date: string;
@@ -140,4 +131,24 @@ export function groupByDay<T extends Pick<Transaction, "occurredOn">>(items: T[]
     else groups.push({ date: item.occurredOn, items: [item] });
   }
   return groups;
+}
+
+/**
+ * Quadrado da linha (Style Guide 2.1): categoria definida mostra o ícone dela;
+ * transferência, o ícone de transferência; entrada sem categoria, o de entrada; saída
+ * sem categoria segura (sem categoria, incerta ou não reconhecida), "a revisar".
+ */
+export function movementMark(
+  transaction: Pick<Transaction, "type" | "transferSide" | "categoryId" | "categorizationStatus">,
+  categories: readonly CategoryOption[] | null,
+): { kind: "category" | "review" | "transfer" | "inflow"; name: string | null } {
+  if (transaction.type === "transfer") return { kind: "transfer", name: null };
+  const category = transaction.categoryId
+    ? (categories?.find((option) => option.id === transaction.categoryId) ?? null)
+    : null;
+  if (transaction.categorizationStatus === "categorized" && transaction.categoryId) {
+    // Lista de categorias indisponível: ícone genérico, mas ainda como categoria.
+    return { kind: "category", name: category?.name ?? null };
+  }
+  return transaction.type === "income" ? { kind: "inflow", name: null } : { kind: "review", name: null };
 }

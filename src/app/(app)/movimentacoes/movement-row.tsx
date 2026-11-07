@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { IconInflow, IconOutflow, IconTag, IconTransfer } from "@/components/icons";
+import { CATEGORY_OTHER } from "@/components/charts/category-colors";
+import { CategoryMark } from "@/components/category-mark";
+import { IconTag } from "@/components/icons";
 import { StatusChip, ui } from "@/components/ui";
 import type { Transaction } from "@/lib/transactions/types";
 import { CategorizePanel } from "./categorize-panel";
@@ -12,32 +14,33 @@ import {
   categorizationLabel,
   categorizationTone,
   type CategoryOption,
-  movementDirection,
+  movementMark,
   signedAmount,
   typeLabel,
 } from "./presentation";
 import { useRecentMovements } from "./recent";
 import styles from "./movimentacoes.module.css";
 
-const DIRECTION_ICONS = { in: IconInflow, out: IconOutflow, transfer: IconTransfer } as const;
 
 export function MovementRow({
   transaction,
   accounts,
   categories,
   categoriesTruncated,
+  categoryColors,
 }: {
   transaction: Transaction;
   accounts: AccountOption[] | null;
   /** null: a lista de categorias falhou; o rótulo usa fallback e a ação fica oculta. */
   categories: CategoryOption[] | null;
   categoriesTruncated: boolean;
+  /** Cor fixa por id de categoria; categoria fora do mapa fica neutra. */
+  categoryColors: Readonly<Record<string, string>>;
 }) {
   const [open, setOpen] = useState(false);
   const { isRecent } = useRecentMovements();
   const amount = signedAmount(transaction);
-  const direction = movementDirection(transaction);
-  const DirectionIcon = DIRECTION_ICONS[direction];
+  const mark = movementMark(transaction, categories);
   const description = transaction.description ?? "Sem descrição";
   const categorizable = categories !== null && canCategorize(transaction);
   // Sem categoria é o caso que pede ação: vira botão. Corrigir fica discreto.
@@ -50,9 +53,11 @@ export function MovementRow({
       data-open={open || undefined}
     >
       <div className={styles.rowMain}>
-        <span className={styles.rowIcon} data-direction={direction}>
-          <DirectionIcon size={16} />
-        </span>
+        <CategoryMark
+          kind={mark.kind}
+          name={mark.name}
+          color={transaction.categoryId ? (categoryColors[transaction.categoryId] ?? CATEGORY_OTHER) : null}
+        />
         <div className={styles.rowText}>
           <p className={transaction.description ? styles.rowTitle : styles.rowTitleMuted}>
             {description}

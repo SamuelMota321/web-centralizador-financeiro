@@ -173,3 +173,65 @@ export const IconTag = (p: IconProps) => (
     <path d="M8.5 8.5h.01" strokeWidth={2.5} />
   </Icon>
 );
+
+/* ---------- Categorias (escolhidos pelo nome em lib/categories/category-icon.ts) ---------- */
+
+export const IconHome = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1Z" />
+  </Icon>
+);
+
+export const IconUtensils = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 3v6a2 2 0 0 0 4 0V3M9 3v18M17 21V3c-2.2 1.3-3 4-3 7v3h3" />
+  </Icon>
+);
+
+export const IconCar = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 16v-4l2-5h10l2 5v4M4 16h16M6 16v2.5M18 16v2.5M3.5 11H5M19 11h1.5" />
+    <circle cx="8.5" cy="13" r="0.8" />
+    <circle cx="15.5" cy="13" r="0.8" />
+  </Icon>
+);
+
+export const IconHeartPulse = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 20s-7.5-4.5-7.5-10.2A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5C19.5 15.5 12 20 12 20Z" />
+    <path d="M7.5 12.5h2.2l1.3-2.2 2 4 1.3-1.8h2.2" />
+  </Icon>
+);
+
+export const IconTicket = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3.5 7.5h17v3a1.8 1.8 0 0 0 0 3v3h-17v-3a1.8 1.8 0 0 0 0-3Z" />
+    <path d="M14.5 7.5v1.5M14.5 11.25v1.5M14.5 15v1.5" />
+  </Icon>
+);
+
+export const IconBook = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H19v14H6.5A1.5 1.5 0 0 0 5 19.5Zm0 14A1.5 1.5 0 0 0 6.5 21H19" />
+  </Icon>
+);
+
+export const IconShoppingBag = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5.5 8h13l-1 12h-11Z" />
+    <path d="M9 10V7a3 3 0 0 1 6 0v3" />
+  </Icon>
+);
+
+export const IconBolt = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M13 3 5 13.5h6L10 21l8-10.5h-6Z" />
+  </Icon>
+);
+
+export const IconQuestion = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4M12 16.5h.01" />
+  </Icon>
+);

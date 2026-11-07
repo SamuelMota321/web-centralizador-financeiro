@@ -290,6 +290,7 @@ Tokens de movimento (Style Guide 2.0, seção Movimento), declarados em `globals
 - **Paginação:** 20 itens por página; "1–20 de 214" em `meta` à esquerda, Anterior/Próxima e números à direita. No celular, só Anterior, "6 de 12" e Próxima.
 - **Estado vazio, aviso e esqueleto:** vazio com ícone de linha, frase e ação; aviso com ícone, texto e borda à esquerda no tom do estado; esqueleto com a forma da tabela final.
 - **Ícones:** SVG próprios, traço de 1,5px, 16px em linha e 20px na navegação, significado literal; sempre com rótulo visível ou acessível.
+- **Quadrado de categoria** (`CategoryMark`, Style Guide 2.1): 32px (24px nas listas compactas), raio de controle, fundo rebaixado, ícone de 16px na cor fixa da categoria. O ícone vem do nome da categoria por palavras-chave (`lib/categories/category-icon.ts`: casa, talheres, carro, coração, ingresso, livro, sacola, raio, entrada; sem regra, etiqueta), porque o backend não guarda ícone. "A revisar" e saída sem categoria segura: hachurado de atenção com interrogação. Transferência e entrada sem categoria: ícone de direção, neutro (entrada em `signal`). Decorativo: o nome da categoria está sempre escrito na linha. Usado em Movimentações (no lugar da seta de direção; a direção segue no sinal e na cor do valor) e nas listas da Visão geral; na lista da rosca, só o ícone, na cor da fatia.
 
 ## Do's and Don'ts
 

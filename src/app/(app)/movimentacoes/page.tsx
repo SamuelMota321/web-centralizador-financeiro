@@ -7,6 +7,7 @@ import { EmptyState, Notice, PageHeader, Pagination, ui } from "@/components/ui"
 import { auth0 } from "@/lib/auth0";
 import { listAccounts } from "@/lib/accounts/api";
 import { listAllPages } from "@/lib/api/pagination";
+import { categoryColors } from "@/components/charts/category-colors";
 import { listCategories } from "@/lib/categories/api";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { listTransactions } from "@/lib/transactions/api";
@@ -60,6 +61,18 @@ export default async function MovimentacoesPage({
       : null;
   const categoriesTruncated =
     categoriesResult.status === "fulfilled" && categoriesResult.value.truncated;
+  // Cor fixa por categoria (Style Guide 2.1): a ordem de criação, arquivadas incluídas,
+  // escolhe o tom, a mesma regra da Visão geral. Sem a lista, os quadrados ficam neutros.
+  const categoryColorById: Record<string, string> =
+    categoriesResult.status === "fulfilled"
+      ? Object.fromEntries(
+          categoryColors(
+            [...categoriesResult.value.items]
+              .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+              .map((category) => category.id),
+          ),
+        )
+      : {};
 
   const pages = totalPages(transactions.total, PAGE_SIZE);
   const canRegister = accounts !== null && accounts.length > 0;
@@ -189,6 +202,7 @@ export default async function MovimentacoesPage({
                           accounts={accounts}
                           categories={categories}
                           categoriesTruncated={categoriesTruncated}
+                          categoryColors={categoryColorById}
                         />
                       ))}
                     </ul>

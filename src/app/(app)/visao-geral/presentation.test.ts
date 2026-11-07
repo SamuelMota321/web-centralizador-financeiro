@@ -125,7 +125,10 @@ describe("últimas movimentações", () => {
         color: "var(--cat-2)",
       }),
     );
-    expect(lines[1]).toEqual(expect.objectContaining({ toReview: true, color: null }));
+    expect(lines[0]).toEqual(expect.objectContaining({ mark: "category", iconName: "Alimentação" }));
+    expect(lines[1]).toEqual(expect.objectContaining({ toReview: true, color: null, mark: "review" }));
+    expect(lines[3].mark).toBe("transfer");
+    expect(lines[4]).toEqual(expect.objectContaining({ mark: "category", iconName: "Renda" }));
     expect(lines[3]).toEqual(expect.objectContaining({ direction: "transfer", amount: "R$ 500,00", color: null }));
     expect(lines[4].amount).toBe("+ R$ 6.800,00");
     expect(formatDay("2026-10-01")).toBe("01/10");
