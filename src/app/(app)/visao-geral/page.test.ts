@@ -165,5 +165,15 @@ describe("Visão geral", () => {
     expect(html.match(/_sparkWrap_/g)?.length).toBe(3);
     expect(html.match(/pathLength="1"/g)?.length).toBe(3);
   });
+
+  it("o espaço do marcador existe nos três números com ou sem aviso, então a faixa não muda de altura", async () => {
+    vi.stubEnv("OVERVIEW_PREVIEW", "true");
+    const october = await render("2026-10");
+    const september = await render("2026-09");
+    expect(october).toContain("Inclui conta desatualizada");
+    expect(september).not.toContain("Inclui conta desatualizada");
+    expect(october.match(/_figureMarker_/g)?.length).toBe(3);
+    expect(september.match(/_figureMarker_/g)?.length).toBe(3);
+  });
 });
 

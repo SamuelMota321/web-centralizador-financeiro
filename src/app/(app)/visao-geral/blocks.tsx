@@ -95,7 +95,8 @@ function Figure({
         )}
         {change ? <p className={styles.change}>{change}</p> : null}
         <p className={styles.meta}>{meta}</p>
-        {marker ? <div className={styles.figureMarker}>{marker}</div> : null}
+        {/* Sempre presente, vazio sem aviso: a faixa não muda de altura entre os meses. */}
+        <div className={styles.figureMarker}>{marker}</div>
         {toggle ? <PanelToggle id={toggle.id} name={toggle.name} /> : null}
       </div>
       {spark}
