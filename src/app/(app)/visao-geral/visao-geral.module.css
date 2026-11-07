@@ -22,11 +22,24 @@
   padding: var(--space-4) var(--space-5);
 }
 
+/* Ocupa todo o espaço até o minigráfico: o texto não quebra por falta de largura. */
 .figureBody {
   display: grid;
+  flex: 1;
   align-content: start;
   gap: var(--space-1);
   min-width: 0;
+}
+
+/*
+ * Variação e metadados sempre em uma linha: a faixa tem a mesma altura em todo mês e em
+ * toda largura de tela; sem espaço, o fim vira "…" (os dados seguem no painel de 30 dias).
+ */
+.figureBody > .change,
+.figureBody > .meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Variação em texto secundário: subir ou descer não é bom nem ruim por si (sem verde/vermelho). */
@@ -71,9 +84,14 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Altura de um marcador mesmo vazio (texto de 0,8125rem × 1,45 ≈ 19px). */
+/*
+ * Altura fixa de um marcador (0,75rem × 1,5 = 18px), com ou sem aviso. Flex para a linha
+ * de texto padrão (~21px) não entrar na conta e deixar o mês com aviso 1px mais alto.
+ */
 .figureMarker {
-  min-height: 1.25rem;
+  display: flex;
+  align-items: center;
+  height: 1.25rem;
   margin-top: var(--space-1);
 }
 

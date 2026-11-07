@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SAMPLE_SPENDING } from "@/lib/overview/fixtures";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import VisaoGeralPage from "./page";
 
 vi.mock("next/navigation", () => ({
@@ -174,6 +176,12 @@ describe("Visão geral", () => {
     expect(september).not.toContain("Inclui conta desatualizada");
     expect(october.match(/_figureMarker_/g)?.length).toBe(3);
     expect(september.match(/_figureMarker_/g)?.length).toBe(3);
+  });
+
+  it("variação e metadados da faixa ficam em uma linha (a altura não depende do texto)", () => {
+    const css = readFileSync(join(__dirname, "visao-geral.module.css"), "utf8");
+    expect(css).toMatch(/\.figureBody > \.change,\s*\.figureBody > \.meta \{[^}]*white-space: nowrap;/);
+    expect(css).toMatch(/\.figureBody \{[^}]*flex: 1;/);
   });
 });
 
