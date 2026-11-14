@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ProblemDetailsError } from "../api/errors";
 import { completePluggyConnection, disconnectConnection, getConnection, startPluggySession } from "./api";
-import { CONNECT_TOKEN, CONNECTION_ID, connectionView, ITEM_ID, sessionView } from "./fixtures";
+import { COMPLETION_KEY, CONNECT_TOKEN, CONNECTION_ID, completionAcceptedView, connectionView, initialImportView, ITEM_ID, sessionView } from "./fixtures";
 
 const context = { accessToken: "token-ficticio" };
 const BASE = "http://api.test.local/api/v1";
@@ -56,41 +56,57 @@ describe("startPluggySession", () => {
 });
 
 describe("completePluggyConnection", () => {
-  it("envia só o itemId em JSON, sem Idempotency-Key", async () => {
-    const fetchMock = stubFetch(200, connectionView());
-    const connection = await completePluggyConnection(ITEM_ID, context);
+  it("envia itemId e chave estável e lê a aceitação da importação", async () => {
+    const fetchMock = stubFetch(202, completionAcceptedView());
+    const accepted = await completePluggyConnection(ITEM_ID, COMPLETION_KEY, context);
 
     const call = lastCall(fetchMock);
     expect(call.url).toBe(`${BASE}/connections/pluggy/completions`);
     expect(call.init.method).toBe("POST");
     expect(call.headers.get("content-type")).toBe("application/json");
-    expect(call.headers.has("idempotency-key")).toBe(false);
+    expect(call.headers.get("idempotency-key")).toBe(COMPLETION_KEY);
     expect(JSON.parse(String(call.init.body))).toEqual({ itemId: ITEM_ID });
-    expect(connection.status).toBe("connected");
+    expect(accepted.connection.status).toBe("connected");
+    expect(accepted.initialImport.status).toBe("queued");
   });
 
   it("recusa itemId que não é UUID antes de chamar o backend", async () => {
-    const fetchMock = stubFetch(200, connectionView());
-    await expect(completePluggyConnection("item", context)).rejects.toThrow();
+    const fetchMock = stubFetch(202, completionAcceptedView());
+    await expect(completePluggyConnection("item", COMPLETION_KEY, context)).rejects.toThrow();
+    await expect(completePluggyConnection(ITEM_ID, "chave", context)).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("repete a mesma tentativa com a mesma chave e item", async () => {
+    const fetchMock = stubFetch(202, completionAcceptedView());
+    await completePluggyConnection(ITEM_ID, COMPLETION_KEY, context);
+    await completePluggyConnection(ITEM_ID, COMPLETION_KEY, context);
+    expect((fetchMock.mock.calls as unknown as [string, RequestInit][]).map(([, init]) => [new Headers(init.headers).get("idempotency-key"), JSON.parse(String(init.body)).itemId]))
+      .toEqual([[COMPLETION_KEY, ITEM_ID], [COMPLETION_KEY, ITEM_ID]]);
+  });
+
+  it("recusa o corpo antigo sem initialImport", async () => {
+    stubFetch(202, connectionView());
+    await expect(completePluggyConnection(ITEM_ID, COMPLETION_KEY, context)).rejects.toThrow();
   });
 
   it("preserva CONNECTION_NOT_FOUND para a tela", async () => {
     stubFetch(404, problemBody(404, "CONNECTION_NOT_FOUND"));
-    const error = await completePluggyConnection(ITEM_ID, context).catch((e: unknown) => e);
+    const error = await completePluggyConnection(ITEM_ID, COMPLETION_KEY, context).catch((e: unknown) => e);
     expect(error).toMatchObject({ code: "CONNECTION_NOT_FOUND" });
   });
 });
 
 describe("getConnection e disconnectConnection", () => {
   it("consulta pelo id, sem corpo", async () => {
-    const fetchMock = stubFetch(200, connectionView());
-    await getConnection(CONNECTION_ID, context);
+    const fetchMock = stubFetch(200, connectionView({ initialImport: initialImportView("processing") }));
+    const connection = await getConnection(CONNECTION_ID, context);
 
     const call = lastCall(fetchMock);
     expect(call.url).toBe(`${BASE}/connections/${CONNECTION_ID}`);
     expect(call.init.method).toBe("GET");
     expect(call.init.body).toBeUndefined();
+    expect(connection.initialImport?.status).toBe("processing");
   });
 
   it("desconecta com POST sem corpo e devolve a conexão revogada", async () => {
@@ -102,6 +118,11 @@ describe("getConnection e disconnectConnection", () => {
     expect(call.init.method).toBe("POST");
     expect(call.init.body).toBeUndefined();
     expect(connection.status).toBe("disconnected");
+  });
+
+  it("aceita consulta sem importação inicial", async () => {
+    stubFetch(200, connectionView({ initialImport: null }));
+    expect((await getConnection(CONNECTION_ID, context)).initialImport).toBeNull();
   });
 
   it("recusa id que não é UUID", async () => {

@@ -5,8 +5,10 @@ import { connectionSchema } from "@/lib/connections/schema";
 import {
   canCheckAgain,
   canDisconnect,
+  canRefreshInitialImport,
   consentSummary,
   formatTimestamp,
+  initialImportStatus,
   needsReconnect,
   productLabel,
   statusView,
@@ -31,6 +33,20 @@ describe("statusView", () => {
     expect(statusView("disconnected").explanation).toMatch(/coleta de novos dados parou/);
     expect(statusView("expired").explanation).toMatch(/nenhum dado novo/);
     expect(statusView("revoked").explanation).toMatch(/nenhum dado novo/);
+  });
+});
+
+describe("importação inicial", () => {
+  it("separa aceitação de conclusão", () => {
+    expect(initialImportStatus("queued").message).toMatch(/andamento/i);
+    expect(initialImportStatus("completed").message).toMatch(/concluída/i);
+    expect(initialImportStatus("failed").message).toMatch(/falhou/i);
+  });
+
+  it("permite consultar o andamento enquanto há trabalho ativo", () => {
+    expect(canRefreshInitialImport("processing")).toBe(true);
+    expect(canRefreshInitialImport(undefined)).toBe(false);
+    expect(canRefreshInitialImport("completed")).toBe(false);
   });
 });
 

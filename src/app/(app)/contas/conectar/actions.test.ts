@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auth0 } from "@/lib/auth0";
 import { ProblemDetailsError } from "@/lib/api/errors";
 import { completePluggyConnection, disconnectConnection, getConnection, startPluggySession } from "@/lib/connections/api";
-import { CONNECT_TOKEN, CONNECTION_ID, connectionView, ITEM_ID, sessionView } from "@/lib/connections/fixtures";
-import { connectionSchema, pluggySessionSchema } from "@/lib/connections/schema";
+import { COMPLETION_KEY, CONNECT_TOKEN, CONNECTION_ID, completionAcceptedView, connectionView, ITEM_ID, sessionView } from "@/lib/connections/fixtures";
+import { completionAcceptedSchema, connectionSchema, pluggySessionSchema } from "@/lib/connections/schema";
 import {
   completeConnectionAction,
   disconnectAction,
@@ -12,6 +12,7 @@ import {
 } from "./actions";
 
 vi.mock("@/lib/auth0", () => ({ auth0: { getAccessToken: vi.fn() } }));
+vi.mock("@/lib/idempotency", () => ({ newIdempotencyKey: () => COMPLETION_KEY }));
 vi.mock("@/lib/connections/api", () => ({
   startPluggySession: vi.fn(),
   completePluggyConnection: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("@/lib/connections/api", () => ({
 }));
 
 const connected = connectionSchema.parse(connectionView());
+const accepted = completionAcceptedSchema.parse(completionAcceptedView());
 const session = pluggySessionSchema.parse(sessionView());
 
 function problem(status: number, code: string) {
@@ -39,7 +41,7 @@ describe("startSessionAction", () => {
     vi.mocked(startPluggySession).mockResolvedValue(session);
     const result = await startSessionAction();
 
-    expect(result).toEqual({ status: "ok", connectToken: CONNECT_TOKEN, connectionId: CONNECTION_ID });
+    expect(result).toEqual({ status: "ok", connectToken: CONNECT_TOKEN, connectionId: CONNECTION_ID, completionKey: COMPLETION_KEY });
     expect(JSON.stringify(result)).not.toContain("auth0-access-ficticio");
     expect(startPluggySession).toHaveBeenCalledWith({ accessToken: "auth0-access-ficticio" });
   });
@@ -65,29 +67,33 @@ describe("startSessionAction", () => {
 });
 
 describe("completeConnectionAction", () => {
-  it("registra o item e devolve a conexão", async () => {
-    vi.mocked(completePluggyConnection).mockResolvedValue(connected);
-    expect(await completeConnectionAction(ITEM_ID)).toEqual({ status: "ok", connection: connected });
-    expect(completePluggyConnection).toHaveBeenCalledWith(ITEM_ID, { accessToken: "auth0-access-ficticio" });
+  it("registra o item e devolve a conexão com importação aceita", async () => {
+    vi.mocked(completePluggyConnection).mockResolvedValue(accepted);
+    expect(await completeConnectionAction(ITEM_ID, COMPLETION_KEY)).toEqual({
+      status: "ok", connection: { ...accepted.connection, initialImport: accepted.initialImport },
+    });
+    expect(completePluggyConnection).toHaveBeenCalledWith(ITEM_ID, COMPLETION_KEY, { accessToken: "auth0-access-ficticio" });
   });
 
   it("recusa itemId inválido vindo do navegador", async () => {
-    expect(await completeConnectionAction("../x")).toMatchObject({ status: "error" });
+    expect(await completeConnectionAction("../x", COMPLETION_KEY)).toMatchObject({ status: "error" });
+    expect(await completeConnectionAction(ITEM_ID, "chave")).toMatchObject({ status: "error" });
     expect(completePluggyConnection).not.toHaveBeenCalled();
   });
 
   it("aceita reenviar o mesmo itemId depois de uma falha de rede", async () => {
     vi.mocked(completePluggyConnection)
       .mockRejectedValueOnce(new TypeError("fetch failed"))
-      .mockResolvedValueOnce(connected);
-    expect(await completeConnectionAction(ITEM_ID)).toMatchObject({ status: "error" });
-    expect(await completeConnectionAction(ITEM_ID)).toMatchObject({ status: "ok" });
-    expect(vi.mocked(completePluggyConnection).mock.calls.map(([id]) => id)).toEqual([ITEM_ID, ITEM_ID]);
+      .mockResolvedValueOnce(accepted);
+    expect(await completeConnectionAction(ITEM_ID, COMPLETION_KEY)).toMatchObject({ status: "error" });
+    expect(await completeConnectionAction(ITEM_ID, COMPLETION_KEY)).toMatchObject({ status: "ok" });
+    expect(vi.mocked(completePluggyConnection).mock.calls.map(([id, key]) => [id, key]))
+      .toEqual([[ITEM_ID, COMPLETION_KEY], [ITEM_ID, COMPLETION_KEY]]);
   });
 
   it("explica quando o item não pertence a esta pessoa", async () => {
     vi.mocked(completePluggyConnection).mockRejectedValue(problem(404, "CONNECTION_NOT_FOUND"));
-    expect(JSON.stringify(await completeConnectionAction(ITEM_ID))).toMatch(/não foi encontrada/);
+    expect(JSON.stringify(await completeConnectionAction(ITEM_ID, COMPLETION_KEY))).toMatch(/não foi encontrada/);
   });
 });
 

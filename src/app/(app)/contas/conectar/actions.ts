@@ -9,6 +9,7 @@ import {
 } from "@/lib/connections/api";
 import { connectionErrorMessage } from "@/lib/connections/messages";
 import type { Connection } from "@/lib/connections/types";
+import { newIdempotencyKey } from "@/lib/idempotency";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
 
 // O token da sessao Auth0 fica no servidor; o navegador recebe so o connectToken limitado do
@@ -20,7 +21,7 @@ const SESSION_EXPIRED = "Sua sessão expirou. Entre novamente para continuar.";
 export type ActionError = { status: "error"; message: string; reauth?: boolean };
 
 export type SessionResult =
-  | { status: "ok"; connectToken: string; connectionId: string }
+  | { status: "ok"; connectToken: string; connectionId: string; completionKey: string }
   | ActionError;
 
 export type ConnectionResult = { status: "ok"; connection: Connection } | ActionError;
@@ -32,7 +33,7 @@ export async function startSessionAction(): Promise<SessionResult> {
 
   try {
     const session = await startPluggySession({ accessToken: token });
-    return { status: "ok", connectToken: session.connectToken, connectionId: session.connection.id };
+    return { status: "ok", connectToken: session.connectToken, connectionId: session.connection.id, completionKey: newIdempotencyKey() };
   } catch (error) {
     return failure(error, "Não foi possível iniciar a conexão. Tente de novo.");
   }
@@ -42,9 +43,10 @@ export async function startSessionAction(): Promise<SessionResult> {
  * `itemId` vem do widget no navegador e e entrada nao confiavel: validado aqui e conferido
  * pelo backend, que liga o item ao tenant. Reenviar o mesmo itemId apos falha e seguro.
  */
-export async function completeConnectionAction(itemId: string): Promise<ConnectionResult> {
+export async function completeConnectionAction(itemId: string, idempotencyKey: string): Promise<ConnectionResult> {
   const parsed = uuidSchema.safeParse(itemId);
-  if (!parsed.success) {
+  const key = uuidSchema.safeParse(idempotencyKey);
+  if (!parsed.success || !key.success) {
     return { status: "error", message: "O banco não devolveu uma conexão válida. Tente conectar de novo." };
   }
 
@@ -52,7 +54,8 @@ export async function completeConnectionAction(itemId: string): Promise<Connecti
   if (!token) return { status: "error", message: SESSION_EXPIRED, reauth: true };
 
   try {
-    return { status: "ok", connection: await completePluggyConnection(parsed.data, { accessToken: token }) };
+    const accepted = await completePluggyConnection(parsed.data, key.data, { accessToken: token });
+    return { status: "ok", connection: { ...accepted.connection, initialImport: accepted.initialImport } };
   } catch (error) {
     return failure(error, "Não foi possível registrar a conexão. Tente de novo.");
   }

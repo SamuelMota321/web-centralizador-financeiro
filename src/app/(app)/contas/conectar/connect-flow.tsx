@@ -13,7 +13,7 @@ import {
   refreshConnectionAction,
   startSessionAction,
 } from "./actions";
-import { canCheckAgain, canDisconnect, consentSummary, formatTimestamp, needsReconnect, statusView } from "./presentation";
+import { canCheckAgain, canDisconnect, canRefreshInitialImport, consentSummary, formatTimestamp, initialImportStatus, needsReconnect, statusView } from "./presentation";
 import styles from "./conectar.module.css";
 
 const RETURN_TO = "/contas/conectar";
@@ -36,9 +36,9 @@ interface FlowNotice {
  */
 type Phase =
   | { kind: "intro"; notice?: FlowNotice }
-  | { kind: "widget"; connectToken: string }
-  | { kind: "completing"; itemId: string }
-  | { kind: "completeFailed"; itemId: string; notice: FlowNotice }
+  | { kind: "widget"; connectToken: string; completionKey: string }
+  | { kind: "completing"; itemId: string; completionKey: string }
+  | { kind: "completeFailed"; itemId: string; completionKey: string; notice: FlowNotice }
   | { kind: "connection"; connection: Connection };
 
 interface Props {
@@ -54,6 +54,7 @@ export function ConnectFlow({ initialConnection, initialNotice }: Props) {
   const [starting, startTransition] = useTransition();
   // O widget dispara onClose tambem depois do sucesso; so o fechamento sem item e cancelamento.
   const itemReceived = useRef(false);
+  const completionInFlight = useRef(false);
 
   function start() {
     startTransition(async () => {
@@ -63,20 +64,26 @@ export function ConnectFlow({ initialConnection, initialNotice }: Props) {
         return;
       }
       itemReceived.current = false;
-      setPhase({ kind: "widget", connectToken: result.connectToken });
+      setPhase({ kind: "widget", connectToken: result.connectToken, completionKey: result.completionKey });
     });
   }
 
-  function complete(itemId: string) {
-    setPhase({ kind: "completing", itemId });
+  function complete(itemId: string, completionKey: string) {
+    if (completionInFlight.current) return;
+    completionInFlight.current = true;
+    setPhase({ kind: "completing", itemId, completionKey });
     startTransition(async () => {
-      const result = await completeConnectionAction(itemId);
-      if (result.status === "error") {
-        setPhase({ kind: "completeFailed", itemId, notice: errorNotice(result) });
-        return;
+      try {
+        const result = await completeConnectionAction(itemId, completionKey);
+        if (result.status === "error") {
+          setPhase({ kind: "completeFailed", itemId, completionKey, notice: errorNotice(result) });
+          return;
+        }
+        showConnection(result.connection);
+        showToast("success", "Conexão registrada. Verifique o estado da importação inicial.");
+      } finally {
+        completionInFlight.current = false;
       }
-      showConnection(result.connection);
-      showToast("success", "Conexão registrada.");
     });
   }
 
@@ -101,11 +108,13 @@ export function ConnectFlow({ initialConnection, initialNotice }: Props) {
           <PluggyWidget
             connectToken={phase.connectToken}
             onItem={(itemId) => {
+              if (itemReceived.current) return;
               itemReceived.current = true;
-              if (itemId) complete(itemId);
+              if (itemId) complete(itemId, phase.completionKey);
               else restart({ tone: "error", message: "O banco não devolveu uma conexão válida. Tente conectar de novo." });
             }}
             onFailure={() => {
+              if (itemReceived.current) return;
               itemReceived.current = true;
               restart({ tone: "error", message: "O banco ou o Pluggy recusou a conexão. Nada foi registrado. Tente de novo." });
             }}
@@ -122,7 +131,7 @@ export function ConnectFlow({ initialConnection, initialNotice }: Props) {
         <CompleteFailedStep
           notice={phase.notice}
           pending={starting}
-          onRetry={() => complete(phase.itemId)}
+          onRetry={() => complete(phase.itemId, phase.completionKey)}
           onRestart={() => restart()}
         />
       );
@@ -257,6 +266,7 @@ function ConnectionDetail({
 
   const view = statusView(connection.status);
   const consent = consentSummary(connection);
+  const importView = connection.initialImport ? initialImportStatus(connection.initialImport.status) : null;
 
   function checkAgain() {
     startCheck(async () => {
@@ -294,6 +304,7 @@ function ConnectionDetail({
       </div>
 
       <Notice tone={view.noticeTone}>{view.explanation}</Notice>
+      {importView ? <Notice tone={importView.tone}>{importView.message}</Notice> : null}
 
       <dl className={styles.summary}>
         <div className={styles.summaryItem}>
@@ -324,10 +335,6 @@ function ConnectionDetail({
         </div>
       </dl>
 
-      <p className={styles.note}>
-        A importação das movimentações desta conexão ainda não está disponível nesta versão.
-      </p>
-
       {checkError ? (
         <Notice tone="error" actions={checkError.reauth ? <ReauthLink /> : undefined}>
           {checkError.message}
@@ -335,7 +342,7 @@ function ConnectionDetail({
       ) : null}
 
       <div className={styles.actions}>
-        {canCheckAgain(connection.status) ? (
+        {canCheckAgain(connection.status) || canRefreshInitialImport(connection.initialImport?.status) ? (
           <button className={`${ui.button} ${ui.primary}`} type="button" onClick={checkAgain} disabled={checking} aria-busy={checking}>
             <PendingLabel pending={checking} idle="Verificar de novo" busy="Verificando…" />
           </button>

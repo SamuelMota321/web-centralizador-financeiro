@@ -1,11 +1,10 @@
 import { z } from "zod";
 import { apiRequest } from "../api/http-client";
 import { toProblemError } from "../api/problem-error";
-import { completeConnectionInputSchema, connectionSchema, pluggySessionSchema } from "./schema";
-import type { Connection, PluggySession } from "./types";
+import { completeConnectionInputSchema, completionAcceptedSchema, connectionDetailSchema, connectionSchema, pluggySessionSchema } from "./schema";
+import type { CompletionAccepted, Connection, PluggySession } from "./types";
 
-// Rotas do OpenAPI do backend (@ 605cb07). Nenhuma exige Idempotency-Key: a conclusao
-// reaplica o estado do item no backend, entao reenviar o mesmo itemId e seguro.
+// O backend vincula cada chave de conclusão ao itemId; o reenvio reutiliza ambos.
 
 /** Credencial da requisicao em curso, sempre explicita. Ver `RequestOptions.accessToken`. */
 export interface ConnectionsRequestContext {
@@ -30,16 +29,19 @@ export async function startPluggySession(context: ConnectionsRequestContext): Pr
 /** POST /api/v1/connections/pluggy/completions — o backend confere o item e o liga ao tenant. */
 export async function completePluggyConnection(
   itemId: string,
+  idempotencyKey: string,
   context: ConnectionsRequestContext,
-): Promise<Connection> {
+): Promise<CompletionAccepted> {
   const body = completeConnectionInputSchema.parse({ itemId });
+  const key = uuidSchema.parse(idempotencyKey);
   try {
     const raw = await apiRequest<unknown>("/connections/pluggy/completions", {
       method: "POST",
       body,
+      idempotencyKey: key,
       accessToken: context.accessToken,
     });
-    return connectionSchema.parse(raw);
+    return completionAcceptedSchema.parse(raw);
   } catch (error) {
     throw toProblemError(error);
   }
@@ -56,7 +58,7 @@ export async function getConnection(
       method: "GET",
       accessToken: context.accessToken,
     });
-    return connectionSchema.parse(raw);
+    return connectionDetailSchema.parse(raw);
   } catch (error) {
     throw toProblemError(error);
   }
