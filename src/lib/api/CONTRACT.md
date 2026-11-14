@@ -304,3 +304,24 @@ Status: dependencia do cliente pendente. Quando o fluxo for integrado, a origem 
 - O fluxo de conexao recebe connectionId do backend; a pagina em src/app/(app)/contas/conectar/page.tsx recupera a conexao pelo parametro conexao da URL. Esse identificador nao e accountId nem o ID do Item Pluggy.
 - HU-008 continua pendente: nao foram encontradas chamadas sync-runs, nem acompanhamento por runId/statusUrl. Nao presumir listagem de conexoes para implementar a retomada.
 - Este merge nao atualiza o snapshot cliente para o backend atual. A compatibilidade da conclusao Pluggy e do mapeamento de contas precisa ser revalidada; os testes contra o snapshot local nao comprovam essa integracao.
+
+## Sprint 4 HU-008 — camada cliente `sync-runs` (preparada, rotas ainda não publicadas)
+
+Em 2026-11-02 foi criada `src/lib/sync-runs/` (tipos, esquema, `requestSyncRun`, `getSyncRun`,
+`isFinalSyncRunStatus`, `isTrustedStatusUrl`, fixtures e testes) contra o contrato C-03 consolidado no
+adendo de 2026-10-27 da S4-01:
+
+- `POST /api/v1/connections/{connectionId}/sync-runs` → `202` com `runId`, `connectionId`, `status`,
+  `acceptedAt`, `statusUrl`; sem `Idempotency-Key`, porque o contrato não a define (uma solicitação com
+  execução ativa devolve a execução existente).
+- `GET /api/v1/connections/{connectionId}/sync-runs/{runId}` → a mesma execução, com `startedAt` e
+  `completedAt` quando aplicáveis.
+- Estados: `queued`, `running`, `action_required` (não finais); `succeeded`, `partial`, `failed` (finais).
+
+Limites:
+
+- O backend ainda não publicou estas rotas no OpenAPI e o snapshot local não as contém. Reconferir
+  campos, códigos de status e erros quando forem publicadas; os testes desta camada usam só fixtures.
+- Nenhuma tela usa a camada. Não há consulta periódica: o intervalo continua pendente entre Developer 1
+  e Developer 3.
+- A guarda de `connectionId`/`runId` para retomada (C-01) ainda não foi implementada.

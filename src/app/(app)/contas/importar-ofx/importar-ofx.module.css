@@ -122,3 +122,10 @@
     grid-row: 2;
   }
 }
+
+/* Simbolo de conclusao ao lado do titulo (so quando dados de fato entraram). */
+.resultHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}

@@ -1,0 +1,35 @@
+/* Quadrado de categoria (Style Guide 2.1): ícone na cor fixa da categoria sobre o rebaixado. */
+.mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+  color: var(--mark-color, var(--muted));
+}
+
+.mark[data-size="compact"] {
+  width: 24px;
+  height: 24px;
+}
+
+/* Entrada sem categoria: o verde de sinal, como o "+" do valor. */
+.mark[data-kind="inflow"] {
+  color: var(--primary);
+}
+
+/* A revisar: hachurado de atenção, como na rosca. */
+.mark[data-kind="review"] {
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--warning) 35%, transparent) 0 2px, transparent 2px 5px);
+  box-shadow: inset 0 0 0 1px var(--warning);
+  color: var(--warning);
+}
+
+.icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  color: var(--muted);
+}

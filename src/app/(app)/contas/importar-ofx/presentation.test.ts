@@ -6,6 +6,7 @@ import {
   countLabel,
   itemAmount,
   itemSituation,
+  importCelebrates,
   previewSummary,
   resultSummary,
   stepForStatus,
@@ -86,5 +87,22 @@ describe("resultSummary", () => {
   it("countLabel concorda o plural", () => {
     expect(countLabel(1, "linha", "linhas")).toBe("1 linha");
     expect(countLabel(0, "linha", "linhas")).toBe("0 linhas");
+  });
+});
+
+describe("importCelebrates", () => {
+  it("celebra quando a importação terminou com movimentações importadas", () => {
+    expect(importCelebrates({ status: "completed", importedItems: 3 })).toBe(true);
+    expect(importCelebrates({ status: "completed_with_errors", importedItems: 1 })).toBe(true);
+  });
+
+  it("não celebra quando nada entrou ou a importação falhou", () => {
+    expect(importCelebrates({ status: "completed", importedItems: 0 })).toBe(false);
+    expect(importCelebrates({ status: "failed", importedItems: 0 })).toBe(false);
+  });
+
+  it("não celebra fora do resultado", () => {
+    expect(importCelebrates({ status: "processing", importedItems: 2 })).toBe(false);
+    expect(importCelebrates({ status: "preview_ready", importedItems: 0 })).toBe(false);
   });
 });

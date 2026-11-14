@@ -1,0 +1,109 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import { SAMPLE_ALLOCATION, SAMPLE_BALANCE, SAMPLE_FLOW, SAMPLE_SPENDING } from "./fixtures";
+import { LineChart } from "./line-chart";
+import { PairedBarsChart } from "./paired-bars";
+import { RankedBars } from "./ranked-bars";
+import { ShareBar } from "./share-bar";
+
+// Os valores precisam sair no HTML do servidor, em texto: é a leitura acessível de cada
+// gráfico e o que aparece antes de qualquer JavaScript.
+
+describe("gráficos renderizados no servidor", () => {
+  it("barras pareadas trazem a tabela com o mês parcial marcado; o SVG espera a largura real", () => {
+    const html = renderToStaticMarkup(
+      createElement(PairedBarsChart, { caption: "Entradas e saídas por mês", data: SAMPLE_FLOW }),
+    );
+    expect(html).toContain("<caption");
+    expect(html).toContain("outubro de 2026");
+    expect(html).toContain("parcial");
+    expect(html).toContain("R$ 7.100,00");
+    expect(html).not.toContain("<svg");
+    expect(html).toContain("height:190px");
+  });
+
+  it("linha traz uma linha de tabela por data", () => {
+    const html = renderToStaticMarkup(
+      createElement(LineChart, { caption: "Saldo", points: SAMPLE_BALANCE, valueLabel: "Saldo" }),
+    );
+    expect(html.match(/<tr/g)?.length).toBe(SAMPLE_BALANCE.length + 1);
+    expect(html).toContain("R$ 28.237,70");
+  });
+
+  it("prévia mantém a tabela para leitores de tela, fora da vista", () => {
+    const html = renderToStaticMarkup(
+      createElement(PairedBarsChart, { caption: "Fluxo", data: SAMPLE_FLOW, intro: true, tableVisible: false }),
+    );
+    expect(html).toMatch(/<table class="[^"]*visually-hidden/);
+  });
+
+  it("tabela recolhida fica num details fechado, ainda no HTML", () => {
+    const html = renderToStaticMarkup(
+      createElement(PairedBarsChart, { caption: "Fluxo", data: SAMPLE_FLOW, tableCollapsed: true }),
+    );
+    expect(html).toMatch(/<details class="[^"]*"><summary[^>]*>Ver valores por mês/);
+    expect(html).not.toMatch(/<details[^>]* open/);
+    expect(html).toContain("R$ 7.100,00");
+  });
+
+  it("tabela pode vir do mês mais novo para o mais antigo, com título acima", () => {
+    const html = renderToStaticMarkup(
+      createElement(PairedBarsChart, {
+        caption: "Fluxo",
+        data: SAMPLE_FLOW,
+        tableOrder: "newest-first",
+        tableHeader: createElement("h3", null, "Valores"),
+      }),
+    );
+    expect(html.indexOf("outubro de 2026")).toBeLessThan(html.indexOf("maio de 2026"));
+    expect(html.indexOf("<h3>Valores</h3>")).toBeLessThan(html.indexOf("<table"));
+    // Com título, a tabela vem num quadro que recebe a altura mínima do bloco vizinho.
+    expect(html).toMatch(/<div class="[^"]*_tableFrame_[^"]*"><table/);
+  });
+
+  it("sem foco, nenhuma caixa de detalhe nem faixa é desenhada no servidor", () => {
+    const bars = renderToStaticMarkup(createElement(PairedBarsChart, { caption: "Fluxo", data: SAMPLE_FLOW }));
+    expect(bars).not.toMatch(/_tooltip_|_focusBand_/);
+    const line = renderToStaticMarkup(
+      createElement(LineChart, { caption: "Saldo", points: SAMPLE_BALANCE, valueLabel: "Saldo" }),
+    );
+    expect(line).not.toMatch(/_tooltip_|_guide_/);
+    expect(line).toContain("_plotArea_");
+  });
+
+  it("gráfico de linha pode recolher a tabela", () => {
+    const html = renderToStaticMarkup(
+      createElement(LineChart, { caption: "Saldo", points: SAMPLE_BALANCE, valueLabel: "Saldo", tableCollapsed: true }),
+    );
+    expect(html).toMatch(/<details class="[^"]*"><summary[^>]*>Ver valores/);
+    expect(html).toContain("R$ 28.237,70");
+  });
+
+  it("linha dia a dia: rótulos espaçados contados a partir do último ponto", () => {
+    const points = Array.from({ length: 30 }, (_, index) => ({
+      label: `d${index}`,
+      labelName: `dia ${index}`,
+      value: `${100 + index}.00`,
+    }));
+    const html = renderToStaticMarkup(
+      createElement(LineChart, { caption: "Disponível", points, valueLabel: "Disponível", drawIn: true, quietPoints: true }),
+    );
+    // A tabela tem todos os dias; o SVG (com os rótulos) só monta no navegador.
+    expect(html.match(/<tr/g)?.length).toBe(31);
+  });
+
+  it("barras ordenadas mostram valor e percentual em texto, com A revisar no fim", () => {
+    const html = renderToStaticMarkup(createElement(RankedBars, { caption: "Gastos", ...SAMPLE_SPENDING }));
+    expect(html).toContain("R$ 1.450,00");
+    expect(html).toContain("41,9%");
+    expect(html.indexOf("Moradia")).toBeLessThan(html.indexOf("A revisar"));
+  });
+
+  it("barra 100% lista cada classe com valor e parte", () => {
+    const html = renderToStaticMarkup(createElement(ShareBar, { caption: "Alocação", ...SAMPLE_ALLOCATION }));
+    expect(html).toContain("Não classificado");
+    expect(html).toContain("53,3%");
+    expect(html).toContain("3,6%");
+  });
+});

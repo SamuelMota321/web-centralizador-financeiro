@@ -1,20 +1,21 @@
-/* Coinciente — Style Guide 1.0. Tokens documentados em DESIGN.md. */
+/* Coinciente — Style Guide 2.0 ("Instrumento de precisão"). Tokens documentados em DESIGN.md. */
 :root {
+  /* Cores de marca: Confiança só em ativos de marca; Clareza é o verde sinal do tema escuro. */
   --confianca: #10251f;
   --consciencia: #087a55;
   --clareza: #55d6a4;
-  --respiro: #f2f6f4;
 
-  --background: var(--respiro);
+  /* Neutros frios carregam a interface; o verde é sinal, nunca superfície. */
+  --background: #f6f7f7;
   --surface: #ffffff;
-  --surface-soft: #f7faf8;
-  --surface-sunken: #eaf1ed;
-  --foreground: #14231e;
-  --body-text: #354a42;
-  --muted: #60736b;
-  --line: rgba(53, 74, 66, 0.14);
-  --line-strong: rgba(53, 74, 66, 0.24);
-  --input-border: #7a8f86;
+  --surface-soft: #f6f7f7;
+  --surface-sunken: #eff1f1;
+  --foreground: #0f1413;
+  --body-text: #434d4a;
+  --muted: #5f6966;
+  --line: #e2e5e5;
+  --line-strong: #c9cfce;
+  --input-border: #808a87;
 
   --primary: var(--consciencia);
   --primary-hover: #056746;
@@ -23,27 +24,43 @@
 
   --positive: #087a55;
   --negative: #b5473f;
-  --warning: #a86512;
+  /* #9A5D0F mantém 4,5:1 também sobre fundo e rebaixado (o #A86512 dava 4,31:1). */
+  --warning: #9a5d0f;
   --info: #2b6f89;
 
-  /* Estrutura institucional: a navegação vive sobre Confiança nos dois temas. */
-  --nav-bg: var(--confianca);
-  --nav-fg: #edf6f2;
-  --nav-muted: #a6b9b0;
-  --nav-line: rgba(196, 222, 211, 0.12);
-  --nav-hover: rgba(237, 246, 242, 0.06);
-  --nav-active-bg: rgba(85, 214, 164, 0.12);
-  --nav-accent: var(--clareza);
-  --nav-on-accent: #07140f;
+  /*
+   * Cores de categoria (Style Guide 2.1): só identificam a categoria nos gráficos, nunca
+   * estado nem ganho/perda. Ordem fixa, validada para daltonismo em par adjacente; âmbar
+   * fica abaixo de 3:1 no claro, por isso nome e valor vão sempre escritos ao lado.
+   */
+  --cat-1: #3b72c4;
+  --cat-2: #d0683a;
+  --cat-3: #1f9a8a;
+  --cat-4: #d39a1a;
+  --cat-5: #c95b8a;
+  --cat-6: #6c5bd0;
+  /* Da 7ª categoria em diante, e em "Outras". */
+  --cat-other: #808a87;
 
-  /* Sombras tingidas com a cor da marca, nunca preto puro. */
-  --shadow-raised: 0 1px 2px rgba(16, 37, 31, 0.06), 0 1px 1px rgba(16, 37, 31, 0.04);
-  --shadow-overlay: 0 12px 32px rgba(25, 54, 44, 0.12), 0 2px 6px rgba(25, 54, 44, 0.06);
-  --shadow-scroll: 0 1px 0 var(--line), 0 6px 16px rgba(25, 54, 44, 0.06);
+  /* Estrutura neutra: a lateral é um plano rebaixado; o item atual ganha superfície e barra verde. */
+  --nav-bg: var(--surface-sunken);
+  --nav-fg: var(--foreground);
+  --nav-muted: var(--muted);
+  --nav-line: var(--line);
+  --nav-hover: rgba(15, 20, 19, 0.04);
+  --nav-active-bg: var(--surface);
+  --nav-accent: var(--primary);
+  --nav-on-accent: var(--on-primary);
 
-  --radius-control: 9px;
-  --radius-panel: 13px;
-  --radius-frame: 20px;
+  /* Elevação por linha: conteúdo sem sombra; só o que fica por cima tem sombra neutra. */
+  --shadow-raised: 0 0 #0000;
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+  --backdrop: rgba(10, 12, 12, 0.44);
+
+  --radius-marker: 1px;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-frame: 12px;
   --radius-pill: 999px;
 
   /* Espaçamento em passos de 4px. */
@@ -93,16 +110,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0c1714;
-    --surface: #13231e;
-    --surface-soft: #192c26;
-    --surface-sunken: #0f1d19;
-    --foreground: #edf6f2;
-    --body-text: #d0dfd8;
-    --muted: #a6b9b0;
-    --line: rgba(196, 222, 211, 0.14);
-    --line-strong: rgba(196, 222, 211, 0.24);
-    --input-border: #5f7a70;
+    --background: #0a0c0c;
+    --surface: #101313;
+    --surface-soft: #161a1a;
+    --surface-sunken: #0d1010;
+    --foreground: #e9edec;
+    --body-text: #aab3b0;
+    --muted: #87918e;
+    --line: #232828;
+    --line-strong: #323939;
+    --input-border: #5e6865;
 
     --primary: var(--clareza);
     --primary-hover: #7ce8bd;
@@ -113,12 +130,20 @@
     --warning: #f3b866;
     --info: #75c4df;
 
-    /* Mais funda que o fundo do conteúdo: a estrutura continua separada. */
-    --nav-bg: #081310;
+    /* Mesmos tons, em passos validados para o fundo escuro. */
+    --cat-1: #4a80d6;
+    --cat-2: #d0683a;
+    --cat-3: #219a89;
+    --cat-4: #b88518;
+    --cat-5: #cc5f8e;
+    --cat-6: #8576e0;
+    --cat-other: #6b7673;
 
-    --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.24);
+    /* A lateral fica um degrau abaixo do fundo do conteúdo. */
+    --nav-hover: rgba(233, 237, 236, 0.05);
+
     --shadow-overlay: 0 18px 46px rgba(0, 0, 0, 0.42), 0 2px 8px rgba(0, 0, 0, 0.24);
-    --shadow-scroll: 0 1px 0 var(--line), 0 8px 20px rgba(0, 0, 0, 0.28);
+    --backdrop: rgba(0, 0, 0, 0.56);
 
     color-scheme: dark;
   }
@@ -152,9 +177,9 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-manrope), system-ui, sans-serif;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  line-height: 1.55;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   caret-color: var(--primary);
@@ -173,9 +198,9 @@ h1,
 h2,
 h3 {
   font-family: var(--font-manrope), system-ui, sans-serif;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   text-wrap: balance;
 }
 

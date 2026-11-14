@@ -18,11 +18,26 @@
   column-gap: var(--space-5);
 }
 
+/* Cabeçalho de tabela preso ao painel da lista (Style Guide 2.0). */
 .listHead {
-  padding: 0 20px;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  background: var(--surface);
   color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.listHead + ul {
+  margin-top: calc(-1 * var(--space-2));
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .listHead > :nth-child(3) {
@@ -31,8 +46,9 @@
 
 .row {
   align-items: center;
-  row-gap: var(--space-3);
-  padding: 14px 20px;
+  row-gap: var(--space-2);
+  min-height: 48px;
+  padding: 8px 16px;
   transition: background-color var(--motion-hover) ease;
 }
 
@@ -45,13 +61,13 @@
 }
 
 .rowTitle {
-  font-weight: 700;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .rowMeta {
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
 }
 
 .rowBalance {
@@ -59,8 +75,8 @@
 }
 
 .balance {
-  font-size: 1rem;
-  font-weight: 750;
+  font-size: 0.875rem;
+  font-weight: 650;
   letter-spacing: -0.01em;
   white-space: nowrap;
 }
@@ -72,7 +88,7 @@
 
   .row {
     grid-template-columns: minmax(0, 1fr) auto;
-    padding: 14px 16px;
+    padding: 8px 16px;
   }
 
   .rowOrigin {
@@ -97,5 +113,5 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 12px 16px;
 }

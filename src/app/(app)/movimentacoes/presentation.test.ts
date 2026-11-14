@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   categorizationTone,
-  movementDirection,
+  movementMark,
   accountLabel,
   ACCOUNT_FALLBACK_LABEL,
   canCategorize,
@@ -134,7 +134,7 @@ describe("canCategorize", () => {
   });
 });
 
-describe("categorizationTone e movementDirection", () => {
+describe("categorizationTone e movementMark", () => {
   it.each([
     ["categorized", "positive"],
     ["uncertain", "warning"],
@@ -145,10 +145,25 @@ describe("categorizationTone e movementDirection", () => {
     expect(categorizationTone({ categorizationStatus })).toBe(tone);
   });
 
-  it("distingue entrada, saída e transferência", () => {
-    expect(movementDirection({ type: "income", transferSide: null })).toBe("in");
-    expect(movementDirection({ type: "expense", transferSide: null })).toBe("out");
-    expect(movementDirection({ type: "transfer", transferSide: "incoming" })).toBe("transfer");
+  it("escolhe o quadrado: categoria, transferência, entrada sem categoria ou a revisar", () => {
+    const categories = [{ id: "c1", name: "Moradia", status: "active" as const }];
+    const base = { transferSide: null, categoryId: null, categorizationStatus: "unclassified" as const };
+    expect(
+      movementMark({ ...base, type: "expense", categoryId: "c1", categorizationStatus: "categorized" }, categories),
+    ).toEqual({ kind: "category", name: "Moradia" });
+    expect(movementMark({ ...base, type: "transfer", transferSide: "incoming", categorizationStatus: "not_applicable" }, categories)).toEqual({
+      kind: "transfer",
+      name: null,
+    });
+    expect(movementMark({ ...base, type: "income" }, categories)).toEqual({ kind: "inflow", name: null });
+    expect(movementMark({ ...base, type: "expense" }, categories).kind).toBe("review");
+    expect(
+      movementMark({ ...base, type: "expense", categoryId: "c1", categorizationStatus: "uncertain" }, categories).kind,
+    ).toBe("review");
+    // Lista de categorias indisponível: continua categoria, com ícone genérico.
+    expect(
+      movementMark({ ...base, type: "expense", categoryId: "c1", categorizationStatus: "categorized" }, null),
+    ).toEqual({ kind: "category", name: null });
   });
 });
 

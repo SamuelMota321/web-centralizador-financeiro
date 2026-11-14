@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { type RefObject, useEffect, useId, useRef, useState, useTransition } from "react";
+import { BrandSymbol } from "@/components/brand";
 import { ConfirmDialog, showToast } from "@/components/interactive";
 import { Notice, type NoticeTone, PendingLabel, StatusChip, ui } from "@/components/ui";
 import type { Connection } from "@/lib/connections/types";
@@ -13,7 +14,17 @@ import {
   refreshConnectionAction,
   startSessionAction,
 } from "./actions";
-import { canCheckAgain, canDisconnect, canRefreshInitialImport, consentSummary, formatTimestamp, initialImportStatus, needsReconnect, statusView } from "./presentation";
+import {
+  canCheckAgain,
+  canDisconnect,
+  canRefreshInitialImport,
+  connectionCelebrates,
+  consentSummary,
+  formatTimestamp,
+  initialImportStatus,
+  needsReconnect,
+  statusView,
+} from "./presentation";
 import styles from "./conectar.module.css";
 
 const RETURN_TO = "/contas/conectar";
@@ -39,7 +50,8 @@ type Phase =
   | { kind: "widget"; connectToken: string; completionKey: string }
   | { kind: "completing"; itemId: string; completionKey: string }
   | { kind: "completeFailed"; itemId: string; completionKey: string; notice: FlowNotice }
-  | { kind: "connection"; connection: Connection };
+  // `fresh`: a conexao acabou de ser concluida nesta sessao (reabrir pelo link nao celebra).
+  | { kind: "connection"; connection: Connection; fresh?: boolean };
 
 interface Props {
   initialConnection: Connection | null;
@@ -90,7 +102,7 @@ export function ConnectFlow({ initialConnection, initialNotice }: Props) {
   function showConnection(connection: Connection) {
     // Recarregar a pagina mostra a mesma conexao; nada e guardado no navegador.
     window.history.replaceState(null, "", `${RETURN_TO}?conexao=${connection.id}`);
-    setPhase({ kind: "connection", connection });
+    setPhase({ kind: "connection", connection, fresh: true });
   }
 
   function restart(notice?: FlowNotice) {
@@ -140,7 +152,14 @@ export function ConnectFlow({ initialConnection, initialNotice }: Props) {
         <ConnectionDetail
           key={phase.connection.id}
           connection={phase.connection}
-          onChange={(connection) => setPhase({ kind: "connection", connection })}
+          celebrate={Boolean(phase.fresh) && connectionCelebrates(phase.connection.status)}
+          onChange={(connection) =>
+            setPhase((current) => ({
+              kind: "connection",
+              connection,
+              fresh: current.kind === "connection" && current.fresh,
+            }))
+          }
           onConnectAgain={() => restart()}
         />
       );
@@ -164,7 +183,7 @@ function IntroStep({ notice, pending, onConnect }: { notice?: FlowNotice; pendin
   const id = useId();
   const titleRef = useStepFocus();
   return (
-    <section className={ui.panel} aria-labelledby={`${id}-title`}>
+    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${id}-title`}>
       <div>
         <h2 id={`${id}-title`} ref={titleRef} tabIndex={-1} className={`${ui.panelTitle} ${styles.stepTitle}`}>
           O que você vai autorizar
@@ -201,7 +220,7 @@ function ProgressStep({ title, text }: { title: string; text: string }) {
   const id = useId();
   const titleRef = useStepFocus();
   return (
-    <section className={ui.panel} aria-labelledby={`${id}-title`} aria-busy>
+    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${id}-title`} aria-busy>
       <h2 id={`${id}-title`} ref={titleRef} tabIndex={-1} className={`${ui.panelTitle} ${styles.stepTitle}`}>
         {title}
       </h2>
@@ -226,7 +245,7 @@ function CompleteFailedStep({
   const id = useId();
   const titleRef = useStepFocus();
   return (
-    <section className={ui.panel} aria-labelledby={`${id}-title`}>
+    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} ref={titleRef} tabIndex={-1} className={`${ui.panelTitle} ${styles.stepTitle}`}>
         A conexão não foi registrada
       </h2>
@@ -249,10 +268,12 @@ function CompleteFailedStep({
 
 function ConnectionDetail({
   connection,
+  celebrate,
   onChange,
   onConnectAgain,
 }: {
   connection: Connection;
+  celebrate: boolean;
   onChange: (connection: Connection) => void;
   onConnectAgain: () => void;
 }) {
@@ -295,11 +316,14 @@ function ConnectionDetail({
   }
 
   return (
-    <section className={ui.panel} aria-labelledby={`${id}-title`}>
+    <section className={`${ui.panel} ${ui.reveal}`} aria-labelledby={`${id}-title`}>
       <div className={styles.detailHeader}>
-        <h2 id={`${id}-title`} ref={titleRef} tabIndex={-1} className={`${ui.panelTitle} ${styles.stepTitle}`}>
-          Conexão com o banco
-        </h2>
+        <div className={styles.titleGroup}>
+          {celebrate ? <BrandSymbol size={40} animated /> : null}
+          <h2 id={`${id}-title`} ref={titleRef} tabIndex={-1} className={`${ui.panelTitle} ${styles.stepTitle}`}>
+            Conexão com o banco
+          </h2>
+        </div>
         <StatusChip tone={view.tone}>{view.label}</StatusChip>
       </div>
 

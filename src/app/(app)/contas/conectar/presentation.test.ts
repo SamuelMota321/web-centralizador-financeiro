@@ -6,6 +6,7 @@ import {
   canCheckAgain,
   canDisconnect,
   canRefreshInitialImport,
+  connectionCelebrates,
   consentSummary,
   formatTimestamp,
   initialImportStatus,
@@ -107,5 +108,13 @@ describe("itemIdFromSuccess", () => {
     expect(itemIdFromSuccess(undefined)).toBeNull();
     expect(itemIdFromSuccess({ item: { id: "não-uuid" } })).toBeNull();
     expect(itemIdFromSuccess({})).toBeNull();
+  });
+});
+
+describe("connectionCelebrates", () => {
+  it("celebra só a conexão efetivamente conectada", () => {
+    for (const status of CONNECTION_STATUSES) {
+      expect(connectionCelebrates(status)).toBe(status === "connected");
+    }
   });
 });

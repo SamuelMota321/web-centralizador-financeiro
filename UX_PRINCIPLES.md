@@ -33,7 +33,7 @@ Estados sempre explícitos, nunca escondidos ou inferidos pela ausência de dado
 | Sucesso | Toast, ou `Notice tone="success"` quando precisa persistir na tela |
 | Categorização | Sempre um dos 5 estados explícitos do domínio — nunca "sem categoria" tratado como erro |
 | Dado de fonte externa | Carimbo com origem, data de referência e frescor; desatualizado ou indisponível sempre visível (planejado) |
-| Sincronização | Aguardando, sincronizando, concluída ou falhou com recuperação; o último dado válido continua legível (planejado) |
+| Sincronização | Na fila, sincronizando, ação necessária, concluída, concluída em parte ou falhou (contrato C-03); ação necessária e falha trazem o caminho de recuperação; o último dado válido continua legível (planejado) |
 
 ## Movimento
 
@@ -58,7 +58,7 @@ Estados sempre explícitos, nunca escondidos ou inferidos pela ausência de dado
 
 ## Consistência
 
-- O mesmo vocabulário de estado (`categorizationLabel` + marcador; `StatusChip` até a aplicação da 2.0) em toda tela que mostra uma
+- O mesmo vocabulário de estado (`categorizationLabel` + `StatusChip`, que desenha o marcador) em toda tela que mostra uma
   movimentação — nunca um rótulo ad hoc por tela.
 - Proveniência como linha de metadados (`Origem · ref. DD/MM HH:MM · Conta`) logo abaixo do dado — nunca em chip.
 - Data sempre DD/MM/AAAA digitada com máscara — nunca o seletor nativo do navegador.

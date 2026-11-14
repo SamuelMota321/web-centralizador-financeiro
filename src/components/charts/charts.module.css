@@ -1,0 +1,865 @@
+/*
+ * Gráficos do Style Guide 2.0 (seções 08 e 09). Todo gráfico vem com os valores em
+ * texto (tabela ou lista); a cor nunca é a única forma de distinguir uma série.
+ */
+.chart {
+  /* Rampa neutra do guia para séries sem significado de estado. */
+  --ramp-1: #0f1413;
+  --ramp-2: #434d4a;
+  --ramp-3: #808a87;
+  --ramp-4: #c9cfce;
+
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .chart {
+    --ramp-1: #e9edec;
+    --ramp-2: #aab3b0;
+    --ramp-3: #6b7673;
+    --ramp-4: #3a4242;
+  }
+}
+
+/* ---------- Legenda ---------- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  color: var(--body-text);
+  font-size: 0.75rem;
+  list-style: none;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swatch {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-marker);
+  background: var(--swatch);
+}
+
+/* ---------- SVG ---------- */
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--line);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.axis {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.svg text {
+  fill: var(--muted);
+  font: 500 10px var(--font-manrope), system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.inflow {
+  fill: var(--ramp-1);
+}
+
+.outflow {
+  fill: var(--ramp-3);
+}
+
+/* O par do mês em foco ganha 6% de largura; a altura (o valor) não muda. */
+.inflow,
+.outflow {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity var(--motion-hover) ease,
+    transform 220ms var(--ease-out);
+}
+
+.inflow[data-active],
+.outflow[data-active] {
+  transform: scaleX(1.06);
+}
+
+.point {
+  transition:
+    opacity var(--motion-hover) ease,
+    transform 220ms var(--ease-out);
+}
+
+.partial {
+  fill-opacity: 0.45;
+}
+
+/* Com um mês em destaque (cursor no gráfico ou na tabela), os outros recuam. */
+.svg[data-active] .inflow:not([data-active]),
+.svg[data-active] .outflow:not([data-active]),
+.svg[data-active] .point:not([data-active]) {
+  opacity: 0.35;
+}
+
+.hit {
+  fill: transparent;
+}
+
+.series {
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.point {
+  fill: var(--surface);
+  stroke: var(--foreground);
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Ponto em foco cresce: diz qual leitura a caixa mostra. */
+.point[data-active] {
+  transform: scale(1.45);
+}
+
+.guide {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 220ms var(--ease-out),
+    opacity 120ms ease;
+}
+
+.guide[data-visible] {
+  opacity: 1;
+}
+
+.point.last {
+  fill: var(--primary);
+  stroke: var(--primary);
+}
+
+/* ---------- Tabela de valores ---------- */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.table th,
+.table td {
+  height: 40px;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: 0;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 0;
+}
+
+.table thead th {
+  height: 32px;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.table tbody th {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.table td {
+  color: var(--body-text);
+}
+
+.table tbody tr {
+  transition: background-color var(--motion-hover) ease;
+}
+
+.table tbody tr[data-active] {
+  background: var(--surface-sunken);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.note {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.rowLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ---------- Barras horizontais ordenadas ---------- */
+
+.ranked {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rankedItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 3.25rem;
+  grid-template-areas:
+    "label value pct"
+    "bar bar bar";
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  font-size: 0.8125rem;
+}
+
+.rankedLabel {
+  grid-area: label;
+  overflow: hidden;
+  color: var(--foreground);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankedValue {
+  grid-area: value;
+}
+
+.rankedPct {
+  grid-area: pct;
+  color: var(--muted);
+}
+
+.rankedTrack {
+  grid-area: bar;
+  display: block;
+  height: 8px;
+}
+
+/*
+ * A barra é um scaleX sobre a largura toda: trocar o período transita do valor antigo
+ * para o novo. Na primeira pintura não há transição (CSS só anima mudanças), e com
+ * movimento reduzido a regra global corta a transição de transform.
+ */
+.rankedBar {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-marker);
+  background: var(--foreground);
+  transform: scaleX(var(--ratio));
+  transform-origin: left center;
+  transition: transform var(--motion-reveal) var(--ease-out);
+}
+
+.review .rankedBar,
+.share .unclassified {
+  background: repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 5px);
+  box-shadow: inset 0 0 0 1px var(--hatch);
+}
+
+.review {
+  --hatch: var(--warning);
+}
+
+/* ---------- Barra 100% ---------- */
+
+.share {
+  --hatch: var(--line-strong);
+
+  display: flex;
+  gap: 2px;
+  height: 10px;
+}
+
+.share i {
+  display: block;
+  min-width: 2px;
+  border-radius: var(--radius-marker);
+  background: var(--swatch);
+  flex: var(--share) 1 0;
+  transition: flex-grow var(--motion-reveal) var(--ease-out);
+}
+
+.unclassified {
+  --swatch: transparent;
+}
+
+.swatch.unclassified {
+  background: repeating-linear-gradient(135deg, var(--line-strong) 0 2px, transparent 2px 4px);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+/* ---------- Caixa de detalhe (barras pareadas) ---------- */
+
+.plotArea {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  gap: var(--space-1);
+  width: 184px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  font-size: 0.75rem;
+  pointer-events: none;
+  opacity: 0;
+  /* Desliza de um mês ao outro; surge e some por opacidade. */
+  transition:
+    transform 220ms var(--ease-out),
+    opacity 120ms ease;
+}
+
+.tooltipTitle {
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--body-text);
+}
+
+.tooltipRow > :last-child {
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+/* ---------- Minigráfico ---------- */
+
+.spark {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+.sparkLine {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.sparkPartial {
+  stroke-dasharray: 3 3;
+}
+
+.sparkLast {
+  fill: var(--primary);
+}
+
+.sparkOpen {
+  fill: var(--surface);
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+
+/* ---------- Rosca (Style Guide 2.1) ---------- */
+
+.donutChart {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-6);
+  margin: 0;
+}
+
+@media (max-width: 30rem) {
+  .donutChart {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+
+.donutWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* A fatia em foco cresce 8% e passa da borda do quadro: não cortar. */
+.donut {
+  display: block;
+  overflow: visible;
+}
+
+.donutTrack {
+  fill: none;
+  stroke: var(--surface-sunken);
+}
+
+.donutArc {
+  fill: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity var(--motion-hover) ease,
+    transform 220ms var(--ease-out);
+}
+
+/* Fatia sob o mouse ou filtrada cresce 8% a partir do centro: diz qual é, sem afastar. */
+.donutArc[data-active],
+.donutArc[data-selected] {
+  transform: scale(1.08);
+}
+
+.donut[data-active] .donutArc:not([data-active]) {
+  opacity: 0.25;
+}
+
+.hatchStripe {
+  fill: var(--warning);
+}
+
+.donutCenter {
+  position: absolute;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.donutLabel {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.donutTotal {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.donutList {
+  display: grid;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.donutItem {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto 3.25rem;
+  grid-template-areas:
+    "swatch name value pct"
+    ". bar bar bar";
+  align-items: center;
+  gap: 6px var(--space-3);
+  padding: var(--space-2) var(--space-2);
+  margin: 0 calc(-1 * var(--space-2));
+  border-radius: var(--radius-control);
+  color: inherit;
+  font-size: 0.8125rem;
+  text-decoration: none;
+  transition:
+    opacity var(--motion-hover) ease,
+    background-color var(--motion-hover) ease;
+}
+
+.donutList > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.donutList:has([data-active]) .donutItem:not([data-active]),
+.donutList[data-selected] .donutItem:not([data-selected]) {
+  opacity: 0.55;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .donutItemLink:hover {
+    background: var(--surface-sunken);
+  }
+}
+
+.donutItemLink:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 0;
+}
+
+/* Categoria filtrada: plano rebaixado e linha interna, como o item atual da navegação. */
+.donutItem[data-selected] {
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.donutArcLink {
+  cursor: pointer;
+}
+
+.donut[data-selected] .donutArc:not([data-selected]) {
+  opacity: 0.25;
+}
+
+/* Ícone da categoria na cor dela; "A revisar" segue como quadrado hachurado. */
+.donutSwatch {
+  grid-area: swatch;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+.donutSwatch.hatched {
+  width: 12px;
+  height: 12px;
+  justify-self: center;
+}
+
+.donutName {
+  grid-area: name;
+  overflow: hidden;
+  color: var(--foreground);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.donutValue {
+  grid-area: value;
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.donutPct {
+  grid-area: pct;
+  color: var(--muted);
+}
+
+.donutBarTrack {
+  grid-area: bar;
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-sunken);
+}
+
+.donutBar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transform: scaleX(var(--ratio));
+  transform-origin: left center;
+  transition: transform var(--motion-reveal) var(--ease-out);
+}
+
+.hatched {
+  background: repeating-linear-gradient(135deg, var(--warning) 0 2px, transparent 2px 5px);
+  box-shadow: inset 0 0 0 1px var(--warning);
+}
+
+/* ---------- Tabela recolhida ("Ver valores por mês") ---------- */
+
+.values {
+  display: grid;
+  gap: var(--space-2);
+  interpolate-size: allow-keywords;
+}
+
+/*
+ * Abre e fecha com altura e opacidade, como o bloco recolhível do app (ui.module.css):
+ * melhoria progressiva; sem suporte a `::details-content`, abre na hora.
+ */
+.values::details-content {
+  block-size: 0;
+  opacity: 0;
+  overflow-y: clip;
+  transition:
+    block-size var(--motion-reveal) var(--ease-out),
+    opacity var(--motion-reveal) var(--ease-out),
+    content-visibility var(--motion-reveal) allow-discrete;
+}
+
+.values[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
+/* Saída mais curta que a entrada. */
+.values:not([open])::details-content {
+  transition-duration: var(--motion-feedback);
+}
+
+/* Movimento reduzido: só a opacidade; a altura muda na hora. */
+@media (prefers-reduced-motion: reduce) {
+  .values::details-content {
+    transition-property: opacity, content-visibility !important;
+    transition-behavior: normal, allow-discrete;
+  }
+}
+
+.valuesSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: fit-content;
+  min-height: 24px;
+  border-radius: var(--radius-control);
+  color: var(--body-text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  transition: color var(--motion-hover) ease;
+}
+
+.valuesSummary::-webkit-details-marker {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .valuesSummary:hover {
+    color: var(--foreground);
+  }
+}
+
+.valuesSummary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* A seta gira ao abrir; com movimento reduzido, a regra global corta o giro. */
+.valuesChevron {
+  transition: transform var(--motion-hover) var(--ease-out);
+}
+
+.values[open] .valuesChevron {
+  transform: rotate(180deg);
+}
+
+/* O que está sob o cursor fica inteiro, mesmo com outra categoria filtrada. */
+.donut[data-active] .donutArc[data-active],
+.donutList .donutItem[data-active] {
+  opacity: 1;
+}
+
+/* Com título de tabela: título e valores descem para o rodapé do bloco. */
+.chartFill {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tableBlock {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: auto;
+}
+
+/* Altura mínima definida por quem usa (--values-min-height), para alinhar com um vizinho. */
+.tableFrame {
+  min-height: var(--values-min-height, 0);
+}
+
+/* ---------- Foco que segue o mouse (barras e linha) ---------- */
+
+/* O SVG fica acima da faixa de foco, que pinta o fundo do mês. */
+.plotArea > .svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* Texto principal a 7%: aparece no claro e no escuro (o rebaixado some no escuro). */
+.focusBand {
+  position: absolute;
+  left: 0;
+  z-index: 0;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 220ms var(--ease-out),
+    opacity 120ms ease;
+}
+
+/* Linha-guia no centro do mês, que desliza junto com a faixa. */
+.focusBand::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px dashed var(--line-strong);
+}
+
+.tooltip[data-visible],
+.focusBand[data-visible] {
+  opacity: 1;
+}
+
+/* Na primeira vez que monta, só aparece; dali em diante desliza. */
+@starting-style {
+  .tooltip[data-visible],
+  .focusBand[data-visible] {
+    opacity: 0;
+  }
+}
+
+/* ---------- Linha dia a dia ---------- */
+
+/* Muitos pontos: só o ponto em foco e o último ficam visíveis. */
+.quiet .point:not([data-active]):not(.last) {
+  opacity: 0;
+}
+
+/* Último ponto chega quando a linha termina de se desenhar (600ms). */
+.arrive {
+  animation: point-arrive var(--motion-feedback) var(--ease-out) var(--motion-intro) both;
+}
+
+@keyframes point-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- Minigráfico: redesenho no hover e percorrer os meses ---------- */
+
+/* Acima da área clicável do número: aqui o mouse percorre os meses. */
+.sparkWrap {
+  position: relative;
+  z-index: 1;
+  display: block;
+  flex: none;
+}
+
+.sparkLast,
+.sparkOpen {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Ao entrar no número, a linha se desenha de novo (400ms) e o último ponto pulsa. */
+@media (hover: hover) and (pointer: fine) {
+  :hover > .sparkWrap .sparkDraw {
+    stroke-dasharray: 1;
+    animation: spark-draw 400ms var(--ease-out) both;
+  }
+
+  :hover > .sparkWrap .sparkLast,
+  :hover > .sparkWrap .sparkOpen {
+    animation: spark-pulse 240ms var(--ease-out) 400ms both;
+  }
+
+  :hover > .sparkWrap .sparkPartial {
+    animation: spark-fade var(--motion-popover) ease 400ms both;
+  }
+}
+
+@keyframes spark-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes spark-pulse {
+  50% {
+    transform: scale(1.6);
+  }
+}
+
+@keyframes spark-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Ponto que percorre os meses: desliza até o mais próximo do mouse. */
+.sparkScrub {
+  fill: var(--surface);
+  stroke: var(--foreground);
+  stroke-width: 1.5;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 120ms ease;
+}
+
+.sparkLabel {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  padding: 2px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: var(--shadow-overlay);
+  color: var(--foreground);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 120ms ease;
+}
+
+.sparkScrub[data-visible],
+.sparkLabel[data-visible] {
+  opacity: 1;
+}

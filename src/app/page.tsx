@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { BrandLockup } from "@/components/brand";
+import { SAMPLE_FLOW } from "@/components/charts/fixtures";
+import { PairedBarsChart } from "@/components/charts/paired-bars";
 import { IconInflow, IconOutflow, IconTransfer } from "@/components/icons";
 import { StatusChip } from "@/components/ui";
 import { auth0 } from "@/lib/auth0";
@@ -67,6 +69,10 @@ export default async function Home() {
         {/* Prévia real: os mesmos componentes do app, com dados fictícios. */}
         <figure className={styles.preview}>
           <div className={styles.previewPanel} aria-hidden>
+            <p className={styles.previewHead}>
+              <span>Movimentação</span>
+              <span>Valor</span>
+            </p>
             <p className={styles.previewDay}>Hoje</p>
             <ul className={styles.previewList}>
               {SAMPLE.map(({ Icon, direction, title, meta, chip, amount }) => (
@@ -92,8 +98,23 @@ export default async function Home() {
               <strong>Alimentação</strong>
             </p>
           </div>
+          <div className={styles.previewPanel} aria-hidden>
+            <p className={styles.previewHead}>
+              <span>Entradas e saídas por mês</span>
+              <span>Mai–Out</span>
+            </p>
+            <div className={styles.previewChart}>
+              <PairedBarsChart
+                caption="Entradas e saídas por mês, de maio a outubro, com dados fictícios"
+                data={SAMPLE_FLOW}
+                intro
+                tableVisible={false}
+              />
+            </div>
+          </div>
           <figcaption className={styles.caption}>
-            Cada lançamento mostra conta, categoria e de onde veio a classificação.
+            Cada lançamento mostra conta, categoria e de onde veio a classificação; os totais do
+            mês viram leitura de um olhar.
           </figcaption>
         </figure>
       </main>
