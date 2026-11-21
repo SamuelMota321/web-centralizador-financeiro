@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import type { MouseEvent, ReactNode } from "react";
 import { IconChevronDown, IconSignOut } from "@/components/icons";
 import { ui } from "@/components/ui";
+import { clearConnectionPointer } from "@/lib/connections/recovery";
 import shell from "./shell.module.css";
 
 /** Até duas iniciais do nome exibido; o avatar é só identificação, sem foto. */
@@ -55,7 +56,7 @@ export function AccountMenu({ identity, compact }: { identity: string; compact?:
             </div>
             <Menu.Separator className={ui.menuSeparator} />
             {/* Âncora comum: a saída precisa de navegação completa, sem prefetch. */}
-            <Menu.LinkItem className={ui.menuItem} href="/auth/logout">
+            <Menu.LinkItem className={ui.menuItem} href="/auth/logout" onClick={() => clearConnectionPointer()}>
               <IconSignOut size={18} />
               Sair
             </Menu.LinkItem>

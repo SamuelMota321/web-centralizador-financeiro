@@ -32,3 +32,11 @@ export function connectionErrorMessage(error: unknown, fallback: string): string
   }
   return fallback;
 }
+
+/** O backend também devolve 404 quando a conexão pertence a outro usuário. */
+export function isConnectionDenied(error: unknown): boolean {
+  return (
+    (error instanceof ProblemDetailsError || error instanceof ApiRequestError) &&
+    (error.status === 403 || error.status === 404)
+  );
+}

@@ -7,7 +7,7 @@ import {
   getConnection,
   startPluggySession,
 } from "@/lib/connections/api";
-import { connectionErrorMessage } from "@/lib/connections/messages";
+import { connectionErrorMessage, isConnectionDenied } from "@/lib/connections/messages";
 import type { Connection } from "@/lib/connections/types";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
@@ -18,7 +18,7 @@ import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
 const uuidSchema = z.uuid();
 const SESSION_EXPIRED = "Sua sessão expirou. Entre novamente para continuar.";
 
-export type ActionError = { status: "error"; message: string; reauth?: boolean };
+export type ActionError = { status: "error"; message: string; reauth?: boolean; clearPointer?: boolean };
 
 export type SessionResult =
   | { status: "ok"; connectToken: string; connectionId: string; completionKey: string }
@@ -89,5 +89,5 @@ async function withConnection(
 
 function failure(error: unknown, fallback: string): ActionError {
   if (isAuthFailure(error)) return { status: "error", message: SESSION_EXPIRED, reauth: true };
-  return { status: "error", message: connectionErrorMessage(error, fallback) };
+  return { status: "error", message: connectionErrorMessage(error, fallback), clearPointer: isConnectionDenied(error) };
 }

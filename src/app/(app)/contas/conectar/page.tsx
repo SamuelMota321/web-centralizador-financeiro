@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { PageHeader, ui } from "@/components/ui";
 import { getConnection } from "@/lib/connections/api";
-import { connectionErrorMessage } from "@/lib/connections/messages";
+import { connectionErrorMessage, isConnectionDenied } from "@/lib/connections/messages";
 import type { Connection } from "@/lib/connections/types";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
+import { auth0 } from "@/lib/auth0";
 import { ConnectFlow } from "./connect-flow";
 import styles from "./conectar.module.css";
 
@@ -18,9 +20,14 @@ export default async function ConectarPage({
   // `conexao` so existe depois de uma conexao concluida nesta tela: o backend nao lista conexoes.
   const { conexao } = await searchParams;
   const connectionId = z.uuid().safeParse(conexao);
+  const session = await auth0.getSession();
+  const owner = session?.user.sub
+    ? createHash("sha256").update(session.user.sub).digest("hex")
+    : "";
 
   let connection: Connection | null = null;
   let notice: { tone: "error"; message: string; reauth?: boolean } | undefined;
+  let deniedConnectionId: string | undefined;
   if (connectionId.success) {
     const token = await accessTokenOrNull();
     if (!token) {
@@ -29,6 +36,7 @@ export default async function ConectarPage({
       try {
         connection = await getConnection(connectionId.data, { accessToken: token });
       } catch (error) {
+        if (isConnectionDenied(error)) deniedConnectionId = connectionId.data;
         notice = isAuthFailure(error)
           ? { tone: "error", message: SESSION_EXPIRED, reauth: true }
           : { tone: "error", message: connectionErrorMessage(error, "Não foi possível abrir esta conexão. Tente de novo.") };
@@ -47,7 +55,7 @@ export default async function ConectarPage({
           </Link>
         }
       />
-      <ConnectFlow initialConnection={connection} initialNotice={notice} />
+      <ConnectFlow owner={owner} initialConnection={connection} initialNotice={notice} deniedConnectionId={deniedConnectionId} />
     </div>
   );
 }

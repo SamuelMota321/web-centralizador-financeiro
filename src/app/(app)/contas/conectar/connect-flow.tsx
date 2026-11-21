@@ -2,11 +2,12 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { type RefObject, useEffect, useId, useRef, useState, useTransition } from "react";
+import { type RefObject, useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { BrandSymbol } from "@/components/brand";
 import { ConfirmDialog, showToast } from "@/components/interactive";
 import { Notice, type NoticeTone, PendingLabel, StatusChip, ui } from "@/components/ui";
 import type { Connection } from "@/lib/connections/types";
+import { clearConnectionPointer, loadConnectionPointer, saveConnectionPointer } from "@/lib/connections/recovery";
 import {
   type ActionError,
   completeConnectionAction,
@@ -54,19 +55,56 @@ type Phase =
   | { kind: "connection"; connection: Connection; fresh?: boolean };
 
 interface Props {
+  owner: string;
   initialConnection: Connection | null;
   /** Falha ao abrir a conexao indicada na URL. */
   initialNotice?: FlowNotice;
+  deniedConnectionId?: string;
 }
 
-export function ConnectFlow({ initialConnection, initialNotice }: Props) {
+export function ConnectFlow({ owner, initialConnection, initialNotice, deniedConnectionId }: Props) {
   const [phase, setPhase] = useState<Phase>(
     initialConnection ? { kind: "connection", connection: initialConnection } : { kind: "intro", notice: initialNotice },
   );
   const [starting, startTransition] = useTransition();
+  const [restoring, setRestoring] = useState(false);
+  const [retryRecovery, setRetryRecovery] = useState(false);
   // O widget dispara onClose tambem depois do sucesso; so o fechamento sem item e cancelamento.
   const itemReceived = useRef(false);
   const completionInFlight = useRef(false);
+
+  const restore = useCallback(async () => {
+    if (!owner) return;
+    const connectionId = loadConnectionPointer(owner);
+    if (!connectionId) return;
+    setRestoring(true);
+    const result = await refreshConnectionAction(connectionId);
+    if (result.status === "ok") {
+      window.history.replaceState(null, "", `${RETURN_TO}?conexao=${result.connection.id}`);
+      setPhase({ kind: "connection", connection: result.connection });
+      setRetryRecovery(false);
+    } else if (result.clearPointer) {
+      clearConnectionPointer();
+      setPhase({ kind: "intro", notice: { tone: "error", message: "A conexão salva não está disponível. Conecte o banco novamente." } });
+      setRetryRecovery(false);
+    } else {
+      setPhase({ kind: "intro", notice: errorNotice(result) });
+      setRetryRecovery(!result.reauth);
+    }
+    setRestoring(false);
+  }, [owner]);
+
+  useEffect(() => {
+    if (!owner) return;
+    if (initialConnection) {
+      saveConnectionPointer(owner, initialConnection.id);
+    } else if (deniedConnectionId) {
+      if (loadConnectionPointer(owner) === deniedConnectionId) clearConnectionPointer();
+      window.history.replaceState(null, "", RETURN_TO);
+    } else if (!initialNotice) {
+      queueMicrotask(() => void restore());
+    }
+  }, [owner, initialConnection, initialNotice, deniedConnectionId, restore]);
 
   function start() {
     startTransition(async () => {
@@ -100,7 +138,7 @@ export function ConnectFlow({ initialConnection, initialNotice }: Props) {
   }
 
   function showConnection(connection: Connection) {
-    // Recarregar a pagina mostra a mesma conexao; nada e guardado no navegador.
+    if (owner) saveConnectionPointer(owner, connection.id);
     window.history.replaceState(null, "", `${RETURN_TO}?conexao=${connection.id}`);
     setPhase({ kind: "connection", connection, fresh: true });
   }
@@ -112,7 +150,7 @@ export function ConnectFlow({ initialConnection, initialNotice }: Props) {
 
   switch (phase.kind) {
     case "intro":
-      return <IntroStep notice={phase.notice} pending={starting} onConnect={start} />;
+      return <IntroStep notice={phase.notice} pending={starting || restoring} onConnect={start} onRecover={retryRecovery ? () => void restore() : undefined} />;
     case "widget":
       return (
         <>
@@ -160,6 +198,10 @@ export function ConnectFlow({ initialConnection, initialNotice }: Props) {
               fresh: current.kind === "connection" && current.fresh,
             }))
           }
+          onDenied={() => {
+            clearConnectionPointer();
+            restart({ tone: "error", message: "A conexão não está disponível. Conecte o banco novamente." });
+          }}
           onConnectAgain={() => restart()}
         />
       );
@@ -179,7 +221,7 @@ function useStepFocus(): RefObject<HTMLHeadingElement | null> {
   return ref;
 }
 
-function IntroStep({ notice, pending, onConnect }: { notice?: FlowNotice; pending: boolean; onConnect: () => void }) {
+function IntroStep({ notice, pending, onConnect, onRecover }: { notice?: FlowNotice; pending: boolean; onConnect: () => void; onRecover?: () => void }) {
   const id = useId();
   const titleRef = useStepFocus();
   return (
@@ -208,6 +250,11 @@ function IntroStep({ notice, pending, onConnect }: { notice?: FlowNotice; pendin
       ) : null}
 
       <div className={styles.actions}>
+        {onRecover ? (
+          <button className={`${ui.button} ${ui.secondary}`} type="button" onClick={onRecover} disabled={pending}>
+            Tentar recuperar
+          </button>
+        ) : null}
         <button className={`${ui.button} ${ui.primary}`} type="button" onClick={onConnect} disabled={pending} aria-busy={pending}>
           <PendingLabel pending={pending} idle="Conectar banco" busy="Abrindo…" />
         </button>
@@ -270,11 +317,13 @@ function ConnectionDetail({
   connection,
   celebrate,
   onChange,
+  onDenied,
   onConnectAgain,
 }: {
   connection: Connection;
   celebrate: boolean;
   onChange: (connection: Connection) => void;
+  onDenied: () => void;
   onConnectAgain: () => void;
 }) {
   const id = useId();
@@ -293,6 +342,10 @@ function ConnectionDetail({
     startCheck(async () => {
       const result = await refreshConnectionAction(connection.id);
       if (result.status === "error") {
+        if (result.clearPointer) {
+          onDenied();
+          return;
+        }
         setCheckError(result);
         return;
       }
@@ -305,6 +358,10 @@ function ConnectionDetail({
     startRemove(async () => {
       const result = await disconnectAction(connection.id);
       if (result.status === "error") {
+        if (result.clearPointer) {
+          onDenied();
+          return;
+        }
         setRemoveError(result);
         return;
       }

@@ -98,6 +98,10 @@ describe("completeConnectionAction", () => {
 });
 
 describe("refreshConnectionAction e disconnectAction", () => {
+  it("identifica uma conexão negada para apagar o ponteiro salvo", async () => {
+    vi.mocked(getConnection).mockRejectedValue(problem(404, "CONNECTION_NOT_FOUND"));
+    expect(await refreshConnectionAction(CONNECTION_ID)).toMatchObject({ status: "error", clearPointer: true });
+  });
   it("consulta e desconecta pelo id", async () => {
     vi.mocked(getConnection).mockResolvedValue(connected);
     vi.mocked(disconnectConnection).mockResolvedValue({ ...connected, status: "disconnected" });
