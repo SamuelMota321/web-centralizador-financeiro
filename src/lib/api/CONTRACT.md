@@ -4,9 +4,82 @@ O contrato e propriedade do backend (`backend-centralizador-financeiro`), servid
 `GET /api/v1/openapi.json` e `GET /api/v1/docs`, e versionado em `openapi/openapi.json`
 naquele repositorio.
 
-`openapi.snapshot.json` (nesta pasta) e uma copia de referencia do contrato
-em `backend @ 2c416cd`. Os tipos em `src/lib/accounts/types.ts` e os schemas em
-`src/lib/accounts/schema.ts` sao transcritos a mao e devem acompanhar esse snapshot.
+O [snapshot local](openapi.snapshot.json) registra as operações incorporadas a
+este cliente. As revisões de origem e a comparação com o backend estão abaixo.
+
+## Contrato vigente conferido em 24/11/2026
+
+Referência da comparação estática `backend b9f6a7a`. Os tipos e schemas do
+cliente são mantidos localmente à mão. Os testes em
+[contract.test.ts](contract.test.ts) usam o snapshot local. A correspondência
+com o backend depende da revisão e da operação comparadas.
+
+### Pluggy
+
+O [snapshot web](openapi.snapshot.json) entrou em `35c1cfc`. Seu conteúdo
+corresponde ao OpenAPI de `234cb11` sem o `PUT` de mapeamento de conta.
+As 28 operações e os 16 schemas de componentes presentes coincidem com as
+definições correspondentes no backend vigente, que publica 40 operações.
+
+| Operação em `/api/v1` | Resposta publicada | Consumo web |
+|---|---|---|
+| `POST /connections/pluggy/sessions` | `201` com conexão, Connect Token e vencimento | Abre a sessão e gera a chave de conclusão no servidor Next. |
+| `POST /connections/pluggy/completions` | `202` com `connection` e `initialImport`. `Idempotency-Key` obrigatória. | Envia `itemId` e a chave. Reutiliza ambos no retry e valida o corpo aceito. |
+| `GET /connections/{connectionId}` | `200` com detalhe e `initialImport` anulável | A tela consulta o detalhe e permite atualizar manualmente enquanto houver andamento. |
+| `POST /connections/{connectionId}/disconnect` | `200` com conexão | Disponível na tela de conexão. |
+| `PUT /connections/{connectionId}/accounts/{providerAccountId}/mapping` | `200` com `accountId` e `initialImport` atualizado. Corpo `link` com `accountId` ou `create`. | Bloqueado no web. O snapshot, a API e a tela ainda não oferecem as ações de mapeamento. |
+
+`initialImport` tem estados `queued`, `processing`, `awaiting_account_mapping`,
+`completed`, `completed_with_errors` e `failed`. O schema separa status da
+conexão, disponibilidade de contas e transações, mapeamentos e contadores.
+`awaiting_account_mapping` é uma etapa da importação inicial Pluggy. O Dev 2
+precisa implementar o consumo do mapeamento e o Dev 1 verifica os guardas de
+elegibilidade definidos em C-02. O Dev 3 registra a validação em plano próprio.
+
+Para uma movimentação manual, o cliente envia uma chave por criação. Para
+movimentações coletadas pelo Pluggy, o backend deduplica pela identidade da
+movimentação na conexão e conta externas. A chave da conclusão identifica a
+requisição que inicia a importação.
+
+### OFX
+
+O upload da prévia recebe `file` e `destinationAccountId` e retorna `201`. A
+confirmação recebe o mesmo destino em JSON, processa de forma síncrona e retorna
+`200`. As duas escritas exigem `Idempotency-Key`. A consulta por `importRunId`
+retorna `200` sem chave. Os três caminhos têm a mesma definição no snapshot e
+no OpenAPI vigente. O schema do cliente representa `preview_ready`, `queued`,
+`processing`, `completed`, `completed_with_errors`, `failed` e `expired`.
+
+A S3-08 prevê seleção da conta após a leitura do arquivo, antes da prévia final,
+e vencimento em 24 horas. A API atual exige conta manual ativa do tenant já no
+upload. O seletor do cliente lista contas ativas, incluindo as conectadas, que
+o backend recusa como destino OFX com `409`. O estado `awaiting_account_mapping`
+e o campo `expiresAt` da prévia estão ausentes do contrato OFX. O enum `expired`
+representa um estado previsto, sem validação de idade localizada na confirmação.
+O `retentionExpiresAt` registra o prazo de metadados/resultados, calculado em 90
+dias após um estado terminal. O código tenta excluir a origem do R2 no caminho
+de confirmação terminal. A limpeza de prévias abandonadas e o expurgo dos
+resultados seguem sem evidência nesta revisão.
+
+Os erros publicados seguem Problem Details. Na prévia, `413` indica arquivo
+acima do limite da API, `415` mídia não suportada e `422` OFX inválido.
+`409` também abrange conflitos de conta, execução e idempotência. A API limita
+o arquivo a 10 MiB. O web limita o arquivo a 4 MiB.
+
+### HU-008 — sincronização recorrente
+
+O backend publica `POST /api/v1/connections/{connectionId}/sync-runs`
+(`202`), `GET` por `runId` (`200`), `GET .../sync-runs/latest` (`200`) e
+`POST .../update-session` (`200`). A solicitação `POST .../sync-runs` não pede
+`Idempotency-Key`. Durante uma execução ativa, a API reaproveita essa execução
+para a conexão. A publicação e o consumo desses caminhos estão registrados na
+auditoria atual do Dev 3, P02-04. As quatro rotas estão ausentes do snapshot.
+
+A biblioteca web `src/lib/sync-runs/` tem POST e GET por ID com fixtures.
+Nenhuma tela chama essa biblioteca. O schema lê os campos básicos e descarta
+`trigger`, `referenceDate` e `reasons`. A biblioteca ainda não consome `latest`
+ou `update-session`. O Dev 2 é responsável por reconciliar o cliente com o
+contrato publicado. A execução real e o aceite são pendentes.
 
 ## Cobertura atual
 
@@ -22,8 +95,8 @@ em `backend @ 2c416cd`. Os tipos em `src/lib/accounts/types.ts` e os schemas em
 estao descritas na secao "Transactions (Sprint 2)".
 
 `contract.test.ts` verifica que as operacoes consumidas existem no snapshot, exigem
-bearer Auth0 e usam os mesmos campos dos schemas do cliente. Ao atualizar o snapshot, rode
-`pnpm test`: mudanca incompativel no contrato quebra esse teste.
+bearer Auth0 e usam os campos verificados nos schemas do cliente. Ao atualizar o snapshot, rode
+`pnpm test` e confira o diff contra o OpenAPI da revisão de origem.
 Regras em `especificacao-manutencao-isolamento-contas.html` (docs): PATCH parcial e estrito,
 saldo inicial e data de referencia somente juntos, conta conectada somente leitura,
 desativacao logica e idempotente, sem DELETE e sem reativacao.
@@ -165,6 +238,10 @@ Enquanto nao houver decisao, o acesso usa `src/lib/api/http-client.ts` + tipos a
 
 ## Sprint 3
 
+> **Registro histórico.** A seção abaixo descreve os contratos usados na entrega
+> de outubro de 2026, com as limitações e hipóteses daquele momento. Para o
+> comportamento vigente e os bloqueios, consulte a comparação acima.
+
 Baseline da Fase 1 do Dev 2 (2026-10-07), atualizado com o contrato backend S3-01 do Dev 1
 (`docs/planejamento/sprint-03/contrato-backend-s3-01.html`) e, em 2026-10-09, com o OpenAPI do
 backend em `2c416cd`, que publica as rotas de OFX, e depois em `605cb07`, que publica as rotas de
@@ -305,7 +382,10 @@ Status: dependencia do cliente pendente. Quando o fluxo for integrado, a origem 
 - HU-008 continua pendente: nao foram encontradas chamadas sync-runs, nem acompanhamento por runId/statusUrl. Nao presumir listagem de conexoes para implementar a retomada.
 - Este merge nao atualiza o snapshot cliente para o backend atual. A compatibilidade da conclusao Pluggy e do mapeamento de contas precisa ser revalidada; os testes contra o snapshot local nao comprovam essa integracao.
 
-## Sprint 4 HU-008 — camada cliente `sync-runs` (preparada, rotas ainda não publicadas)
+## Sprint 4 HU-008 — registro da preparação da camada cliente `sync-runs`
+
+> Registro de 02/11/2026, anterior à publicação das rotas. A seção de contrato
+> vigente acima descreve o backend e os bloqueios atuais.
 
 Em 2026-11-02 foi criada `src/lib/sync-runs/` (tipos, esquema, `requestSyncRun`, `getSyncRun`,
 `isFinalSyncRunStatus`, `isTrustedStatusUrl`, fixtures e testes) contra o contrato C-03 consolidado no
