@@ -1,0 +1,56 @@
+/* Camada de fundo: atrás do conteúdo, na coluna do título (a prévia é opaca e o esconderia).
+ * Rola junto com a página: não fica preso atrás da prévia ao descer. */
+.layer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 60%;
+  z-index: 0;
+  opacity: 0.35;
+  /* Entra só com opacidade, uma vez, quando a cena carrega. */
+  transition: opacity var(--motion-intro) var(--ease-out);
+}
+
+@starting-style {
+  .layer {
+    opacity: 0;
+  }
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* O Canvas do React Three Fiber envolve o <canvas>; os eventos e o cursor ficam nele. */
+.canvas canvas {
+  cursor: grab;
+  /* Arrastar na horizontal gira; na vertical o navegador rola a página. */
+  touch-action: pan-y;
+}
+
+.canvas canvas[data-dragging] {
+  cursor: grabbing;
+}
+
+/* Uma coluna (tablet e celular): o porquinho fica no topo, atrás do título, acima da prévia. */
+@media (max-width: 60rem) {
+  .layer {
+    bottom: auto;
+    width: 100%;
+    height: min(70vh, 34rem);
+  }
+}
+
+@media (max-width: 40rem) {
+  .layer {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas canvas {
+    cursor: default;
+  }
+}

@@ -3,6 +3,7 @@ import { BrandLockup } from "@/components/brand";
 import { SAMPLE_FLOW } from "@/components/charts/fixtures";
 import { PairedBarsChart } from "@/components/charts/paired-bars";
 import { IconInflow, IconOutflow, IconTransfer } from "@/components/icons";
+import { PiggyBackground } from "@/components/piggy/piggy-background";
 import { StatusChip } from "@/components/ui";
 import { auth0 } from "@/lib/auth0";
 import { formatMoney } from "@/lib/money";
@@ -50,6 +51,8 @@ export default async function Home() {
 
   return (
     <div className={styles.page}>
+      {/* Decorativo: arrastar nas áreas vazias gira o porquinho; o conteúdo fica na frente. */}
+      <PiggyBackground />
       <header className={styles.header}>
         <BrandLockup />
       </header>
