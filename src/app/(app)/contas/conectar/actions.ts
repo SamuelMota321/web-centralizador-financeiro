@@ -9,6 +9,8 @@ import {
 } from "@/lib/connections/api";
 import { connectionErrorMessage } from "@/lib/connections/messages";
 import { isAccessDenied } from "@/lib/connections/resume-pointer";
+import { getLatestSyncRuns, getSyncRun, isTrustedStatusUrl, requestSyncRun, requestUpdateSession } from "@/lib/sync-runs/api";
+import type { SyncRun } from "@/lib/sync-runs/types";
 import { clearResumePointer, saveResumePointer } from "@/lib/connections/resume-store";
 import type { Connection } from "@/lib/connections/types";
 import { newIdempotencyKey } from "@/lib/idempotency";
@@ -102,4 +104,67 @@ async function withConnection(
 function failure(error: unknown, fallback: string): ActionError {
   if (isAuthFailure(error)) return { status: "error", message: SESSION_EXPIRED, reauth: true };
   return { status: "error", message: connectionErrorMessage(error, fallback) };
+}
+
+// ---------- HU-008: sincronização manual ----------
+
+export type SyncRunResult = { status: "ok"; run: SyncRun } | ActionError;
+export type LatestSyncResult = { status: "ok"; latest: SyncRun | null; lastReconciled: SyncRun | null } | ActionError;
+export type UpdateSessionResult = { status: "ok"; connectToken: string } | ActionError;
+
+async function withSyncToken<T>(
+  connectionId: string,
+  run: (id: string, context: { accessToken: string }) => Promise<T>,
+  fallback: string,
+): Promise<T | ActionError> {
+  const id = uuidSchema.safeParse(connectionId);
+  if (!id.success) return { status: "error", message: "Não foi possível encontrar esta conexão." };
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", message: SESSION_EXPIRED, reauth: true };
+  try {
+    return await run(id.data, { accessToken: token });
+  } catch (error) {
+    if (isAccessDenied(error)) await clearResumePointer();
+    return failure(error, fallback);
+  }
+}
+
+/** Uma execução por conexão: com outra ativa, a API devolve a existente e a tela a mostra. */
+export async function requestSyncAction(connectionId: string): Promise<SyncRunResult> {
+  const result = await withSyncToken(
+    connectionId,
+    async (id, context) => ({ status: "ok", run: await requestSyncRun(id, context) }) as const,
+    "Não foi possível pedir a sincronização. Tente de novo.",
+  );
+  // C-01: a URL de andamento só é aceita na origem da API; a consulta segue pela rota tipada pelo id.
+  if (result.status === "ok" && !isTrustedStatusUrl(result.run.statusUrl)) {
+    return { status: "error", message: "A resposta do servidor não pôde ser confirmada. Tente de novo." };
+  }
+  return result;
+}
+
+export async function getSyncRunAction(connectionId: string, runId: string): Promise<SyncRunResult> {
+  if (!uuidSchema.safeParse(runId).success) return { status: "error", message: "Execução inválida." };
+  return withSyncToken(
+    connectionId,
+    async (id, context) => ({ status: "ok", run: await getSyncRun(id, runId, context) }) as const,
+    "Não foi possível consultar a sincronização.",
+  );
+}
+
+export async function getLatestSyncAction(connectionId: string): Promise<LatestSyncResult> {
+  return withSyncToken(
+    connectionId,
+    async (id, context) => ({ status: "ok", ...(await getLatestSyncRuns(id, context)) }) as const,
+    "Não foi possível consultar a última sincronização.",
+  );
+}
+
+/** Só o token limitado do widget vai ao navegador; ele expira e nunca é guardado. */
+export async function startUpdateSessionAction(connectionId: string): Promise<UpdateSessionResult> {
+  return withSyncToken(
+    connectionId,
+    async (id, context) => ({ status: "ok", connectToken: (await requestUpdateSession(id, context)).connectToken }) as const,
+    "Não foi possível abrir a autorização no banco. Tente de novo.",
+  );
 }

@@ -5,9 +5,16 @@ import { completePluggyConnection, disconnectConnection, getConnection, startPlu
 import { COMPLETION_KEY, CONNECT_TOKEN, CONNECTION_ID, completionAcceptedView, connectionView, ITEM_ID, sessionView } from "@/lib/connections/fixtures";
 import { completionAcceptedSchema, connectionSchema, pluggySessionSchema } from "@/lib/connections/schema";
 import { clearResumePointer, saveResumePointer } from "@/lib/connections/resume-store";
+import { getLatestSyncRuns, getSyncRun, requestSyncRun, requestUpdateSession } from "@/lib/sync-runs/api";
+import { RUN_ID, syncRunView } from "@/lib/sync-runs/fixtures";
+import { syncRunSchema } from "@/lib/sync-runs/schema";
 import {
   completeConnectionAction,
   forgetResumePointerAction,
+  getLatestSyncAction,
+  getSyncRunAction,
+  requestSyncAction,
+  startUpdateSessionAction,
   disconnectAction,
   refreshConnectionAction,
   startSessionAction,
@@ -18,6 +25,13 @@ vi.mock("@/lib/idempotency", () => ({ newIdempotencyKey: () => COMPLETION_KEY })
 vi.mock("@/lib/connections/resume-store", () => ({
   saveResumePointer: vi.fn(),
   clearResumePointer: vi.fn(),
+}));
+vi.mock("@/lib/sync-runs/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/sync-runs/api")>()),
+  requestSyncRun: vi.fn(),
+  getSyncRun: vi.fn(),
+  getLatestSyncRuns: vi.fn(),
+  requestUpdateSession: vi.fn(),
 }));
 vi.mock("@/lib/connections/api", () => ({
   startPluggySession: vi.fn(),
@@ -158,5 +172,60 @@ describe("ponteiro de retomada (C-01)", () => {
     await disconnectAction(CONNECTION_ID);
     await forgetResumePointerAction();
     expect(clearResumePointer).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("sincronização (HU-008)", () => {
+  const run = syncRunSchema.parse(syncRunView({ connectionId: CONNECTION_ID }));
+
+  beforeEach(() => {
+    vi.mocked(requestSyncRun).mockReset();
+    vi.mocked(getSyncRun).mockReset();
+    vi.mocked(getLatestSyncRuns).mockReset();
+    vi.mocked(requestUpdateSession).mockReset();
+  });
+
+  it("pede a sincronização e devolve a execução aceita", async () => {
+    vi.mocked(requestSyncRun).mockResolvedValue(run);
+    expect(await requestSyncAction(CONNECTION_ID)).toEqual({ status: "ok", run });
+    expect(requestSyncRun).toHaveBeenCalledWith(CONNECTION_ID, { accessToken: "auth0-access-ficticio" });
+  });
+
+  it("recusa statusUrl de outra origem", async () => {
+    vi.mocked(requestSyncRun).mockResolvedValue({ ...run, statusUrl: "https://outro.exemplo/x" });
+    expect(await requestSyncAction(CONNECTION_ID)).toMatchObject({ status: "error" });
+  });
+
+  it("valida ids antes de chamar a API", async () => {
+    expect(await requestSyncAction("x")).toMatchObject({ status: "error" });
+    expect(await getSyncRunAction(CONNECTION_ID, "x")).toMatchObject({ status: "error" });
+    expect(requestSyncRun).not.toHaveBeenCalled();
+    expect(getSyncRun).not.toHaveBeenCalled();
+  });
+
+  it("consulta o andamento e a última execução", async () => {
+    vi.mocked(getSyncRun).mockResolvedValue({ ...run, status: "running" });
+    vi.mocked(getLatestSyncRuns).mockResolvedValue({ latest: null, lastReconciled: null });
+    expect(await getSyncRunAction(CONNECTION_ID, RUN_ID)).toMatchObject({ status: "ok", run: { status: "running" } });
+    expect(await getLatestSyncAction(CONNECTION_ID)).toEqual({ status: "ok", latest: null, lastReconciled: null });
+  });
+
+  it("devolve ao navegador só o token limitado da atualização", async () => {
+    vi.mocked(requestUpdateSession).mockResolvedValue({ connectToken: "token-limitado", expiresAt: "2026-11-25T12:00:00.000Z" });
+    const result = await startUpdateSessionAction(CONNECTION_ID);
+    expect(result).toEqual({ status: "ok", connectToken: "token-limitado" });
+    expect(JSON.stringify(result)).not.toContain("auth0-access-ficticio");
+  });
+
+  it("sessão expirada pede para entrar de novo sem chamar a API", async () => {
+    vi.mocked(auth0.getAccessToken).mockRejectedValue(new Error("expirada"));
+    expect(await requestSyncAction(CONNECTION_ID)).toMatchObject({ status: "error", reauth: true });
+    expect(requestSyncRun).not.toHaveBeenCalled();
+  });
+
+  it("404 descarta o ponteiro de retomada", async () => {
+    vi.mocked(getLatestSyncRuns).mockRejectedValue(problem(404, "CONNECTION_NOT_FOUND"));
+    expect(await getLatestSyncAction(CONNECTION_ID)).toMatchObject({ status: "error" });
+    expect(clearResumePointer).toHaveBeenCalled();
   });
 });

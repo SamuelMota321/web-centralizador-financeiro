@@ -26,6 +26,7 @@ import {
   needsReconnect,
   statusView,
 } from "./presentation";
+import { SyncPanel } from "./sync-panel";
 import styles from "./conectar.module.css";
 
 const RETURN_TO = "/contas/conectar";
@@ -365,6 +366,8 @@ function ConnectionDetail({
         </div>
       </dl>
 
+      {canSync(connection.status) ? <SyncPanel connectionId={connection.id} /> : null}
+
       {checkError ? (
         <Notice tone="error" actions={checkError.reauth ? <ReauthLink /> : undefined}>
           {checkError.message}
@@ -423,6 +426,11 @@ function ConnectionDetail({
       />
     </section>
   );
+}
+
+/** Sincronizar só faz sentido com a conexão ativa; expirada ou revogada pede nova conexão. */
+function canSync(status: Connection["status"]): boolean {
+  return status === "connected" || status === "partially_available";
 }
 
 function ReauthLink() {

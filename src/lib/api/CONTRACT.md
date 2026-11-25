@@ -89,8 +89,23 @@ anuláveis. `update-session` devolve `connectToken` e `expiresAt`.
 
 `src/lib/sync-runs/` cobre as quatro rotas (`requestSyncRun`, `getSyncRun`,
 `getLatestSyncRuns`, `requestUpdateSession`) e o `contract.test.ts` compara os
-campos e enums com o snapshot. Nenhuma tela chama essa camada ainda (fase 4). O
-intervalo de consulta e o caminho de "Ação necessária" (P-03) seguem abertos.
+campos e enums com o snapshot.
+
+Consumo na tela (fase 4): o detalhe da conexão em `contas/conectar` mostra o painel
+"Sincronização" para conexões `connected` ou `partially_available`. Ao abrir, lê
+`latest`; com execução `queued` ou `running`, consulta por `runId` a cada 10 s (C-03,
+aprovado em 16/11/2026) só com a aba visível, e para em `action_required`,
+`succeeded`, `partial` ou `failed`. "Sincronizar agora" fica desabilitado durante uma
+execução ativa. `partial` lista os `reasons`; `failed` oferece nova tentativa;
+`action_required` abre o widget da Pluggy com o token de `update-session` e, ao
+concluir, pede nova execução (se o backend já a criou, a API devolve a ativa). O
+`statusUrl` é validado no servidor e nunca seguido: a consulta usa a rota tipada.
+Todas as chamadas passam por Server Actions; o navegador recebe só o token limitado
+do widget.
+
+Pendências com o Developer 1: confirmar que o token de `update-session` basta para
+abrir o widget em modo de atualização sem o `itemId` (o cliente não o guarda), e se a
+nova execução após a reautorização nasce no cliente ou no backend.
 
 #### Ponteiro de retomada (C-01)
 
