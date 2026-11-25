@@ -3,6 +3,8 @@ import { z } from "zod";
 import { PageHeader, ui } from "@/components/ui";
 import { getConnection } from "@/lib/connections/api";
 import { connectionErrorMessage } from "@/lib/connections/messages";
+import { isAccessDenied } from "@/lib/connections/resume-pointer";
+import { readResumePointer } from "@/lib/connections/resume-store";
 import type { Connection } from "@/lib/connections/types";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
 import { ConnectFlow } from "./connect-flow";
@@ -15,11 +17,15 @@ export default async function ConectarPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // `conexao` so existe depois de uma conexao concluida nesta tela: o backend nao lista conexoes.
+  // O backend nao lista conexoes: o id vem do link (`conexao`) ou do ponteiro guardado no servidor
+  // na ultima conclusao deste usuario (C-01).
   const { conexao } = await searchParams;
-  const connectionId = z.uuid().safeParse(conexao);
+  const fromUrl = z.uuid().safeParse(conexao);
+  const pointer = fromUrl.success ? null : await readResumePointer();
+  const connectionId = fromUrl.success ? fromUrl : z.uuid().safeParse(pointer);
 
   let connection: Connection | null = null;
+  let stalePointer = false;
   let notice: { tone: "error"; message: string; reauth?: boolean } | undefined;
   if (connectionId.success) {
     const token = await accessTokenOrNull();
@@ -29,7 +35,10 @@ export default async function ConectarPage({
       try {
         connection = await getConnection(connectionId.data, { accessToken: token });
       } catch (error) {
-        notice = isAuthFailure(error)
+        if (pointer && isAccessDenied(error)) {
+          // Ponteiro de outra epoca: volta ao inicio sem alarme e pede o descarte do cookie.
+          stalePointer = true;
+        } else notice = isAuthFailure(error)
           ? { tone: "error", message: SESSION_EXPIRED, reauth: true }
           : { tone: "error", message: connectionErrorMessage(error, "Não foi possível abrir esta conexão. Tente de novo.") };
       }
@@ -47,7 +56,7 @@ export default async function ConectarPage({
           </Link>
         }
       />
-      <ConnectFlow initialConnection={connection} initialNotice={notice} />
+      <ConnectFlow initialConnection={connection} initialNotice={notice} stalePointer={stalePointer} />
     </div>
   );
 }

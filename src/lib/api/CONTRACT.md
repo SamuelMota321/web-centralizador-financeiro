@@ -16,10 +16,9 @@ com o backend depende da revisão e da operação comparadas.
 
 ### Pluggy
 
-O [snapshot web](openapi.snapshot.json) entrou em `35c1cfc`. Seu conteúdo
-corresponde ao OpenAPI de `234cb11` sem o `PUT` de mapeamento de conta.
-As 28 operações e os 16 schemas de componentes presentes coincidem com as
-definições correspondentes no backend vigente, que publica 40 operações.
+O [snapshot web](openapi.snapshot.json) corresponde, desde 24/11/2026, ao
+OpenAPI do backend em `b5826a3`. Os 16 schemas de componentes coincidem; as
+rotas novas usam esquemas inline.
 
 | Operação em `/api/v1` | Resposta publicada | Consumo web |
 |---|---|---|
@@ -27,7 +26,7 @@ definições correspondentes no backend vigente, que publica 40 operações.
 | `POST /connections/pluggy/completions` | `202` com `connection` e `initialImport`. `Idempotency-Key` obrigatória. | Envia `itemId` e a chave. Reutiliza ambos no retry e valida o corpo aceito. |
 | `GET /connections/{connectionId}` | `200` com detalhe e `initialImport` anulável | A tela consulta o detalhe e permite atualizar manualmente enquanto houver andamento. |
 | `POST /connections/{connectionId}/disconnect` | `200` com conexão | Disponível na tela de conexão. |
-| `PUT /connections/{connectionId}/accounts/{providerAccountId}/mapping` | `200` com `accountId` e `initialImport` atualizado. Corpo `link` com `accountId` ou `create`. | Bloqueado no web. O snapshot, a API e a tela ainda não oferecem as ações de mapeamento. |
+| `PUT /connections/{connectionId}/accounts/{providerAccountId}/mapping` | `200` com `accountId` e `initialImport` atualizado. Corpo `link` com `accountId` ou `create`. | Está no snapshot, mas a API e a tela do web ainda não oferecem as ações de mapeamento. |
 
 `initialImport` tem estados `queued`, `processing`, `awaiting_account_mapping`,
 `completed`, `completed_with_errors` e `failed`. O schema separa status da
@@ -68,18 +67,42 @@ o arquivo a 10 MiB. O web limita o arquivo a 4 MiB.
 
 ### HU-008 — sincronização recorrente
 
-O backend publica `POST /api/v1/connections/{connectionId}/sync-runs`
-(`202`), `GET` por `runId` (`200`), `GET .../sync-runs/latest` (`200`) e
-`POST .../update-session` (`200`). A solicitação `POST .../sync-runs` não pede
-`Idempotency-Key`. Durante uma execução ativa, a API reaproveita essa execução
-para a conexão. A publicação e o consumo desses caminhos estão registrados na
-auditoria atual do Dev 3, P02-04. As quatro rotas estão ausentes do snapshot.
+Snapshot atualizado em 24/11/2026 para o OpenAPI do backend em `b5826a3`
+(33 caminhos; os 23 anteriores não mudaram). Entraram no snapshot:
+`PUT .../accounts/{providerAccountId}/mapping`, `POST .../sync-runs`,
+`GET .../sync-runs/latest`, `GET .../sync-runs/{runId}`, `POST .../update-session`,
+`GET /investments`, `GET /investments/{id}/movements` e as rotas
+`/patrimony/{collection}` (lista, criação, detalhe, alteração e histórico).
+Investimentos e patrimônio ainda não têm cliente nem tela (fases 2 e 3).
 
-A biblioteca web `src/lib/sync-runs/` tem POST e GET por ID com fixtures.
-Nenhuma tela chama essa biblioteca. O schema lê os campos básicos e descarta
-`trigger`, `referenceDate` e `reasons`. A biblioteca ainda não consome `latest`
-ou `update-session`. O Dev 2 é responsável por reconciliar o cliente com o
-contrato publicado. A execução real e o aceite são pendentes.
+`POST .../sync-runs` (`202`) não pede `Idempotency-Key`; durante uma execução
+ativa, a API reaproveita essa execução. Erros publicados: `400`, `401`, `404`,
+`409`, `500` e `503` (`latest` e `GET` por `runId`: `400`, `401`, `404`).
+
+A execução tem `runId`, `connectionId`, `status`, `trigger` (`manual` ou
+`daily`), `acceptedAt`, `startedAt`, `completedAt`, `referenceDate`, `reasons` e
+`statusUrl`; os três instantes e `referenceDate` são anuláveis. `reasons` lista
+pares `dataType` (`accounts`, `transactions`, `investments`,
+`investment_transactions`, `connection`) e `code` (`unavailable`, `failed`,
+`ambiguous_identity`). `latest` devolve `latest` e `lastReconciled`, ambos
+anuláveis. `update-session` devolve `connectToken` e `expiresAt`.
+
+`src/lib/sync-runs/` cobre as quatro rotas (`requestSyncRun`, `getSyncRun`,
+`getLatestSyncRuns`, `requestUpdateSession`) e o `contract.test.ts` compara os
+campos e enums com o snapshot. Nenhuma tela chama essa camada ainda (fase 4). O
+intervalo de consulta e o caminho de "Ação necessária" (P-03) seguem abertos.
+
+#### Ponteiro de retomada (C-01)
+
+O backend não lista conexões. O `connection.id` devolvido pela conclusão fica em
+cookie `coinciente_conexao` (httpOnly, `sameSite=lax`, `path=/contas/conectar`,
+sem expiração fixa), gravado no servidor e amarrado ao usuário por hash do `sub`.
+A página `contas/conectar` usa o ponteiro quando o link não traz `conexao`. O
+ponteiro é apagado ao sair (`/auth/logout` no `proxy.ts`), ao desconectar e quando
+a API responde `403` ou `404`; outro usuário na mesma máquina não o lê. Nunca
+deriva de `accountId` nem do Item da Pluggy. Escolha pelo cookie em vez de
+`localStorage`: não precisa sobreviver a dados do site apagados, e o navegador não
+o lê por script.
 
 ## Cobertura atual
 

@@ -2,13 +2,19 @@ import { z } from "zod";
 import { apiBaseUrl } from "../api/config";
 import { apiRequest } from "../api/http-client";
 import { toProblemError } from "../api/problem-error";
-import { syncRunSchema } from "./schema";
-import { FINAL_SYNC_RUN_STATUSES, type SyncRun, type SyncRunStatus } from "./types";
+import { latestSyncRunsSchema, syncRunSchema, updateSessionSchema } from "./schema";
+import {
+  FINAL_SYNC_RUN_STATUSES,
+  type LatestSyncRuns,
+  type SyncRun,
+  type SyncRunStatus,
+  type UpdateSession,
+} from "./types";
 
 // HU-008 — contrato C-03 da S4-01. Uma nova solicitacao com execucao ativa devolve a
 // execucao existente (no maximo uma por conexao), entao o cliente nao envia
-// Idempotency-Key: o contrato nao a define. O intervalo de consulta continua pendente
-// entre Developer 1 e Developer 3; nada aqui consulta periodicamente.
+// Idempotency-Key: o contrato nao a define. O intervalo de consulta e decidido por quem
+// usa esta camada; nada aqui consulta periodicamente.
 
 /** Credencial da requisicao em curso, sempre explicita. Ver `RequestOptions.accessToken`. */
 export interface SyncRunsRequestContext {
@@ -45,6 +51,40 @@ export async function getSyncRun(
       accessToken: context.accessToken,
     });
     return syncRunSchema.parse(raw);
+  } catch (error) {
+    throw toProblemError(error);
+  }
+}
+
+/** GET /api/v1/connections/{connectionId}/sync-runs/latest — ultima execucao e ultima reconciliada. */
+export async function getLatestSyncRuns(
+  connectionId: string,
+  context: SyncRunsRequestContext,
+): Promise<LatestSyncRuns> {
+  const id = uuidSchema.parse(connectionId);
+  try {
+    const raw = await apiRequest<unknown>(`/connections/${id}/sync-runs/latest`, {
+      method: "GET",
+      accessToken: context.accessToken,
+    });
+    return latestSyncRunsSchema.parse(raw);
+  } catch (error) {
+    throw toProblemError(error);
+  }
+}
+
+/** POST /api/v1/connections/{connectionId}/update-session — 200 com o token limitado do widget. */
+export async function requestUpdateSession(
+  connectionId: string,
+  context: SyncRunsRequestContext,
+): Promise<UpdateSession> {
+  const id = uuidSchema.parse(connectionId);
+  try {
+    const raw = await apiRequest<unknown>(`/connections/${id}/update-session`, {
+      method: "POST",
+      accessToken: context.accessToken,
+    });
+    return updateSessionSchema.parse(raw);
   } catch (error) {
     throw toProblemError(error);
   }

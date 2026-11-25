@@ -11,6 +11,7 @@ import {
   type ActionError,
   completeConnectionAction,
   disconnectAction,
+  forgetResumePointerAction,
   refreshConnectionAction,
   startSessionAction,
 } from "./actions";
@@ -57,13 +58,18 @@ interface Props {
   initialConnection: Connection | null;
   /** Falha ao abrir a conexao indicada na URL. */
   initialNotice?: FlowNotice;
+  /** O ponteiro de retomada guardado foi recusado pela API: descartar o cookie. */
+  stalePointer?: boolean;
 }
 
-export function ConnectFlow({ initialConnection, initialNotice }: Props) {
+export function ConnectFlow({ initialConnection, initialNotice, stalePointer }: Props) {
   const [phase, setPhase] = useState<Phase>(
     initialConnection ? { kind: "connection", connection: initialConnection } : { kind: "intro", notice: initialNotice },
   );
   const [starting, startTransition] = useTransition();
+  useEffect(() => {
+    if (stalePointer) void forgetResumePointerAction();
+  }, [stalePointer]);
   // O widget dispara onClose tambem depois do sucesso; so o fechamento sem item e cancelamento.
   const itemReceived = useRef(false);
   const completionInFlight = useRef(false);

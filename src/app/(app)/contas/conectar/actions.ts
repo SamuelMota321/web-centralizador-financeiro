@@ -8,6 +8,8 @@ import {
   startPluggySession,
 } from "@/lib/connections/api";
 import { connectionErrorMessage } from "@/lib/connections/messages";
+import { isAccessDenied } from "@/lib/connections/resume-pointer";
+import { clearResumePointer, saveResumePointer } from "@/lib/connections/resume-store";
 import type { Connection } from "@/lib/connections/types";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
@@ -55,6 +57,8 @@ export async function completeConnectionAction(itemId: string, idempotencyKey: s
 
   try {
     const accepted = await completePluggyConnection(parsed.data, key.data, { accessToken: token });
+    // C-01: o id devolvido pela conclusao e o unico ponteiro de retomada (nunca accountId nem o Item).
+    await saveResumePointer(accepted.connection.id);
     return { status: "ok", connection: { ...accepted.connection, initialImport: accepted.initialImport } };
   } catch (error) {
     return failure(error, "Não foi possível registrar a conexão. Tente de novo.");
@@ -66,7 +70,14 @@ export async function refreshConnectionAction(connectionId: string): Promise<Con
 }
 
 export async function disconnectAction(connectionId: string): Promise<ConnectionResult> {
-  return withConnection(connectionId, disconnectConnection, "Não foi possível remover a conexão. Tente de novo.");
+  const result = await withConnection(connectionId, disconnectConnection, "Não foi possível remover a conexão. Tente de novo.");
+  if (result.status === "ok") await clearResumePointer();
+  return result;
+}
+
+/** A pagina nao grava cookie: quando o ponteiro guardado e recusado pela API, o cliente pede o descarte. */
+export async function forgetResumePointerAction(): Promise<void> {
+  await clearResumePointer();
 }
 
 async function withConnection(
@@ -83,6 +94,7 @@ async function withConnection(
   try {
     return { status: "ok", connection: await call(id.data, { accessToken: token }) };
   } catch (error) {
+    if (isAccessDenied(error)) await clearResumePointer();
     return failure(error, fallback);
   }
 }

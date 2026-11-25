@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth0 } from "./lib/auth0";
+import { RESUME_COOKIE, RESUME_COOKIE_PATH } from "./lib/connections/resume-pointer";
 
 const PROTECTED_PREFIXES = ["/contas", "/movimentacoes", "/categorias", "/regras"];
 
@@ -8,6 +9,8 @@ export async function proxy(request: NextRequest) {
   const { pathname } = new URL(request.url);
 
   if (pathname.startsWith("/auth")) {
+    // C-01: sair apaga o ponteiro de retomada da conexao.
+    if (pathname === "/auth/logout") authResponse.cookies.set(RESUME_COOKIE, "", { path: RESUME_COOKIE_PATH, maxAge: 0 });
     return authResponse;
   }
 

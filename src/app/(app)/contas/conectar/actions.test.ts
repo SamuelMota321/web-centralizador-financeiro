@@ -4,8 +4,10 @@ import { ProblemDetailsError } from "@/lib/api/errors";
 import { completePluggyConnection, disconnectConnection, getConnection, startPluggySession } from "@/lib/connections/api";
 import { COMPLETION_KEY, CONNECT_TOKEN, CONNECTION_ID, completionAcceptedView, connectionView, ITEM_ID, sessionView } from "@/lib/connections/fixtures";
 import { completionAcceptedSchema, connectionSchema, pluggySessionSchema } from "@/lib/connections/schema";
+import { clearResumePointer, saveResumePointer } from "@/lib/connections/resume-store";
 import {
   completeConnectionAction,
+  forgetResumePointerAction,
   disconnectAction,
   refreshConnectionAction,
   startSessionAction,
@@ -13,6 +15,10 @@ import {
 
 vi.mock("@/lib/auth0", () => ({ auth0: { getAccessToken: vi.fn() } }));
 vi.mock("@/lib/idempotency", () => ({ newIdempotencyKey: () => COMPLETION_KEY }));
+vi.mock("@/lib/connections/resume-store", () => ({
+  saveResumePointer: vi.fn(),
+  clearResumePointer: vi.fn(),
+}));
 vi.mock("@/lib/connections/api", () => ({
   startPluggySession: vi.fn(),
   completePluggyConnection: vi.fn(),
@@ -34,6 +40,8 @@ beforeEach(() => {
   vi.mocked(completePluggyConnection).mockReset();
   vi.mocked(getConnection).mockReset();
   vi.mocked(disconnectConnection).mockReset();
+  vi.mocked(saveResumePointer).mockReset();
+  vi.mocked(clearResumePointer).mockReset();
 });
 
 describe("startSessionAction", () => {
@@ -116,5 +124,39 @@ describe("refreshConnectionAction e disconnectAction", () => {
   it("informa conflito de estado na remoção", async () => {
     vi.mocked(disconnectConnection).mockRejectedValue(problem(409, "CONNECTION_CONFLICT"));
     expect(JSON.stringify(await disconnectAction(CONNECTION_ID))).toMatch(/mudou de estado/);
+  });
+});
+
+describe("ponteiro de retomada (C-01)", () => {
+  it("guarda o id devolvido pela conclusão, não o do Item", async () => {
+    vi.mocked(completePluggyConnection).mockResolvedValue(accepted);
+    await completeConnectionAction(ITEM_ID, COMPLETION_KEY);
+    expect(saveResumePointer).toHaveBeenCalledWith(accepted.connection.id);
+    expect(saveResumePointer).not.toHaveBeenCalledWith(ITEM_ID);
+  });
+
+  it("não guarda nada quando a conclusão falha", async () => {
+    vi.mocked(completePluggyConnection).mockRejectedValue(problem(503, "INTEGRATION_UNAVAILABLE"));
+    await completeConnectionAction(ITEM_ID, COMPLETION_KEY);
+    expect(saveResumePointer).not.toHaveBeenCalled();
+  });
+
+  it("descarta o ponteiro quando a API nega ou não encontra a conexão", async () => {
+    vi.mocked(getConnection).mockRejectedValue(problem(404, "CONNECTION_NOT_FOUND"));
+    await refreshConnectionAction(CONNECTION_ID);
+    expect(clearResumePointer).toHaveBeenCalledTimes(1);
+  });
+
+  it("mantém o ponteiro em falha passageira", async () => {
+    vi.mocked(getConnection).mockRejectedValue(problem(503, "INTEGRATION_UNAVAILABLE"));
+    await refreshConnectionAction(CONNECTION_ID);
+    expect(clearResumePointer).not.toHaveBeenCalled();
+  });
+
+  it("descarta o ponteiro ao desconectar e a pedido da página", async () => {
+    vi.mocked(disconnectConnection).mockResolvedValue({ ...connected, status: "disconnected" });
+    await disconnectAction(CONNECTION_ID);
+    await forgetResumePointerAction();
+    expect(clearResumePointer).toHaveBeenCalledTimes(2);
   });
 });

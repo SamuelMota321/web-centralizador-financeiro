@@ -25,6 +25,8 @@ import { IMPORT_RUN_STATUSES, INGESTION_ITEM_STATUSES, OFX_VARIANTS } from "../i
 import { completionAcceptedView, connectionView, initialImportView, pendingConnectionView, sessionView } from "../connections/fixtures";
 import { completeConnectionInputSchema, completionAcceptedSchema, connectionSchema, consentSchema, initialImportSchema, pluggySessionSchema } from "../connections/schema";
 import { CONNECTION_STATUSES, CONSENT_STATUSES } from "../connections/types";
+import { latestSyncRunsSchema, syncReasonSchema, syncRunSchema, updateSessionSchema } from "../sync-runs/schema";
+import { SYNC_REASON_CODES, SYNC_REASON_DATA_TYPES, SYNC_RUN_STATUSES, SYNC_TRIGGERS } from "../sync-runs/types";
 
 // Verifica o cliente contra o snapshot versionado do OpenAPI do backend: ao atualizar o
 // snapshot, qualquer mudanca incompativel nas operacoes consumidas quebra este teste.
@@ -558,5 +560,52 @@ describe("contrato OpenAPI de Connections", () => {
     const body = jsonSchema(detail, "200");
     expect(body.allOf?.[1]?.required).toContain("initialImport");
     expect(body.allOf?.[1]?.properties?.initialImport).toMatchObject({ nullable: true });
+  });
+});
+
+describe("contrato OpenAPI de sincronização (HU-008)", () => {
+  const RUNS = "/api/v1/connections/{connectionId}/sync-runs";
+
+  it.each([
+    [RUNS, "post"],
+    [`${RUNS}/latest`, "get"],
+    [`${RUNS}/{runId}`, "get"],
+    ["/api/v1/connections/{connectionId}/update-session", "post"],
+  ])("%s %s existe e exige bearer Auth0", (path, method) => {
+    expect(operation(path, method).security).toEqual([{ auth0: [] }]);
+  });
+
+  it("a execução tem exatamente os campos do syncRunSchema", () => {
+    const run = jsonSchema(operation(RUNS, "post"), "202");
+    expect(Object.keys(run.properties ?? {}).sort()).toEqual(Object.keys(syncRunSchema.shape).sort());
+    expect([...(run.required ?? [])].sort()).toEqual(Object.keys(syncRunSchema.shape).sort());
+    expect(jsonSchema(operation(`${RUNS}/{runId}`, "get"), "200")).toEqual(run);
+  });
+
+  it("estados, gatilhos e motivos coincidem com os enums publicados", () => {
+    const run = jsonSchema(operation(RUNS, "post"), "202") as JsonSchema & {
+      properties: Record<string, JsonSchema & { enum?: string[] }>;
+    };
+    expect(run.properties.status.enum).toEqual([...SYNC_RUN_STATUSES]);
+    expect(run.properties.trigger.enum).toEqual([...SYNC_TRIGGERS]);
+    const reason = run.properties.reasons.items as JsonSchema & {
+      properties: Record<string, { enum: string[] }>;
+    };
+    expect(reason.properties.dataType.enum).toEqual([...SYNC_REASON_DATA_TYPES]);
+    expect(reason.properties.code.enum).toEqual([...SYNC_REASON_CODES]);
+    expect(Object.keys(reason.properties).sort()).toEqual(Object.keys(syncReasonSchema.shape).sort());
+  });
+
+  it("latest devolve latest e lastReconciled, ambos com a forma da execução", () => {
+    const latest = jsonSchema(operation(`${RUNS}/latest`, "get"), "200");
+    expect(Object.keys(latest.properties ?? {}).sort()).toEqual(Object.keys(latestSyncRunsSchema.shape).sort());
+    const run = jsonSchema(operation(RUNS, "post"), "202");
+    expect(latest.properties?.latest).toMatchObject({ nullable: true, required: run.required });
+    expect(latest.properties?.lastReconciled).toMatchObject({ nullable: true, required: run.required });
+  });
+
+  it("update-session devolve connectToken e expiresAt", () => {
+    const session = jsonSchema(operation("/api/v1/connections/{connectionId}/update-session", "post"), "200");
+    expect(Object.keys(session.properties ?? {}).sort()).toEqual(Object.keys(updateSessionSchema.shape).sort());
   });
 });

@@ -44,6 +44,18 @@ describe("proxy", () => {
     expect(auth0.getSession).not.toHaveBeenCalled();
   });
 
+  it("sair apaga o cookie do ponteiro de retomada; os demais /auth/* não", async () => {
+    const logout = NextResponse.next();
+    vi.mocked(auth0.middleware).mockResolvedValue(logout);
+    await proxy(request("/auth/logout"));
+    expect(logout.cookies.get("coinciente_conexao")).toMatchObject({ value: "", maxAge: 0, path: "/contas/conectar" });
+
+    const login = NextResponse.next();
+    vi.mocked(auth0.middleware).mockResolvedValue(login);
+    await proxy(request("/auth/login"));
+    expect(login.cookies.get("coinciente_conexao")).toBeUndefined();
+  });
+
   it("não protege a página publica", async () => {
     expect(await proxy(request("/"))).toBe(sdkResponse);
     expect(auth0.getSession).not.toHaveBeenCalled();
