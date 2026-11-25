@@ -25,6 +25,10 @@ import { IMPORT_RUN_STATUSES, INGESTION_ITEM_STATUSES, OFX_VARIANTS } from "../i
 import { completionAcceptedView, connectionView, initialImportView, pendingConnectionView, sessionView } from "../connections/fixtures";
 import { completeConnectionInputSchema, completionAcceptedSchema, connectionSchema, consentSchema, initialImportSchema, pluggySessionSchema } from "../connections/schema";
 import { CONNECTION_STATUSES, CONSENT_STATUSES } from "../connections/types";
+import { allocationSchema, movementPageSchema, movementSchema, positionPageSchema, positionSchema } from "../investments/schema";
+import { ASSET_CLASSES, AVAILABILITIES, EXCLUSION_REASONS, FRESHNESS } from "../investments/types";
+import { itemSchemas, stateSchemas } from "../patrimony/schema";
+import { LIMITS as PATRIMONY_LIMITS, PATRIMONY_COLLECTIONS } from "../patrimony/types";
 import { latestSyncRunsSchema, syncReasonSchema, syncRunSchema, updateSessionSchema } from "../sync-runs/schema";
 import { SYNC_REASON_CODES, SYNC_REASON_DATA_TYPES, SYNC_RUN_STATUSES, SYNC_TRIGGERS } from "../sync-runs/types";
 
@@ -607,5 +611,103 @@ describe("contrato OpenAPI de sincronização (HU-008)", () => {
   it("update-session devolve connectToken e expiresAt", () => {
     const session = jsonSchema(operation("/api/v1/connections/{connectionId}/update-session", "post"), "200");
     expect(Object.keys(session.properties ?? {}).sort()).toEqual(Object.keys(updateSessionSchema.shape).sort());
+  });
+});
+
+describe("contrato OpenAPI de investimentos e alocação (HU-009, HU-011)", () => {
+  const LIST = "/api/v1/investments";
+  const MOVEMENTS = "/api/v1/investments/{id}/movements";
+  type Enumerated = JsonSchema & { enum?: string[]; properties?: Record<string, Enumerated>; items?: Enumerated };
+
+  it.each([
+    [LIST, "get"],
+    [MOVEMENTS, "get"],
+  ])("%s %s existe e exige bearer Auth0", (path, method) => {
+    expect(operation(path, method).security).toEqual([{ auth0: [] }]);
+  });
+
+  it("a página tem os campos do positionPageSchema e a posição os do positionSchema", () => {
+    const page = jsonSchema(operation(LIST, "get"), "200") as Enumerated;
+    expect(Object.keys(page.properties ?? {}).sort()).toEqual(Object.keys(positionPageSchema.shape).sort());
+    const position = page.properties?.positions.items as Enumerated;
+    expect(Object.keys(position.properties ?? {}).sort()).toEqual(Object.keys(positionSchema.shape).sort());
+    expect([...(position.required ?? [])].sort()).toEqual(Object.keys(positionSchema.shape).sort());
+    const quality = position.properties?.dataQuality as Enumerated;
+    expect(quality.properties?.availability.enum).toEqual([...AVAILABILITIES]);
+    expect(quality.properties?.freshness.enum).toEqual([...FRESHNESS]);
+  });
+
+  it("a alocação tem os campos, as classes e os motivos de exclusão do cliente", () => {
+    const page = jsonSchema(operation(LIST, "get"), "200") as Enumerated;
+    const allocation = (page.properties?.portfolio as Enumerated).properties?.allocation as Enumerated;
+    expect(Object.keys(allocation.properties ?? {}).sort()).toEqual(Object.keys(allocationSchema.shape).sort());
+    const reasons = allocation.properties?.excludedByReason as Enumerated;
+    expect(Object.keys(reasons.properties ?? {}).sort()).toEqual([...EXCLUSION_REASONS].sort());
+    const currency = allocation.properties?.currencies.items as Enumerated;
+    const byClass = currency.properties?.byClass.items as Enumerated;
+    expect(byClass.properties?.assetClass.enum).toEqual([...ASSET_CLASSES]);
+  });
+
+  it("os movimentos têm os campos do movementSchema e do movementPageSchema", () => {
+    const page = jsonSchema(operation(MOVEMENTS, "get"), "200") as Enumerated;
+    expect(Object.keys(page.properties ?? {}).sort()).toEqual(Object.keys(movementPageSchema.shape).sort());
+    const movement = page.properties?.movements.items as Enumerated;
+    expect(Object.keys(movement.properties ?? {}).sort()).toEqual(Object.keys(movementSchema.shape).sort());
+  });
+});
+
+describe("contrato OpenAPI de bens, financiamentos e passivos (HU-012)", () => {
+  const LIST = "/api/v1/patrimony/{collection}";
+  const ITEM = "/api/v1/patrimony/{collection}/{id}";
+  type Node = JsonSchema & {
+    oneOf?: Node[];
+    anyOf?: Node[];
+    enum?: string[];
+    maxLength?: number;
+    properties?: Record<string, Node>;
+    items?: Node;
+  };
+  const KINDS = { assets: "asset", financings: "financing", liabilities: "liability" } as const;
+
+  it.each([
+    [LIST, "get"],
+    [LIST, "post"],
+    [ITEM, "get"],
+    [ITEM, "patch"],
+    [`${ITEM}/history`, "get"],
+  ])("%s %s existe e exige bearer Auth0", (path, method) => {
+    expect(operation(path, method).security).toEqual([{ auth0: [] }]);
+  });
+
+  it("as coleções são as do cliente e não há DELETE", () => {
+    const param = operation(LIST, "get").parameters?.find((p) => p.name === "collection") as { schema?: { enum?: string[] } };
+    expect(param.schema?.enum).toEqual([...PATRIMONY_COLLECTIONS]);
+    expect(snapshot.paths[ITEM]?.delete).toBeUndefined();
+  });
+
+  it("cada tipo de item tem exatamente os campos do esquema do cliente", () => {
+    const variants = (jsonSchema(operation(ITEM, "get"), "200") as Node).oneOf ?? [];
+    for (const collection of PATRIMONY_COLLECTIONS) {
+      const variant = variants.find((v) => v.properties?.kind?.enum?.[0] === KINDS[collection]);
+      expect(variant, collection).toBeDefined();
+      expect(Object.keys(variant?.properties ?? {}).sort()).toEqual(Object.keys(itemSchemas[collection].shape).sort());
+    }
+  });
+
+  it("o corpo de criação aceita só os campos editáveis, com os limites do cliente", () => {
+    const op = operation(LIST, "post");
+    const body = op.requestBody?.content["application/json"].schema as Node;
+    const editable = PATRIMONY_COLLECTIONS.map((c) => Object.keys(stateSchemas[c].shape).sort());
+    const published = (body.anyOf ?? []).map((v) => Object.keys(v.properties ?? {}).sort());
+    expect(published).toEqual(editable);
+    const asset = body.anyOf?.[0].properties ?? {};
+    expect(asset.type.maxLength).toBe(PATRIMONY_LIMITS.type);
+    expect(asset.description.maxLength).toBe(PATRIMONY_LIMITS.description);
+    expect(asset.source.maxLength).toBe(PATRIMONY_LIMITS.source);
+  });
+
+  it("criar não pede Idempotency-Key", () => {
+    const headers = (operation(LIST, "post").parameters ?? []).filter((p) => p.in === "header");
+    expect(headers).toEqual([]);
   });
 });

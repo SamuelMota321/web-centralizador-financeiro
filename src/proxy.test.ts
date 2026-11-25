@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 
 describe("proxy", () => {
-  it.each(["/contas", "/contas/qualquer", "/movimentacoes", "/movimentacoes/qualquer", "/categorias", "/regras"])("redireciona %s sem sessão para o login", async (path) => {
+  it.each(["/contas", "/contas/qualquer", "/movimentacoes", "/movimentacoes/qualquer", "/categorias", "/regras", "/investimentos", "/investimentos/qualquer", "/patrimonio", "/patrimonio/bens/qualquer"])("redireciona %s sem sessão para o login", async (path) => {
     vi.mocked(auth0.getSession).mockResolvedValue(null);
     const response = await proxy(request(path));
     expect(response.status).toBe(307);

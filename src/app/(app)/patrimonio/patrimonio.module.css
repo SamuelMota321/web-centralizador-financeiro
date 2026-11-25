@@ -1,0 +1,129 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.note {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* Rolagem só dentro do painel, nunca na página. */
+.tableWrap {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+.table {
+  width: 100%;
+  min-width: 34rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 12px 16px;
+  vertical-align: top;
+}
+
+.table tr + tr td {
+  border-top: 1px solid var(--line);
+}
+
+.num {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.actions {
+  white-space: nowrap;
+  text-align: right !important;
+}
+
+.cellTitle {
+  font-weight: 650;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+
+.cellMeta {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.editRow td {
+  background: var(--surface-sunken);
+}
+
+.back {
+  align-self: flex-start;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+.fact dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.fact dd {
+  margin-top: 2px;
+  color: var(--foreground);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.skeletonBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { auth0 } from "./lib/auth0";
 import { RESUME_COOKIE, RESUME_COOKIE_PATH } from "./lib/connections/resume-pointer";
 
-const PROTECTED_PREFIXES = ["/contas", "/movimentacoes", "/categorias", "/regras"];
+const PROTECTED_PREFIXES = ["/contas", "/movimentacoes", "/categorias", "/regras", "/investimentos", "/patrimonio"];
 
 export async function proxy(request: NextRequest) {
   const authResponse = await auth0.middleware(request);

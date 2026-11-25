@@ -73,7 +73,7 @@ Snapshot atualizado em 24/11/2026 para o OpenAPI do backend em `b5826a3`
 `GET .../sync-runs/latest`, `GET .../sync-runs/{runId}`, `POST .../update-session`,
 `GET /investments`, `GET /investments/{id}/movements` e as rotas
 `/patrimony/{collection}` (lista, criação, detalhe, alteração e histórico).
-Investimentos e patrimônio ainda não têm cliente nem tela (fases 2 e 3).
+Investimentos (fase 2) e bens e dívidas (fase 3) têm cliente e tela; ver as seções abaixo.
 
 `POST .../sync-runs` (`202`) não pede `Idempotency-Key`; durante uma execução
 ativa, a API reaproveita essa execução. Erros publicados: `400`, `401`, `404`,
@@ -103,6 +103,41 @@ a API responde `403` ou `404`; outro usuário na mesma máquina não o lê. Nunc
 deriva de `accountId` nem do Item da Pluggy. Escolha pelo cookie em vez de
 `localStorage`: não precisa sobreviver a dados do site apagados, e o navegador não
 o lê por script.
+
+### HU-009 e HU-011 — investimentos e alocação
+
+`src/lib/investments/` cobre `GET /investments` (carteira, `allocation` e posições
+paginadas) e `GET /investments/{id}/movements`. A API não tem leitura de uma posição
+isolada: o detalhe localiza a posição na carteira do usuário e consulta os movimentos
+(`404` vira "não encontrada"). O `contract.test.ts` compara campos, enums de
+disponibilidade, frescor, classe e motivo de exclusão com o snapshot.
+
+Regras no cliente: valores e quantidades são strings decimais, formatadas sem
+arredondar; campo `null` é escrito como "Não informado pela fonte", nunca zero;
+`resultAmount` aparece como "Resultado informado pela fonte"; moedas nunca se somam
+nem se convertem; a barra da composição usa `amount ÷ denominatorAmount` em BigInt, e o
+percentual escrito é o do backend, sem ajuste para fechar 100,0%. O total só aparece
+quando `portfolio.total` não é `null`; o motivo da ausência é explicado sem
+adivinhar a causa. Nada anima. Validado com fixtures sintéticas; sem Item Sandbox real.
+
+### HU-012 — bens, financiamentos e passivos
+
+`src/lib/patrimony/` cobre `/patrimony/{collection}` (`assets`, `financings`,
+`liabilities`): lista paginada, criação (`201`), leitura e `PATCH` por id e histórico.
+A tela `/patrimonio` mostra as três tabelas com paginação independente (`pb`, `pf`,
+`pp`), cria em painel e edita na própria linha; o histórico fica em
+`/patrimonio/{bens|financiamentos|passivos}/{id}`.
+
+Regras no cliente: valor em pt-BR convertido para o decimal do contrato, aceitando
+zero (o contrato permite) e recusando negativo; data DD/MM/AAAA convertida para
+AAAA-MM-DD; o `PATCH` compara com o estado gravado no momento e envia só o que mudou;
+o bem do financiamento aparece pela descrição, nunca pelo UUID ("Bem indisponível"
+quando não está na lista). Nada é somado: patrimônio líquido é HU-013 (Sprint 5).
+
+Lacunas do contrato, para o Developer 1: não há exclusão, nem `Idempotency-Key` na
+criação (o botão desabilitado reduz, mas não impede, o duplo envio), nem controle
+de concorrência no `PATCH` (`version` existe, mas não é exigido: duas abas sobrescrevem
+uma à outra). A ordem da lista não é definida; o cliente mantém a ordem recebida.
 
 ## Cobertura atual
 
