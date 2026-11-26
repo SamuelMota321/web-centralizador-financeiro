@@ -20,7 +20,9 @@ export function RulePack({
   missing,
   categories,
   accounts,
+  missingCategories,
 }: {
+  missingCategories: readonly string[];
   hasActiveCategories: boolean;
   groups: SuggestedRuleGroup<CategoryRule>[];
   count: number;
@@ -37,6 +39,14 @@ export function RulePack({
       </p>
 
       {missing > 0 && hasActiveCategories ? <RulePackButton missing={missing} /> : null}
+      {hasActiveCategories && missingCategories.length > 0 ? (
+        <p>
+          As regras de {missingCategories.join(", ")} dependem de categorias que você ainda não tem.{" "}
+          <Link className={ui.inlineLink} href="/categorias">
+            Adicionar categorias sugeridas
+          </Link>
+        </p>
+      ) : null}
       {!hasActiveCategories ? (
         <p>
           Crie as categorias primeiro.{" "}

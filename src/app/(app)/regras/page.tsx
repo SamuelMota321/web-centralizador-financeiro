@@ -59,7 +59,8 @@ export default async function RegrasPage({
   const pageHref = () => "/regras";
   // Só exibição: as regras do pacote ficam num grupo recolhido; as da pessoa aparecem abertas.
   const { personal, suggested, suggestedCount } = splitSuggestedRules(allRules, categories);
-  const missingFromPack = categories ? rulesToCreate(categories, allRules).toCreate.length : 0;
+  const pack = categories ? rulesToCreate(categories, allRules) : null;
+  const missingFromPack = pack?.toCreate.length ?? 0;
 
   return (
     <div className={styles.page}>
@@ -169,6 +170,7 @@ export default async function RegrasPage({
           groups={suggested}
           count={suggestedCount}
           missing={missingFromPack}
+          missingCategories={pack?.missingCategories ?? []}
           categories={categories}
           accounts={accounts}
         />

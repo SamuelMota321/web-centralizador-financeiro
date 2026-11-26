@@ -6,7 +6,9 @@ import { UrlNoticeToast } from "@/components/interactive";
 import { PanelSection, PanelToggle } from "@/components/panel";
 import { EmptyState, PageHeader, Pagination, ui } from "@/components/ui";
 import { auth0 } from "@/lib/auth0";
+import { listAllPages } from "@/lib/api/pagination";
 import { listCategories } from "@/lib/categories/api";
+import { categoriesToCreate } from "@/lib/categories/suggestions";
 import { PAGE_SIZE, parsePageParam, totalPages } from "../movimentacoes/presentation";
 import { CategoryForm } from "./category-form";
 import { CategoryItem } from "./category-item";
@@ -24,7 +26,13 @@ export default async function CategoriasPage({
   const page = parsePageParam(pagina);
 
   const { token } = await auth0.getAccessToken();
-  const categories = await listCategories({ page, pageSize: PAGE_SIZE }, { accessToken: token });
+  const context = { accessToken: token };
+  // A lista completa de nomes só serve para saber quais sugeridas faltam; se falhar, o aviso some.
+  const [categories, allNames] = await Promise.all([
+    listCategories({ page, pageSize: PAGE_SIZE }, context),
+    listAllPages((query) => listCategories(query, context)).catch(() => null),
+  ]);
+  const missingSuggested = categories.total > 0 && allNames ? categoriesToCreate(allNames.items) : [];
   const pages = totalPages(categories.total, PAGE_SIZE);
   const pageHref = (target: number) => `/categorias?pagina=${target}`;
   // Sem nenhuma categoria, o painel já começa aberto: é a próxima ação óbvia.
@@ -57,6 +65,8 @@ export default async function CategoriasPage({
       >
         <CategoryForm />
       </PanelSection>
+
+      {missingSuggested.length > 0 ? <SuggestedCategories missing={missingSuggested} /> : null}
 
       {categories.total === 0 ? (
         <EmptyState icon={<IconCategories size={22} />} title="Nenhuma categoria ainda" action={<SuggestedCategories />}>
