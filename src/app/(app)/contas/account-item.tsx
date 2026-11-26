@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { IconPause } from "@/components/icons";
 import { ActionMenu, ConfirmDialog } from "@/components/interactive";
+import { Monogram } from "@/components/monogram";
 import { Notice, StatusChip, ui } from "@/components/ui";
 import { formatCivilDate } from "@/lib/civil-date";
 import { formatMoney } from "@/lib/money";
@@ -26,18 +27,21 @@ export function AccountItem({ account }: { account: Account }) {
   return (
     <li className={styles.row} data-open={editing || undefined}>
       <div className={styles.rowMain}>
-        <p className={styles.rowTitle}>{account.name}</p>
-        <p className={styles.rowMeta}>
-          {TYPE_LABELS[account.type]}
-          {account.institutionName ? ` · ${account.institutionName}` : ""}
-        </p>
+        <Monogram text={account.institutionName ?? account.name} />
+        <div className={styles.rowName}>
+          <p className={styles.rowTitle}>{account.name}</p>
+          <p className={`${styles.rowMeta} ${styles.compactOnly}`}>
+            {TYPE_LABELS[account.type]}
+            {account.institutionName ? ` · ${account.institutionName}` : ""}
+          </p>
+        </div>
       </div>
 
-      <div className={styles.rowOrigin}>
-        <StatusChip tone={isManual ? "neutral" : "info"}>
-          {isManual ? "Manual" : "Conectada"}
-        </StatusChip>
+      <div className={styles.rowType}>
+        <span className={styles.typeTag}>{TYPE_LABELS[account.type]}</span>
       </div>
+
+      <p className={styles.rowInstitution}>{account.institutionName ?? <span className={styles.rowMeta}>Não informada</span>}</p>
 
       <div className={styles.rowBalance}>
         <p className={`${styles.balance} tabular`}>{formatMoney(account.initialBalance)}</p>
@@ -47,24 +51,24 @@ export function AccountItem({ account }: { account: Account }) {
         </p>
       </div>
 
-      <div className={ui.rowActions}>
-        {isManual ? (
-          <button
-            className={`${ui.button} ${ui.ghost} ${ui.small}`}
-            type="button"
-            aria-expanded={editing}
-            onClick={() => setEditing(!editing)}
-          >
-            Editar<span className="visually-hidden"> {account.name}</span>
-          </button>
-        ) : null}
+      <div className={styles.rowOrigin}>
+        <StatusChip tone={isManual ? "neutral" : "info"}>
+          {isManual ? "Manual" : "Conectada"}
+        </StatusChip>
+      </div>
+
+      <div className={`${ui.rowActions} ${styles.rowActionsCell}`}>
         <ActionMenu
-          label={`Mais ações para ${account.name}`}
+          label={`Ações para ${account.name}`}
           items={[
+            // Conta conectada é mantida pela conexão: não há edição manual.
+            ...(isManual
+              ? [{ label: editing ? "Fechar edição" : "Editar conta", onSelect: () => setEditing(!editing) }]
+              : []),
             {
               label: "Desativar conta",
               icon: <IconPause size={17} />,
-              tone: "danger",
+              tone: "danger" as const,
               onSelect: () => setConfirming(true),
             },
           ]}
