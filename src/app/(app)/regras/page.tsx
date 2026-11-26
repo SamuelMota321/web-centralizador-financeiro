@@ -17,6 +17,7 @@ import { PAGE_SIZE, parsePageParam, totalPages } from "../movimentacoes/presenta
 import { isNoticeKey, NOTICES } from "./notices";
 import { RuleCreatePanel } from "./rule-create-panel";
 import { RuleItem } from "./rule-item";
+import { RulePack } from "./rule-pack";
 import type { CategoryOption, NamedOption } from "./rule-logic";
 import styles from "./regras.module.css";
 
@@ -94,6 +95,8 @@ export default async function RegrasPage({
         </ul>
       </Disclosure>
 
+      {categories !== null ? <RulePack hasActiveCategories={activeCategories.length > 0} /> : null}
+
       {categories === null || accounts === null ? (
         <Notice
           tone="warning"
@@ -113,9 +116,9 @@ export default async function RegrasPage({
           icon={<IconCategories size={22} />}
           title="Crie uma categoria primeiro"
           action={
-            <Link className={`${ui.button} ${ui.primary}`} href="/categorias?nova=1">
+            <Link className={`${ui.button} ${ui.primary}`} href="/categorias">
               <IconPlus size={18} />
-              Criar categoria
+              Criar ou usar as sugeridas
             </Link>
           }
         >

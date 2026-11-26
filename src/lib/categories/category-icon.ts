@@ -18,7 +18,7 @@ const RULES: readonly (readonly [CategoryIconKey, readonly string[]])[] = [
   ["home", ["moradia", "casa", "aluguel", "condominio", "imovel", "lar"]],
   ["food", ["alimentacao", "comida", "mercado", "supermercado", "restaurante", "padaria", "lanche", "lanchonete", "feira", "delivery"]],
   ["transport", ["transporte", "combustivel", "gasolina", "uber", "taxi", "onibus", "metro", "estacionamento", "carro", "veiculo"]],
-  ["health", ["saude", "farmacia", "medico", "consulta", "exame", "hospital", "dentista", "remedio", "academia"]],
+  ["health", ["saude", "farmacia", "medico", "consulta", "exame", "hospital", "dentista", "remedio", "academia", "cuidados", "beleza", "higiene"]],
   ["leisure", ["lazer", "entretenimento", "cinema", "streaming", "viagem", "viagens", "passeio", "show", "jogos"]],
   ["education", ["educacao", "curso", "cursos", "escola", "faculdade", "livro", "livros", "estudo", "estudos"]],
   ["shopping", ["compras", "compra", "roupa", "roupas", "vestuario", "presente", "presentes"]],

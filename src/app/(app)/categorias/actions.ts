@@ -11,6 +11,7 @@ import {
   renameCategory,
 } from "@/lib/categories/api";
 import { categoryNameSchema } from "@/lib/categories/schema";
+import { categoriesToCreate, SUGGESTED_CATEGORIES } from "@/lib/categories/suggestions";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
 import { transactionsErrorMessage } from "@/lib/transactions/messages";
 import { DUPLICATE_NAME_MESSAGE, hasNameConflict } from "./category-names";
@@ -29,6 +30,45 @@ export type CategoryFormState =
 export type ArchiveCategoryState =
   | { status: "idle" }
   | { status: "error"; message: string; reauth?: boolean };
+
+export type SuggestionState =
+  | { status: "idle" }
+  | { status: "done"; created: number; skipped: number }
+  | { status: "error"; created: number; message: string; reauth?: boolean };
+
+/**
+ * Cria as categorias sugeridas que ainda não existem, uma por vez, pela mesma API da tela.
+ * Repetir é seguro: o que já existe é pulado. Em falha, para e informa quantas entraram.
+ */
+export async function createSuggestedCategoriesAction(): Promise<SuggestionState> {
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };
+  const context = { accessToken: token };
+
+  let created = 0;
+  try {
+    const { items } = await listAllPages((query) => listCategories(query, context));
+    const names = categoriesToCreate(items);
+    for (const name of names) {
+      await createCategory({ name }, context);
+      created += 1;
+    }
+    revalidatePath(CATEGORIAS_PATH);
+    revalidatePath(MOVIMENTACOES_PATH);
+    return { status: "done", created, skipped: SUGGESTED_CATEGORIES.length - names.length };
+  } catch (error) {
+    if (created > 0) {
+      revalidatePath(CATEGORIAS_PATH);
+      revalidatePath(MOVIMENTACOES_PATH);
+    }
+    if (isAuthFailure(error)) return { status: "error", created, message: REAUTH_MESSAGE, reauth: true };
+    return {
+      status: "error",
+      created,
+      message: `Não foi possível criar todas as categorias sugeridas. ${created > 0 ? `${created} entraram; ` : ""}tente de novo para criar as que faltam.`,
+    };
+  }
+}
 
 export async function createCategoryAction(
   _previous: CategoryFormState,

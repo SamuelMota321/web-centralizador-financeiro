@@ -9,7 +9,8 @@ import {
   renameCategory,
 } from "@/lib/categories/api";
 import type { Category } from "@/lib/categories/types";
-import { archiveCategoryAction, createCategoryAction, renameCategoryAction } from "./actions";
+import { archiveCategoryAction, createCategoryAction, createSuggestedCategoriesAction, renameCategoryAction } from "./actions";
+import { SUGGESTED_CATEGORIES } from "@/lib/categories/suggestions";
 import { DUPLICATE_NAME_MESSAGE } from "./category-names";
 
 vi.mock("@/lib/auth0", () => ({ auth0: { getAccessToken: vi.fn() } }));
@@ -219,5 +220,40 @@ describe("archiveCategoryAction", () => {
     vi.mocked(deactivateCategory).mockRejectedValue(problem(status, code));
 
     expect(await archiveCategoryAction(CATEGORY_ID)).toMatchObject({ reauth: true });
+  });
+});
+
+describe("createSuggestedCategoriesAction", () => {
+  beforeEach(() => {
+    vi.mocked(createCategory).mockReset().mockResolvedValue(category());
+    vi.mocked(listCategories).mockReset();
+  });
+
+  it("cria só as sugeridas que faltam, uma por vez", async () => {
+    vi.mocked(listCategories).mockResolvedValue({ items: [category({ name: "Mercado" })], page: 1, pageSize: 100, total: 1 });
+    const result = await createSuggestedCategoriesAction();
+
+    expect(result).toEqual({ status: "done", created: SUGGESTED_CATEGORIES.length - 1, skipped: 1 });
+    expect(createCategory).toHaveBeenCalledTimes(SUGGESTED_CATEGORIES.length - 1);
+    expect(createCategory).not.toHaveBeenCalledWith({ name: "Mercado" }, expect.anything());
+    expect(revalidatePath).toHaveBeenCalledWith("/categorias");
+  });
+
+  it("para na primeira falha e informa quantas entraram", async () => {
+    vi.mocked(listCategories).mockResolvedValue({ items: [], page: 1, pageSize: 100, total: 0 });
+    vi.mocked(createCategory)
+      .mockResolvedValueOnce(category())
+      .mockResolvedValueOnce(category())
+      .mockRejectedValueOnce(new Error("falha"));
+    const result = await createSuggestedCategoriesAction();
+
+    expect(result).toMatchObject({ status: "error", created: 2 });
+    expect(createCategory).toHaveBeenCalledTimes(3);
+  });
+
+  it("pede para entrar de novo sem sessão", async () => {
+    vi.mocked(auth0.getAccessToken).mockRejectedValue(new Error("sem sessão"));
+    expect(await createSuggestedCategoriesAction()).toMatchObject({ status: "error", reauth: true, created: 0 });
+    expect(createCategory).not.toHaveBeenCalled();
   });
 });

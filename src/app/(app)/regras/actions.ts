@@ -3,9 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
 import { PROBLEM_CODES, ProblemDetailsError } from "@/lib/api/errors";
+import { listAllPages } from "@/lib/api/pagination";
+import { listCategories } from "@/lib/categories/api";
+import { rulesToCreate } from "@/lib/categories/suggestions";
 import {
   activateCategoryRule,
   createCategoryRule,
+  listCategoryRules,
   deactivateCategoryRule,
   removeCategoryRule,
   updateCategoryRule,
@@ -36,6 +40,53 @@ export type RuleFormState =
 export type RuleLifecycleState =
   | { status: "idle" }
   | { status: "error"; message: string; reauth?: boolean };
+
+export type RulePackState =
+  | { status: "idle" }
+  | { status: "done"; created: number; missingCategories: string[] }
+  | { status: "error"; created: number; message: string; reauth?: boolean };
+
+/**
+ * Cria as regras do pacote sugerido que faltam ("descrição contém"), uma por vez, só para
+ * categorias ativas encontradas pelo nome. Repetir é seguro: regra igual não removida é pulada.
+ */
+export async function applyRulePackAction(): Promise<RulePackState> {
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };
+  const context = { accessToken: token };
+
+  let created = 0;
+  try {
+    const [categories, rules] = await Promise.all([
+      listAllPages((query) => listCategories(query, context)),
+      listAllPages((query) => listCategoryRules(query, context)),
+    ]);
+    const { toCreate, missingCategories } = rulesToCreate(categories.items, rules.items);
+    for (const rule of toCreate) {
+      await createCategoryRule(
+        {
+          categoryId: rule.categoryId,
+          conditionField: "description",
+          conditionOperator: "contains",
+          conditionValue: rule.conditionValue,
+          priority: rule.priority,
+        },
+        context,
+      );
+      created += 1;
+    }
+    revalidatePath(REGRAS_PATH);
+    return { status: "done", created, missingCategories };
+  } catch (error) {
+    if (created > 0) revalidatePath(REGRAS_PATH);
+    if (isAuthFailure(error)) return { status: "error", created, message: REAUTH_MESSAGE, reauth: true };
+    return {
+      status: "error",
+      created,
+      message: `Não foi possível adicionar o pacote inteiro. ${created > 0 ? `${created} regras entraram; ` : ""}tente de novo para criar as que faltam.`,
+    };
+  }
+}
 
 export async function createRuleAction(
   _previous: RuleFormState,

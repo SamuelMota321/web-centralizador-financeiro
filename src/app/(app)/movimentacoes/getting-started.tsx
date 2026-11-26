@@ -33,7 +33,7 @@ export function onboardingSteps(state: OnboardingState): OnboardingStep[] {
     },
     {
       title: "Crie suas categorias",
-      text: "Nenhuma vem pronta: use nomes que façam sentido para você.",
+      text: "Comece pelas sugeridas ou crie as suas, com nomes que façam sentido para você.",
       done: state.hasCategory,
       action: { href: "/categorias?nova=1", label: "Criar categoria" },
     },

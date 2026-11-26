@@ -11,6 +11,7 @@ import { PAGE_SIZE, parsePageParam, totalPages } from "../movimentacoes/presenta
 import { CategoryForm } from "./category-form";
 import { CategoryItem } from "./category-item";
 import { isNoticeKey, NOTICES } from "./notices";
+import { SuggestedCategories } from "./suggested-categories";
 import styles from "./categorias.module.css";
 
 export default async function CategoriasPage({
@@ -51,16 +52,16 @@ export default async function CategoriasPage({
         flag="nova"
         forceOpen={forceOpen}
         title="Nova categoria"
-        description="Categorias são pessoais: nenhuma vem pronta. Use nomes que façam sentido para você."
+        description="Use nomes que façam sentido para você. As sugeridas são só um ponto de partida."
         closeLabel="Fechar o painel de nova categoria"
       >
         <CategoryForm />
       </PanelSection>
 
       {categories.total === 0 ? (
-        <EmptyState icon={<IconCategories size={22} />} title="Nenhuma categoria ainda">
-          Categorias ajudam a entender para onde vai o dinheiro. Crie a primeira no painel acima e
-          atribua às suas movimentações.
+        <EmptyState icon={<IconCategories size={22} />} title="Nenhuma categoria ainda" action={<SuggestedCategories />}>
+          Categorias ajudam a entender para onde vai o dinheiro. Crie a sua no painel acima ou use um
+          conjunto básico pronto.
         </EmptyState>
       ) : categories.items.length === 0 ? (
         <EmptyState

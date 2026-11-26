@@ -2,16 +2,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath } from "next/cache";
 import { auth0 } from "@/lib/auth0";
 import { ProblemDetailsError, type ProblemDetails } from "@/lib/api/errors";
+import { listCategories } from "@/lib/categories/api";
 import {
   activateCategoryRule,
   createCategoryRule,
   deactivateCategoryRule,
+  listCategoryRules,
   removeCategoryRule,
   updateCategoryRule,
 } from "@/lib/category-rules/api";
 import type { CategoryRule } from "@/lib/category-rules/types";
 import {
   activateRuleAction,
+  applyRulePackAction,
   createRuleAction,
   deactivateRuleAction,
   removeRuleAction,
@@ -26,7 +29,9 @@ vi.mock("next/navigation", () => ({
     throw new Error(`NEXT_REDIRECT ${url}`);
   }),
 }));
+vi.mock("@/lib/categories/api", () => ({ listCategories: vi.fn() }));
 vi.mock("@/lib/category-rules/api", () => ({
+  listCategoryRules: vi.fn(),
   createCategoryRule: vi.fn(),
   updateCategoryRule: vi.fn(),
   activateCategoryRule: vi.fn(),
@@ -245,5 +250,44 @@ describe("ciclo de vida", () => {
     vi.mocked(activateCategoryRule).mockRejectedValue(problem(status, code));
 
     expect(await activateRuleAction(RULE_ID)).toMatchObject({ reauth: true });
+  });
+});
+
+describe("applyRulePackAction", () => {
+  const transporte = { id: CATEGORY_ID, name: "Transporte", source: "user" as const, status: "active" as const, archivedAt: null, createdAt: "2026-09-20T12:00:00.000Z", updatedAt: "2026-09-20T12:00:00.000Z" };
+
+  beforeEach(() => {
+    vi.mocked(createCategoryRule).mockReset().mockResolvedValue(original);
+    vi.mocked(listCategories).mockReset().mockResolvedValue({ items: [transporte], page: 1, pageSize: 100, total: 1 });
+    vi.mocked(listCategoryRules).mockReset().mockResolvedValue({
+      items: [{ ...original, conditionValue: "uber" }],
+      page: 1,
+      pageSize: 100,
+      total: 1,
+    });
+  });
+
+  it("cria as regras que faltam para categorias ativas e lista as categorias ausentes", async () => {
+    const result = await applyRulePackAction();
+
+    expect(result.status).toBe("done");
+    if (result.status !== "done") return;
+    expect(result.missingCategories).toContain("Alimentação");
+    expect(createCategoryRule).not.toHaveBeenCalledWith(expect.objectContaining({ conditionValue: "uber" }), expect.anything());
+    expect(createCategoryRule).toHaveBeenCalledWith(
+      { categoryId: CATEGORY_ID, conditionField: "description", conditionOperator: "contains", conditionValue: "99app", priority: 10 },
+      { accessToken: "token-ficticio" },
+    );
+    expect(result.created).toBe(vi.mocked(createCategoryRule).mock.calls.length);
+  });
+
+  it("para na primeira falha e informa quantas entraram", async () => {
+    vi.mocked(createCategoryRule).mockResolvedValueOnce(original).mockRejectedValueOnce(new Error("falha"));
+    expect(await applyRulePackAction()).toMatchObject({ status: "error", created: 1 });
+  });
+
+  it("pede para entrar de novo sem sessão", async () => {
+    vi.mocked(auth0.getAccessToken).mockRejectedValue(new Error("sem sessão"));
+    expect(await applyRulePackAction()).toMatchObject({ status: "error", reauth: true, created: 0 });
   });
 });
