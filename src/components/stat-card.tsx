@@ -12,6 +12,8 @@ export function StatCard({
   value,
   meta,
   share,
+  trend,
+  tone,
 }: {
   icon?: ReactNode;
   label: string;
@@ -19,9 +21,13 @@ export function StatCard({
   meta?: ReactNode;
   /** Parte do total, de 0 a 1. */
   share?: number;
+  /** Minigráfico decorativo à direita; o valor e a linha de apoio dizem o mesmo em texto. */
+  trend?: ReactNode;
+  /** Reforço de cor no ícone e no minigráfico; o texto continua dizendo a direção. */
+  tone?: "positive" | "negative";
 }) {
   return (
-    <div className={ui.statCard}>
+    <div className={ui.statCard} data-tone={tone}>
       {icon ? <span className={ui.statIcon}>{icon}</span> : null}
       <div className={ui.statBody}>
         <p className={ui.statLabel}>{label}</p>
@@ -33,6 +39,11 @@ export function StatCard({
           </span>
         ) : null}
       </div>
+      {trend ? (
+        <div className={ui.statTrend} aria-hidden>
+          {trend}
+        </div>
+      ) : null}
     </div>
   );
 }

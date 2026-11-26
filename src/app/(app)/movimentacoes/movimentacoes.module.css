@@ -10,20 +10,28 @@
   gap: var(--space-3);
 }
 
-/* ---------- Histórico agrupado por dia, em um único painel ---------- */
+/* ---------- Histórico em tabela única ---------- */
 .historyPanel {
+  overflow: clip;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
 }
 
-/* Cabeçalho de tabela: mesmas colunas da linha (Style Guide 2.0). */
-.listHead {
+/* Colunas: data | movimentação | conta | categoria | tipo | valor | status | ações. */
+.listHead,
+.row {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(8rem, auto);
+  grid-template-columns:
+    6.25rem minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.1fr) 7.5rem minmax(7.5rem, auto)
+    minmax(8.5rem, 0.9fr) 2.5rem;
   align-items: center;
   column-gap: var(--space-4);
-  min-height: 32px;
+}
+
+/* Cabeçalho técnico da tabela (Style Guide 2.0). */
+.listHead {
+  min-height: 36px;
   padding: 0 16px;
   border-bottom: 1px solid var(--line);
   color: var(--muted);
@@ -33,53 +41,21 @@
   text-transform: uppercase;
 }
 
-.listHead > :last-child {
+.listHead > :nth-child(6) {
   text-align: right;
 }
 
-/* O dia fica preso ao topo enquanto suas movimentações rolam por baixo. */
-.dayHeader {
-  position: sticky;
-  top: var(--sticky-top);
-  z-index: var(--z-sticky);
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface-sunken);
-  color: var(--body-text);
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: 0;
-}
-
-.historyPanel > section + section .dayHeader {
-  border-top: 1px solid var(--line);
-}
-
-.dayDetail {
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.dayList {
+.rows {
   list-style: none;
 }
 
-.dayList > li + li {
+.rows > li + li {
   border-top: 1px solid var(--line);
 }
 
-.historyPanel > section:last-child .dayList > li:last-child {
-  border-radius: 0 0 var(--radius-panel) var(--radius-panel);
-}
-
-/* Colunas: movimentação | categoria | valor (style guide, "Atividade recente"). */
 .row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) minmax(8rem, auto);
-  align-items: center;
-  column-gap: var(--space-4);
   row-gap: var(--space-2);
-  min-height: 48px;
+  min-height: 56px;
   padding: 8px 16px;
   transition: background-color var(--motion-hover) ease;
 }
@@ -109,6 +85,12 @@
   }
 }
 
+.rowDate {
+  color: var(--body-text);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
 .rowMain {
   display: flex;
   align-items: center;
@@ -116,7 +98,6 @@
   min-width: 0;
 }
 
-/* Direção como glifo, sem círculo de fundo: o sinal do valor continua sendo o dado. */
 .rowText {
   min-width: 0;
 }
@@ -131,7 +112,6 @@
 
 .rowTitleMuted {
   color: var(--muted);
-  font-weight: 600;
 }
 
 .rowMeta {
@@ -142,12 +122,70 @@
   white-space: nowrap;
 }
 
-.rowCategory {
+.rowAccount {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 6px 12px;
+  gap: var(--space-2);
   min-width: 0;
+}
+
+.rowAccountName {
+  overflow: hidden;
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowCategory {
+  min-width: 0;
+}
+
+/* Chip na cor fixa da categoria: fundo tingido, texto legível nos dois temas. */
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 10px 3px 8px;
+  border: 1px solid color-mix(in srgb, var(--chip-color, var(--muted)) 35%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--chip-color, var(--muted)) 12%, transparent);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.categoryChipLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Tipo: o texto diz a natureza; a cor só reforça. */
+.typeTag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
+  color: var(--body-text);
+  font-size: 0.75rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.typeTag[data-type="income"] {
+  border-color: color-mix(in srgb, var(--positive) 35%, transparent);
+  background: color-mix(in srgb, var(--positive) 12%, transparent);
+  color: var(--positive);
+}
+
+.typeTag[data-type="expense"] {
+  border-color: color-mix(in srgb, var(--negative) 35%, transparent);
+  background: color-mix(in srgb, var(--negative) 12%, transparent);
+  color: var(--negative);
 }
 
 /* O valor é o dado mais forte da linha. */
@@ -163,21 +201,89 @@
   color: var(--positive);
 }
 
-/* Telas estreitas: descrição e valor na primeira linha, categoria embaixo. */
-@media (max-width: 48rem) {
+.rowStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+/* Conta e tipo voltam para a linha de apoio quando as colunas somem. */
+.compactOnly {
+  display: none;
+}
+
+/* Rodapé: quantos aparecem e as páginas. */
+.historyFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.historyFooter nav {
+  margin: 0;
+}
+
+.windowNote {
+  font-size: 0.8125rem;
+}
+
+/* Desktop estreito: sem conta e tipo (voltam para a linha de apoio). */
+@media (max-width: 80rem) {
+  .listHead,
   .row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 8px 16px;
+    grid-template-columns: 6.25rem minmax(0, 1.6fr) minmax(0, 1.1fr) minmax(7.5rem, auto) minmax(8.5rem, 0.9fr) 2.5rem;
   }
 
+  .rowAccount,
+  .rowType,
+  .listHead > :nth-child(3),
+  .listHead > :nth-child(5) {
+    display: none;
+  }
+
+  .listHead > :nth-child(6) {
+    text-align: right;
+  }
+}
+
+/* Tablet: a data também vai para a linha de apoio. */
+@media (max-width: 64rem) {
+  .listHead,
+  .row {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(7.5rem, auto) minmax(8rem, 0.9fr) 2.5rem;
+  }
+
+  .rowDate,
+  .listHead > :nth-child(1) {
+    display: none;
+  }
+
+  .compactOnly {
+    display: inline;
+  }
+}
+
+/* Celular: descrição e valor na primeira linha; categoria e status embaixo. */
+@media (max-width: 48rem) {
   .listHead {
     display: none;
   }
 
-  .rowCategory {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    padding-left: 32px;
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .rowMain {
+    grid-column: 1;
+    grid-row: 1;
   }
 
   .rowAmount {
@@ -185,8 +291,25 @@
     grid-row: 1;
   }
 
-  .dayHeader {
-    padding: 6px 16px;
+  .rowActionsCell {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .rowCategory,
+  .rowStatus {
+    grid-row: 2;
+    padding-left: 44px;
+  }
+
+  .rowCategory {
+    grid-column: 1;
+  }
+
+  .rowStatus {
+    grid-column: 2 / -1;
+    justify-content: flex-end;
+    padding-left: 0;
   }
 }
 
@@ -338,4 +461,48 @@
   .row[data-recent] {
     animation-duration: var(--motion-arrival) !important;
   }
+}
+
+/* ---------- Cabeçalho do histórico com busca ---------- */
+.historyTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.historyTitle {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.historyTop > form {
+  flex: 1 1 32rem;
+  justify-content: flex-end;
+}
+
+/* Período personalizado dentro do painel "Filtros". */
+.dateRange {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  border: 0;
+}
+
+.dateRangeFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.dateField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }

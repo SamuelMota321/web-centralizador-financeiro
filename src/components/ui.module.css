@@ -422,12 +422,21 @@
   transition: color var(--motion-hover) ease;
 }
 
-.segment[aria-pressed="true"] {
+.segment[aria-pressed="true"],
+.segment[aria-current="true"] {
   color: var(--foreground);
 }
 
+/* Segmento como link: centraliza o texto como o botão. */
+a.segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
-  .segment:hover:not([aria-pressed="true"]) {
+  .segment:hover:not([aria-pressed="true"]):not([aria-current="true"]) {
     color: var(--body-text);
   }
 }
@@ -1232,6 +1241,42 @@
   background: var(--primary);
 }
 
+.statCard[data-tone="positive"] .statIcon {
+  background: color-mix(in srgb, var(--positive) 14%, transparent);
+  color: var(--positive);
+}
+
+.statCard[data-tone="negative"] .statIcon {
+  background: color-mix(in srgb, var(--negative) 14%, transparent);
+  color: var(--negative);
+}
+
+.statTrend {
+  flex: none;
+  align-self: flex-end;
+  width: 120px;
+  color: var(--primary);
+}
+
+.statCard[data-tone="negative"] .statTrend {
+  color: var(--negative);
+}
+
+/* O minigráfico herda a cor do card (verde ou vermelho); fora daqui ele é neutro. */
+.statTrend svg path {
+  stroke: currentColor;
+}
+
+.statTrend svg circle {
+  fill: currentColor;
+}
+
+@media (max-width: 40rem) {
+  .statTrend {
+    display: none;
+  }
+}
+
 /* ---------- Monograma (no lugar de logos) ---------- */
 .monogram {
   display: inline-flex;
@@ -1263,8 +1308,8 @@
 }
 
 .toolbarFilter {
-  flex: 0 1 12rem;
-  width: auto;
+  flex: 0 1 11rem;
+  min-width: 9rem;
 }
 
 /* Cabeçalho de grupo dentro de uma lista, ex.: "Bancos (2)". */
@@ -1282,4 +1327,50 @@
 .groupCount {
   color: var(--muted);
   font-weight: 600;
+}
+
+/* Painel "Filtros" da barra de busca: recolhível, sem JavaScript. */
+.toolbarMore {
+  position: relative;
+}
+
+.toolbarMore > summary {
+  list-style: none;
+}
+
+.toolbarMore > summary::-webkit-details-marker {
+  display: none;
+}
+
+.toolbarMore[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.toolbarBadge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--primary-tint);
+  color: var(--primary);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.toolbarMorePanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-topbar);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(20rem, calc(100vw - 2rem));
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
 }

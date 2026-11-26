@@ -128,7 +128,7 @@ export default async function ContasPage({
                 search={filters.search}
                 placeholder="Buscar por nome ou instituição"
                 active={filtering}
-                filter={{
+                filters={[{
                   name: "grupo",
                   label: "Grupo de contas",
                   value: filters.group ? GROUP_SLUGS[filters.group] : "",
@@ -136,7 +136,7 @@ export default async function ContasPage({
                     { value: "", label: "Todos os grupos" },
                     ...ACCOUNT_GROUPS.map((group) => ({ value: GROUP_SLUGS[group], label: GROUP_LABELS[group] })),
                   ],
-                }}
+                }]}
               />
             </div>
 

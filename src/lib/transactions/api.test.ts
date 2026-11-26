@@ -4,6 +4,7 @@ import {
   createTransaction,
   createTransfer,
   listTransactions,
+  listTransactionsSince,
   updateTransactionCategory,
 } from "./api";
 
@@ -136,6 +137,40 @@ describe("listTransactions", () => {
     const fetchMock = stubFetch(200, {});
     await expect(listTransactions({ pageSize: 101 }, context)).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("listTransactionsSince", () => {
+  function pageOf(dates: string[], total: number) {
+    return { items: dates.map((occurredOn) => view({ occurredOn })), page: 1, pageSize: 100, total };
+  }
+
+  it("para na primeira data anterior ao início e devolve só o período", async () => {
+    const first = Array.from({ length: 100 }, () => "2026-11-20");
+    const second = ["2026-11-02", "2026-11-01", "2026-10-31", "2026-10-30"];
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(pageOf(first, 104))))
+      .mockResolvedValueOnce(new Response(JSON.stringify(pageOf(second, 104))));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await listTransactionsSince("2026-11-01", context);
+    expect(result.complete).toBe(true);
+    expect(result.items).toHaveLength(102);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("termina quando o histórico acaba antes do início", async () => {
+    stubFetch(200, pageOf(["2026-11-20"], 1));
+    expect(await listTransactionsSince("2026-01-01", context)).toMatchObject({ complete: true, items: [expect.anything()] });
+  });
+
+  it("marca incompleto quando o teto corta o período", async () => {
+    const full = Array.from({ length: 100 }, () => "2026-11-20");
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(pageOf(full, 1000)))));
+    const result = await listTransactionsSince("2026-01-01", context, 200);
+    expect(result.complete).toBe(false);
+    expect(result.items).toHaveLength(200);
   });
 });
 
