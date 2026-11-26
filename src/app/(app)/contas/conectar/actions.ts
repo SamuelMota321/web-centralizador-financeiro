@@ -1,10 +1,13 @@
 "use server";
 
 import { z } from "zod";
+import { listAccounts } from "@/lib/accounts/api";
+import type { Account } from "@/lib/accounts/types";
 import {
   completePluggyConnection,
   disconnectConnection,
   getConnection,
+  mapPluggyAccount,
   startPluggySession,
 } from "@/lib/connections/api";
 import { connectionErrorMessage } from "@/lib/connections/messages";
@@ -12,6 +15,7 @@ import { isAccessDenied } from "@/lib/connections/resume-pointer";
 import { getLatestSyncRuns, getSyncRun, isTrustedStatusUrl, requestSyncRun, requestUpdateSession } from "@/lib/sync-runs/api";
 import type { SyncRun } from "@/lib/sync-runs/types";
 import { clearResumePointer, saveResumePointer } from "@/lib/connections/resume-store";
+import { type AccountMappingChoice, accountMappingInputSchema, type InitialImport } from "@/lib/connections/schema";
 import type { Connection } from "@/lib/connections/types";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
@@ -104,6 +108,51 @@ async function withConnection(
 function failure(error: unknown, fallback: string): ActionError {
   if (isAuthFailure(error)) return { status: "error", message: SESSION_EXPIRED, reauth: true };
   return { status: "error", message: connectionErrorMessage(error, fallback) };
+}
+
+// ---------- Mapeamento de contas da importação inicial ----------
+
+export type MappingResult = { status: "ok"; initialImport: InitialImport } | ActionError;
+export type LinkableAccountsResult = { status: "ok"; accounts: Account[] } | ActionError;
+
+/** Teto da API para uma página de contas; acima disso a lista de vínculo fica parcial. */
+const LINKABLE_PAGE_SIZE = 100;
+
+/**
+ * Liga uma conta do banco a uma conta manual existente ou cria uma conta conectada. Ids e escolha
+ * vêm do navegador e são validados aqui; o backend confere a posse de cada um.
+ */
+export async function mapAccountAction(
+  connectionId: string,
+  providerAccountId: string,
+  choice: AccountMappingChoice,
+): Promise<MappingResult> {
+  const providerId = uuidSchema.safeParse(providerAccountId);
+  const parsedChoice = accountMappingInputSchema.safeParse(choice);
+  if (!providerId.success || !parsedChoice.success) {
+    return { status: "error", message: "Escolha uma opção válida para esta conta." };
+  }
+  return withSyncToken(
+    connectionId,
+    async (id, context) =>
+      ({ status: "ok", initialImport: (await mapPluggyAccount(id, providerId.data, parsedChoice.data, context)).initialImport }) as const,
+    "Não foi possível vincular a conta. Tente de novo.",
+  );
+}
+
+/** Só contas manuais ativas recebem vínculo: as conectadas já pertencem a outra conta do banco. */
+export async function listLinkableAccountsAction(): Promise<LinkableAccountsResult> {
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", message: SESSION_EXPIRED, reauth: true };
+  try {
+    const page = await listAccounts({ page: 1, pageSize: LINKABLE_PAGE_SIZE }, { accessToken: token });
+    return {
+      status: "ok",
+      accounts: page.items.filter((account) => account.origin === "manual" && account.archivedAt === null),
+    };
+  } catch (error) {
+    return failure(error, "Não foi possível carregar suas contas.");
+  }
 }
 
 // ---------- HU-008: sincronização manual ----------

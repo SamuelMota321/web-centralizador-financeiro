@@ -1,6 +1,7 @@
 import type { ChipTone, NoticeTone } from "@/components/ui";
 import type { Connection, ConnectionStatus } from "@/lib/connections/types";
 import type { InitialImport } from "@/lib/connections/schema";
+import { TYPE_LABELS } from "../account-type-labels";
 
 export interface StatusView {
   label: string;
@@ -137,4 +138,31 @@ export function consentSummary(connection: Pick<Connection, "consent">): Consent
     grantedAt: consent.grantedAt ? formatTimestamp(consent.grantedAt) : null,
     expiresAt: consent.expiresAt ? formatTimestamp(consent.expiresAt) : null,
   };
+}
+
+export type ProviderAccount = InitialImport["accountMapping"]["accounts"][number];
+
+/** A tela de vínculo só existe enquanto a importação espera essa escolha. */
+export function needsAccountMapping(initialImport: InitialImport | null | undefined): initialImport is InitialImport {
+  return initialImport?.status === "awaiting_account_mapping";
+}
+
+export function providerAccountTypeLabel(type: ProviderAccount["accountType"]): string {
+  return type ? TYPE_LABELS[type] : "Tipo não suportado";
+}
+
+/** Sem tipo reconhecido o backend não cria a conta; sobra vincular a uma existente. */
+export function canCreateFromProvider(account: ProviderAccount): boolean {
+  return account.accountType !== null && account.currencyCode === "BRL";
+}
+
+export function mappingStatusText(account: ProviderAccount): string {
+  switch (account.mappingStatus) {
+    case "pending":
+      return "Aguardando sua escolha";
+    case "mapped":
+      return "Vinculada";
+    case "unsupported":
+      return "Não suportada: esta conta não será importada";
+  }
 }

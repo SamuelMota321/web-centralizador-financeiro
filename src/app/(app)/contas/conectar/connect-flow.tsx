@@ -23,9 +23,11 @@ import {
   consentSummary,
   formatTimestamp,
   initialImportStatus,
+  needsAccountMapping,
   needsReconnect,
   statusView,
 } from "./presentation";
+import { AccountMapping } from "./account-mapping";
 import { SyncPanel } from "./sync-panel";
 import styles from "./conectar.module.css";
 
@@ -336,6 +338,13 @@ function ConnectionDetail({
 
       <Notice tone={view.noticeTone}>{view.explanation}</Notice>
       {importView ? <Notice tone={importView.tone}>{importView.message}</Notice> : null}
+      {needsAccountMapping(connection.initialImport) ? (
+        <AccountMapping
+          connectionId={connection.id}
+          initialImport={connection.initialImport}
+          onMapped={(initialImport) => onChange({ ...connection, initialImport })}
+        />
+      ) : null}
 
       <dl className={styles.summary}>
         <div className={styles.summaryItem}>

@@ -26,14 +26,14 @@ rotas novas usam esquemas inline.
 | `POST /connections/pluggy/completions` | `202` com `connection` e `initialImport`. `Idempotency-Key` obrigatória. | Envia `itemId` e a chave. Reutiliza ambos no retry e valida o corpo aceito. |
 | `GET /connections/{connectionId}` | `200` com detalhe e `initialImport` anulável | A tela consulta o detalhe e permite atualizar manualmente enquanto houver andamento. |
 | `POST /connections/{connectionId}/disconnect` | `200` com conexão | Disponível na tela de conexão. |
-| `PUT /connections/{connectionId}/accounts/{providerAccountId}/mapping` | `200` com `accountId` e `initialImport` atualizado. Corpo `link` com `accountId` ou `create`. | Está no snapshot, mas a API e a tela do web ainda não oferecem as ações de mapeamento. |
+| `PUT /connections/{connectionId}/accounts/{providerAccountId}/mapping` | `200` com `accountId` e `initialImport` atualizado. Corpo `link` com `accountId` ou `create`. | `mapPluggyAccount` em `lib/connections/api.ts`. Na etapa `awaiting_account_mapping`, a tela de conexão lista as contas do banco e oferece criar conta nova ou vincular a uma conta manual ativa (até 100 contas). |
 
 `initialImport` tem estados `queued`, `processing`, `awaiting_account_mapping`,
 `completed`, `completed_with_errors` e `failed`. O schema separa status da
 conexão, disponibilidade de contas e transações, mapeamentos e contadores.
-`awaiting_account_mapping` é uma etapa da importação inicial Pluggy. O Dev 2
-precisa implementar o consumo do mapeamento e o Dev 1 verifica os guardas de
-elegibilidade definidos em C-02. O Dev 3 registra a validação em plano próprio.
+`awaiting_account_mapping` é uma etapa da importação inicial Pluggy. O web já
+consome o mapeamento, e o Dev 1 verifica os guardas de elegibilidade definidos
+em C-02. O Dev 3 registra a validação em plano próprio.
 
 Para uma movimentação manual, o cliente envia uma chave por criação. Para
 movimentações coletadas pelo Pluggy, o backend deduplica pela identidade da
@@ -336,7 +336,7 @@ como Proposed; o que falta no contrato esta em "Divergencias e pendencias com o 
 | `POST /api/v1/connections/pluggy/completions` (JSON: `itemId`) | `completePluggyConnection()` | Approved — OpenAPI @ 605cb07 |
 | `GET /api/v1/connections/{connectionId}` | `getConnection()` | Approved — OpenAPI @ 605cb07 |
 | `POST /api/v1/connections/{connectionId}/disconnect` (sem corpo) | `disconnectConnection()` | Approved — OpenAPI @ 605cb07 |
-| `PUT /api/v1/connections/{connectionId}/accounts/{providerAccountId}/mapping` | — | contrato S3-01; fora do OpenAPI (S3-08) |
+| `PUT /api/v1/connections/{connectionId}/accounts/{providerAccountId}/mapping` (JSON: `action` `link` com `accountId` ou `create`) | `mapPluggyAccount()` | No snapshot atual (antes: contrato S3-01, fora do OpenAPI na S3-08) |
 
 Modulos: `src/lib/ingestions/` e `src/lib/connections/`. Os schemas de ingestao sao inline no OpenAPI (fora de
 `components.schemas`) e transcritos a mao. `contract.test.ts` cobre as tres operacoes: bearer,
