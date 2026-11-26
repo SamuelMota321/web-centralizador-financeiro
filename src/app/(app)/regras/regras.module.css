@@ -226,3 +226,57 @@
     gap: 2px;
   }
 }
+
+.listTitle {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.listCount {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Grupos por categoria dentro de "Regras sugeridas". */
+.packGroups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.packCategoryGroup > summary {
+  list-style: none;
+}
+
+.packCategoryGroup > summary::-webkit-details-marker {
+  display: none;
+}
+
+.packCategorySummary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+  color: var(--foreground);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.packCategorySummary::before {
+  content: "▸";
+  color: var(--muted);
+}
+
+.packCategoryGroup[open] > .packCategorySummary {
+  margin-bottom: var(--space-2);
+}
+
+.packCategoryGroup[open] > .packCategorySummary::before {
+  content: "▾";
+}

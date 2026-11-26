@@ -7,13 +7,13 @@ import {
 } from "@/components/icons";
 import { UrlNoticeToast } from "@/components/interactive";
 import { PanelToggle } from "@/components/panel";
-import { Disclosure, EmptyState, Notice, PageHeader, Pagination, ui } from "@/components/ui";
+import { Disclosure, EmptyState, Notice, PageHeader, ui } from "@/components/ui";
 import { auth0 } from "@/lib/auth0";
 import { listAccounts } from "@/lib/accounts/api";
-import { listAllPages } from "@/lib/api/pagination";
+import { listAllPages, SELECTOR_ITEM_LIMIT } from "@/lib/api/pagination";
+import { rulesToCreate, splitSuggestedRules } from "@/lib/categories/suggestions";
 import { listCategories } from "@/lib/categories/api";
 import { listCategoryRules } from "@/lib/category-rules/api";
-import { PAGE_SIZE, parsePageParam, totalPages } from "../movimentacoes/presentation";
 import { isNoticeKey, NOTICES } from "./notices";
 import { RuleCreatePanel } from "./rule-create-panel";
 import { RuleItem } from "./rule-item";
@@ -26,23 +26,24 @@ export default async function RegrasPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { aviso, pagina } = await searchParams;
+  const { aviso } = await searchParams;
   const notice = isNoticeKey(aviso) ? NOTICES[aviso] : null;
-  const page = parsePageParam(pagina);
 
   const { token } = await auth0.getAccessToken();
   const context = { accessToken: token };
 
   // Regras são o conteúdo; categorias e contas só dão nome. Falha parcial não esconde a lista.
   const [rulesResult, categoriesResult, accountsResult] = await Promise.allSettled([
-    listCategoryRules({ page, pageSize: PAGE_SIZE }, context),
+    // Todas as regras (até 500): as sugeridas são agrupadas, o que pede a lista inteira.
+    listAllPages((query) => listCategoryRules(query, context)),
     listAllPages((query) => listCategories(query, context)),
     listAllPages((query) => listAccounts(query, context)),
   ]);
 
   if (rulesResult.status === "rejected") throw rulesResult.reason;
 
-  const rules = rulesResult.value;
+  const allRules = rulesResult.value.items;
+  const rulesTruncated = rulesResult.value.truncated;
   const categories: CategoryOption[] | null =
     categoriesResult.status === "fulfilled"
       ? categoriesResult.value.items.map(({ id, name, status }) => ({ id, name, status }))
@@ -54,9 +55,11 @@ export default async function RegrasPage({
   const activeCategories = (categories ?? []).filter((category) => category.status === "active");
   const canCreate = categories !== null && accounts !== null && activeCategories.length > 0;
   // Sem nenhuma regra, o painel já começa aberto: é a próxima ação óbvia.
-  const forceOpen = canCreate && rules.total === 0;
-  const pages = totalPages(rules.total, PAGE_SIZE);
-  const pageHref = (target: number) => `/regras?pagina=${target}`;
+  const forceOpen = canCreate && allRules.length === 0;
+  const pageHref = () => "/regras";
+  // Só exibição: as regras do pacote ficam num grupo recolhido; as da pessoa aparecem abertas.
+  const { personal, suggested, suggestedCount } = splitSuggestedRules(allRules, categories);
+  const missingFromPack = categories ? rulesToCreate(categories, allRules).toCreate.length : 0;
 
   return (
     <div className={styles.page}>
@@ -65,9 +68,9 @@ export default async function RegrasPage({
       <PageHeader
         title="Regras"
         context={
-          rules.total === 0
+          allRules.length === 0
             ? "Categorize automaticamente as próximas movimentações que combinarem."
-            : `${rules.total} ${rules.total === 1 ? "regra" : "regras"} · da maior para a menor prioridade`
+            : `${allRules.length} ${allRules.length === 1 ? "regra" : "regras"} · da maior para a menor prioridade`
         }
         actions={
           canCreate ? (
@@ -82,7 +85,7 @@ export default async function RegrasPage({
       <Disclosure
         icon={<IconInfo size={18} />}
         summary="Como as regras são aplicadas"
-        defaultOpen={rules.total === 0}
+        defaultOpen={allRules.length === 0}
       >
         <ul>
           <li>Uma regra categoriza as movimentações novas que combinarem com a condição.</li>
@@ -95,13 +98,11 @@ export default async function RegrasPage({
         </ul>
       </Disclosure>
 
-      {categories !== null ? <RulePack hasActiveCategories={activeCategories.length > 0} /> : null}
-
       {categories === null || accounts === null ? (
         <Notice
           tone="warning"
           actions={
-            <Link className={ui.inlineLink} href={pageHref(page)}>
+            <Link className={ui.inlineLink} href={pageHref()}>
               Tentar de novo
             </Link>
           }
@@ -131,27 +132,22 @@ export default async function RegrasPage({
         <RuleCreatePanel categories={activeCategories} accounts={accounts} forceOpen={forceOpen} />
       ) : null}
 
-      {rules.total === 0 ? (
-        canCreate ? (
+      {rulesTruncated ? (
+        <Notice tone="info">Você tem mais de {SELECTOR_ITEM_LIMIT} regras: a lista mostra só as primeiras.</Notice>
+      ) : null}
+
+      {personal.length === 0 ? (
+        canCreate && suggestedCount === 0 ? (
           <EmptyState icon={<IconRules size={22} />} title="Nenhuma regra ainda">
             Uma regra pessoal diz, por exemplo: “se a descrição contém mercado, use Alimentação”.
-            Crie a primeira no painel acima.
+            Crie a primeira no painel acima ou adicione o pacote de regras sugeridas abaixo.
           </EmptyState>
         ) : null
-      ) : rules.items.length === 0 ? (
-        <EmptyState
-          icon={<IconRules size={22} />}
-          title="Esta página não existe"
-          action={
-            <Link className={`${ui.button} ${ui.secondary}`} href="/regras">
-              Voltar para a primeira página
-            </Link>
-          }
-        >
-          A lista tem {pages} {pages === 1 ? "página" : "páginas"}.
-        </EmptyState>
       ) : (
-        <section className={styles.list} aria-label="Suas regras">
+        <section className={styles.list} aria-labelledby="suas-regras">
+          <h2 className={styles.listTitle} id="suas-regras">
+            Suas regras <span className={styles.listCount}>({personal.length})</span>
+          </h2>
           <div className={styles.listHead} aria-hidden>
             <span>Regra</span>
             <span>Prioridade</span>
@@ -159,20 +155,24 @@ export default async function RegrasPage({
             <span />
           </div>
           <ul className={ui.list}>
-            {rules.items.map((rule) => (
+            {personal.map((rule) => (
               // `updatedAt` na chave remonta o item após editar, fechando o painel.
-              <RuleItem
-                key={`${rule.id}:${rule.updatedAt}`}
-                rule={rule}
-                categories={categories}
-                accounts={accounts}
-              />
+              <RuleItem key={`${rule.id}:${rule.updatedAt}`} rule={rule} categories={categories} accounts={accounts} />
             ))}
           </ul>
-
-          <Pagination page={page} pages={pages} href={pageHref} label="Páginas de regras" />
         </section>
       )}
+
+      {categories !== null ? (
+        <RulePack
+          hasActiveCategories={activeCategories.length > 0}
+          groups={suggested}
+          count={suggestedCount}
+          missing={missingFromPack}
+          categories={categories}
+          accounts={accounts}
+        />
+      ) : null}
     </div>
   );
 }

@@ -8,14 +8,14 @@ import styles from "./regras.module.css";
 
 const INITIAL: RulePackState = { status: "idle" };
 
-export function RulePackButton() {
+export function RulePackButton({ missing }: { missing: number }) {
   const [state, action, pending] = useActionState(applyRulePackAction, INITIAL);
 
   return (
     <form action={action} className={styles.packAction}>
       <div>
         <button className={`${ui.button} ${ui.secondary}`} type="submit" disabled={pending} aria-busy={pending}>
-          <PendingLabel pending={pending} idle="Adicionar as regras que faltam" busy="Adicionando…" />
+          <PendingLabel pending={pending} idle={`Adicionar ${missing === 1 ? "a regra que falta" : `as ${missing} regras que faltam`}`} busy="Adicionando…" />
         </button>
       </div>
       {state.status === "done" ? (
