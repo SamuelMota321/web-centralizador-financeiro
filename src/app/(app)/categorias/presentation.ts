@@ -9,10 +9,16 @@ export const SORTS = { uso: "Mais usadas", nome: "Nome (A–Z)", recentes: "Mais
 export type CategorySort = keyof typeof SORTS;
 const PRESET_MONTHS: Record<PeriodPreset, number> = { "1m": 1, "3m": 3, "6m": 6, "12m": 12 };
 
+/** Categorias por página, nas ativas e nas arquivadas. */
+export const CATEGORIES_PAGE_SIZE = 10;
+
 export interface CategoryParams {
   period: PeriodPreset;
   search: string;
   sort: CategorySort;
+  page: number;
+  /** Página das arquivadas (lista à parte). */
+  archivedPage: number;
 }
 
 function firstParam(value: string | string[] | undefined): string {
@@ -28,6 +34,8 @@ export function parseCategoryParams(params: {
   periodo?: string | string[];
   busca?: string | string[];
   ordem?: string | string[];
+  pagina?: string | string[];
+  arquivadas?: string | string[];
 }): CategoryParams {
   const period = firstParam(params.periodo);
   const sort = firstParam(params.ordem);
@@ -35,15 +43,33 @@ export function parseCategoryParams(params: {
     period: hasKey(PERIOD_PRESETS, period) ? period : DEFAULT_PERIOD,
     search: firstParam(params.busca).trim().slice(0, 80),
     sort: hasKey(SORTS, sort) ? sort : "uso",
+    page: pageNumber(firstParam(params.pagina)),
+    archivedPage: pageNumber(firstParam(params.arquivadas)),
   };
 }
 
+function pageNumber(value: string): number {
+  return /^[1-9]\d{0,4}$/.test(value) ? Number(value) : 1;
+}
+
+/** Recorta a página pedida; página além do fim vale a última. */
+export function paginate<T>(items: readonly T[], page: number, size = CATEGORIES_PAGE_SIZE): { items: T[]; page: number; pages: number } {
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  const current = Math.min(page, pages);
+  return { items: items.slice((current - 1) * size, current * size), page: current, pages };
+}
+
+/** Mudar período, busca ou ordem volta às primeiras páginas; só trocar de página as mantém. */
 export function categoriesHref(params: CategoryParams, overrides: Partial<CategoryParams> = {}): string {
-  const next = { ...params, ...overrides };
+  const next = { ...params, page: 1, archivedPage: 1, ...overrides };
+  if (!("archivedPage" in overrides) && "page" in overrides) next.archivedPage = params.archivedPage;
+  if (!("page" in overrides) && "archivedPage" in overrides) next.page = params.page;
   const query = new URLSearchParams();
   if (next.period !== DEFAULT_PERIOD) query.set("periodo", next.period);
   if (next.search) query.set("busca", next.search);
   if (next.sort !== "uso") query.set("ordem", next.sort);
+  if (next.page > 1) query.set("pagina", String(next.page));
+  if (next.archivedPage > 1) query.set("arquivadas", String(next.archivedPage));
   const text = query.toString();
   return text ? `/categorias?${text}` : "/categorias";
 }
@@ -148,6 +174,31 @@ export function usageFigure(usage: CategoryUsage | undefined, totalExpense: bigi
     return { kind: "gasto", value: fromCents(usage.expense), share: formatShare(fromCents(usage.expense), fromCents(totalExpense)) };
   }
   return { kind: "recebido", value: fromCents(usage.income), share: null };
+}
+
+// ---------- Sugeridas ----------
+
+export interface SuggestionTileData {
+  name: string;
+  color: string | null;
+  state: "added" | "archived" | "missing";
+}
+
+/** As sugeridas com o estado de cada uma (nome exato, como o índice único do banco). */
+export function suggestionTiles(
+  suggested: readonly string[],
+  categories: readonly { id: string; name: string; status: "active" | "archived" }[],
+  colors: ReadonlyMap<string, string>,
+): SuggestionTileData[] {
+  const byName = new Map(categories.map((category) => [category.name, category]));
+  return suggested.map((name) => {
+    const found = byName.get(name);
+    return {
+      name,
+      color: found ? (colors.get(found.id) ?? null) : null,
+      state: !found ? "missing" : found.status === "archived" ? "archived" : "added",
+    };
+  });
 }
 
 // ---------- A revisar ----------

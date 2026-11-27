@@ -7,9 +7,11 @@ import {
   expenseShare,
   parseCategoryParams,
   periodRange,
+  paginate,
   periodUsage,
   reviewHref,
   rulesPerCategory,
+  suggestionTiles,
   usageFigure,
 } from "./presentation";
 
@@ -39,8 +41,8 @@ const cat = (categoryId: string) => ({ categoryId, categorizationStatus: "catego
 
 describe("parâmetros", () => {
   it("lê período, busca e ordem; valores desconhecidos voltam ao padrão", () => {
-    expect(parseCategoryParams({ periodo: "3m", busca: " mer ", ordem: "nome" })).toEqual({ period: "3m", search: "mer", sort: "nome" });
-    expect(parseCategoryParams({ periodo: "tudo", ordem: "toString" })).toEqual({ period: "1m", search: "", sort: "uso" });
+    expect(parseCategoryParams({ periodo: "3m", busca: " mer ", ordem: "nome" })).toEqual({ period: "3m", search: "mer", sort: "nome", page: 1, archivedPage: 1 });
+    expect(parseCategoryParams({ periodo: "tudo", ordem: "toString" })).toEqual({ period: "1m", search: "", sort: "uso", page: 1, archivedPage: 1 });
   });
 
   it("monta a URL omitindo os padrões", () => {
@@ -133,5 +135,40 @@ describe("lista", () => {
     const reduced = downsample(Array.from({ length: 366 }, (_, i) => i));
     expect(reduced).toHaveLength(30);
     expect([reduced[0], reduced.at(-1)]).toEqual([0, 365]);
+  });
+});
+
+describe("paginação", () => {
+  it("10 por página; página além do fim vale a última; vazio tem uma página", () => {
+    const items = Array.from({ length: 23 }, (_, i) => i);
+    expect(paginate(items, 1)).toMatchObject({ pages: 3, page: 1, items: items.slice(0, 10) });
+    expect(paginate(items, 3).items).toEqual([20, 21, 22]);
+    expect(paginate(items, 99)).toMatchObject({ page: 3 });
+    expect(paginate([], 1)).toEqual({ items: [], page: 1, pages: 1 });
+  });
+
+  it("URL: trocar de página mantém a outra lista; mudar filtro volta ao início", () => {
+    const base = parseCategoryParams({ pagina: "2", arquivadas: "3", periodo: "3m" });
+    expect(base).toMatchObject({ page: 2, archivedPage: 3 });
+    expect(categoriesHref(base, { page: 3 })).toBe("/categorias?periodo=3m&pagina=3&arquivadas=3");
+    expect(categoriesHref(base, { search: "x" })).toBe("/categorias?periodo=3m&busca=x");
+    expect(parseCategoryParams({ pagina: "0", arquivadas: "abc" })).toMatchObject({ page: 1, archivedPage: 1 });
+  });
+});
+
+describe("sugeridas", () => {
+  const names = ["Alimentação", "Mercado", "Moradia"];
+  const colors = new Map([["a", "var(--cat-1)"]]);
+
+  it("faltando, adicionada e arquivada; adicionar uma a mais muda só aquela", () => {
+    const before = suggestionTiles(names, [{ id: "a", name: "Alimentação", status: "active" }, { id: "m", name: "Mercado", status: "archived" }], colors);
+    expect(before.map((tile) => tile.state)).toEqual(["added", "archived", "missing"]);
+    expect(before[0].color).toBe("var(--cat-1)");
+    const after = suggestionTiles(
+      names,
+      [{ id: "a", name: "Alimentação", status: "active" }, { id: "m", name: "Mercado", status: "archived" }, { id: "o", name: "Moradia", status: "active" }],
+      colors,
+    );
+    expect(after.map((tile) => tile.state)).toEqual(["added", "archived", "added"]);
   });
 });

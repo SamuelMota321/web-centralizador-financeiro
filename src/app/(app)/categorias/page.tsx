@@ -7,7 +7,7 @@ import { UrlNoticeToast } from "@/components/interactive";
 import { ListToolbar, SegmentedLinks } from "@/components/list-toolbar";
 import { PanelSection, PanelToggle } from "@/components/panel";
 import { SectionPanel } from "@/components/section-panel";
-import { Notice, PageHeader, ui } from "@/components/ui";
+import { Notice, PageHeader, Pagination, ui } from "@/components/ui";
 import { listAllPages, SELECTOR_ITEM_LIMIT } from "@/lib/api/pagination";
 import { auth0 } from "@/lib/auth0";
 import { listCategories } from "@/lib/categories/api";
@@ -26,6 +26,7 @@ import {
   categoriesHref,
   DEFAULT_PERIOD,
   expenseShare,
+  paginate,
   parseCategoryParams,
   periodLabel,
   periodRange,
@@ -33,10 +34,11 @@ import {
   reviewHref,
   rulesPerCategory,
   SORTS,
+  suggestionTiles,
   usageFigure,
 } from "./presentation";
 import { RulesIllustration } from "./rules-illustration";
-import { AddMissingButton, SuggestedTiles, type SuggestionTile } from "./suggested-tiles";
+import { AddMissingButton, SuggestedTiles } from "./suggested-tiles";
 import styles from "./categorias.module.css";
 
 export default async function CategoriasPage({
@@ -75,23 +77,18 @@ export default async function CategoriasPage({
 
   const active = categories.filter((category) => category.status === "active");
   const archived = categories.filter((category) => category.status === "archived");
-  const shown = arrangeCategories(active, usage?.byCategory ?? null, params.search, params.sort);
-  const shownArchived = arrangeCategories(archived, usage?.byCategory ?? null, params.search, "nome");
+  const arranged = arrangeCategories(active, usage?.byCategory ?? null, params.search, params.sort);
+  const arrangedArchived = arrangeCategories(archived, usage?.byCategory ?? null, params.search, "nome");
+  const activePage = paginate(arranged, params.page);
+  const archivedPage = paginate(arrangedArchived, params.archivedPage);
+  const shown = activePage.items;
+  const shownArchived = archivedPage.items;
   const missing = categoriesToCreate(categories);
   const withoutRules = ruleCounts ? active.filter((category) => !ruleCounts.get(category.id)).length : 0;
   const periodName = periodLabel(params.period);
   const filtering = params.search !== "" || params.sort !== "uso";
 
-  // As 12 sugeridas com o estado de cada uma (o nome exato, como o índice único do banco).
-  const byName = new Map(categories.map((category) => [category.name, category]));
-  const tiles: SuggestionTile[] = SUGGESTED_CATEGORIES.map((name) => {
-    const found = byName.get(name);
-    return {
-      name,
-      color: found ? (colors.get(found.id) ?? null) : null,
-      state: !found ? "missing" : found.status === "archived" ? "archived" : "added",
-    };
-  });
+  const tiles = suggestionTiles(SUGGESTED_CATEGORIES, categories, colors);
 
   const movementsHref = (id: string) =>
     `/movimentacoes?categoria=${id.toLowerCase()}${params.period !== DEFAULT_PERIOD ? `&periodo=${params.period}` : ""}`;
@@ -174,7 +171,7 @@ export default async function CategoriasPage({
         id="suas-categorias"
         icon={<IconTag size={22} />}
         title="Suas categorias"
-        count={active.length}
+        count={arranged.length}
         actions={
           total > 0 ? (
             <>
@@ -216,7 +213,7 @@ export default async function CategoriasPage({
 
         {total === 0 ? (
           <p className={styles.tableEmpty}>Nenhuma categoria ainda. Adicione as sugeridas acima ou crie a sua em “Nova categoria”.</p>
-        ) : shown.length === 0 ? (
+        ) : arranged.length === 0 ? (
           <p className={styles.tableEmpty}>
             Nenhuma categoria ativa combina com a busca.{" "}
             <Link className={ui.inlineLink} href={categoriesHref(params, { search: "" })}>
@@ -263,16 +260,22 @@ export default async function CategoriasPage({
             ) : usage ? (
               <p className={styles.tableFoot}>Nenhuma despesa em {periodName}.</p>
             ) : null}
+            <Pagination
+              page={activePage.page}
+              pages={activePage.pages}
+              href={(page) => categoriesHref(params, { page })}
+              label="Páginas das categorias"
+            />
           </>
         )}
       </SectionPanel>
 
-      {shownArchived.length > 0 ? (
-        <details className={`${ui.sectionPanel} ${styles.archived}`}>
+      {arrangedArchived.length > 0 ? (
+        <details className={`${ui.sectionPanel} ${styles.archived}`} open={params.archivedPage > 1 || undefined}>
           <summary className={`${ui.sectionPanelHead} ${styles.suggestedSummary}`}>
             <span className={ui.sectionPanelText}>
               <span className={ui.sectionPanelTitle}>
-                Arquivadas <span className={ui.countPill}>{shownArchived.length}</span>
+                Arquivadas <span className={ui.countPill}>{arrangedArchived.length}</span>
               </span>
             </span>
             <span className={styles.suggestedToggle}>
@@ -282,6 +285,12 @@ export default async function CategoriasPage({
             </span>
           </summary>
           <ul className={styles.table}>{shownArchived.map(row)}</ul>
+          <Pagination
+            page={archivedPage.page}
+            pages={archivedPage.pages}
+            href={(page) => categoriesHref(params, { archivedPage: page })}
+            label="Páginas das categorias arquivadas"
+          />
         </details>
       ) : null}
 

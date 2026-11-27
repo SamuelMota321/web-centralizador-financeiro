@@ -8,11 +8,7 @@ import { PendingLabel, ui } from "@/components/ui";
 import { createOneSuggestedCategoryAction, createSuggestedCategoriesAction, type SuggestionState } from "./actions";
 import styles from "./categorias.module.css";
 
-export interface SuggestionTile {
-  name: string;
-  color: string | null;
-  state: "added" | "archived" | "missing";
-}
+import type { SuggestionTileData } from "./presentation";
 
 function report(result: SuggestionState) {
   if (result.status !== "error") return;
@@ -35,7 +31,7 @@ function report(result: SuggestionState) {
  * As 12 sugeridas lado a lado: adicionadas em cor com ✓; as que faltam, tracejadas, viram a
  * categoria com um toque. Depois ela é da pessoa (renomear, arquivar).
  */
-export function SuggestedTiles({ tiles }: { tiles: SuggestionTile[] }) {
+export function SuggestedTiles({ tiles }: { tiles: SuggestionTileData[] }) {
   const [pendingName, setPendingName] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
