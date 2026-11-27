@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
 import { PROBLEM_CODES, ProblemDetailsError } from "@/lib/api/errors";
+import { runInBatches } from "@/lib/api/batch";
 import { listAllPages } from "@/lib/api/pagination";
 import { createCategory, listCategories } from "@/lib/categories/api";
 import { RULE_PACK, rulesToCreate, splitSuggestedRules, SUGGESTED_CATEGORIES } from "@/lib/categories/suggestions";
@@ -62,8 +63,9 @@ export async function applyRulePackAction(): Promise<RulePackState> {
       listAllPages((query) => listCategoryRules(query, context)),
     ]);
     const { toCreate, missingCategories } = rulesToCreate(categories.items, rules.items);
-    for (const rule of toCreate) {
-      await createCategoryRule(
+    // Em lotes paralelos: até 60 idas e voltas em série levavam uns 25 s no Render.
+    const batch = await runInBatches(toCreate, (rule) =>
+      createCategoryRule(
         {
           categoryId: rule.categoryId,
           conditionField: "description",
@@ -72,9 +74,10 @@ export async function applyRulePackAction(): Promise<RulePackState> {
           priority: rule.priority,
         },
         context,
-      );
-      created += 1;
-    }
+      ),
+    );
+    created += batch.done;
+    if (batch.failed) throw batch.error;
     revalidatePath(REGRAS_PATH);
     return { status: "done", created, missingCategories };
   } catch (error) {
@@ -111,8 +114,9 @@ export async function addPackGroupAction(category: string): Promise<RulePackStat
       revalidatePath("/categorias");
     }
     const { toCreate } = rulesToCreate(pool, rules.items, [group]);
-    for (const rule of toCreate) {
-      await createCategoryRule(
+    // Em lotes paralelos: até 60 idas e voltas em série levavam uns 25 s no Render.
+    const batch = await runInBatches(toCreate, (rule) =>
+      createCategoryRule(
         {
           categoryId: rule.categoryId,
           conditionField: "description",
@@ -121,9 +125,10 @@ export async function addPackGroupAction(category: string): Promise<RulePackStat
           priority: rule.priority,
         },
         context,
-      );
-      created += 1;
-    }
+      ),
+    );
+    created += batch.done;
+    if (batch.failed) throw batch.error;
     revalidatePath(REGRAS_PATH);
     return { status: "done", created, missingCategories: [] };
   } catch (error) {
@@ -167,10 +172,9 @@ export async function setSuggestedGroupStatusAction(category: string, target: "a
     const group = splitSuggestedRules(rules.items, categories.items).suggested.find((item) => item.category === category);
     const pending = (group?.rules ?? []).filter((rule) => rule.status !== "removed" && rule.status !== target);
     const operation = target === "active" ? activateCategoryRule : deactivateCategoryRule;
-    for (const rule of pending) {
-      await operation(rule.id, context);
-      changed += 1;
-    }
+    const batch = await runInBatches(pending, (rule) => operation(rule.id, context));
+    changed += batch.done;
+    if (batch.failed) throw batch.error;
     revalidatePath(REGRAS_PATH);
     return { status: "done", changed };
   } catch (error) {

@@ -160,6 +160,27 @@ describe("listTransactionsSince", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+
+  it("lê as páginas seguintes em paralelo, mantém a ordem e para quando passa do início", async () => {
+    const recent = Array.from({ length: 100 }, () => "2026-11-20");
+    const calls: number[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const page = Number(new URL(url).searchParams.get("page"));
+        calls.push(page);
+        const dates = page === 3 ? ["2026-11-05", "2026-10-30", "2026-10-29"] : recent;
+        return new Response(JSON.stringify(pageOf(dates, 450)));
+      }),
+    );
+    const result = await listTransactionsSince("2026-11-01", context);
+    expect(result.complete).toBe(true);
+    expect(result.items).toHaveLength(201);
+    // Página 1 sozinha; depois 2 a 5 juntas (a 4 e a 5 são lidas além do fim e descartadas).
+    expect(calls.slice(0, 1)).toEqual([1]);
+    expect(new Set(calls.slice(1))).toEqual(new Set([2, 3, 4, 5]));
+  });
+
   it("termina quando o histórico acaba antes do início", async () => {
     stubFetch(200, pageOf(["2026-11-20"], 1));
     expect(await listTransactionsSince("2026-01-01", context)).toMatchObject({ complete: true, items: [expect.anything()] });

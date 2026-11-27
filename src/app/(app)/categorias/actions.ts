@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
 import { PROBLEM_CODES, ProblemDetailsError } from "@/lib/api/errors";
+import { runInBatches } from "@/lib/api/batch";
 import { listAllPages } from "@/lib/api/pagination";
 import {
   createCategory,
@@ -50,10 +51,10 @@ export async function createSuggestedCategoriesAction(): Promise<SuggestionState
   try {
     const { items } = await listAllPages((query) => listCategories(query, context));
     const names = categoriesToCreate(items);
-    for (const name of names) {
-      await createCategory({ name }, context);
-      created += 1;
-    }
+    // Em lotes paralelos: 12 idas e voltas em série no Render passavam de 5 s.
+    const batch = await runInBatches(names, (name) => createCategory({ name }, context));
+    created += batch.done;
+    if (batch.failed) throw batch.error;
     revalidatePath(CATEGORIAS_PATH);
     revalidatePath(MOVIMENTACOES_PATH);
     revalidatePath(REGRAS_PATH);
@@ -85,7 +86,8 @@ export async function createOneSuggestedCategoryAction(name: string): Promise<Su
   if (!token) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };
   const context = { accessToken: token };
   try {
-    if (await nameTaken(name, context)) return { status: "done", created: 0, skipped: 1 };
+    // Cria direto: o banco recusa nome repetido (409, tratado abaixo). Ler todas as categorias antes
+    // só para conferir custava uma ida e volta a mais por clique.
     await createCategory({ name }, context);
   } catch (error) {
     if (isAuthFailure(error)) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };

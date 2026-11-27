@@ -69,6 +69,23 @@ describe("pacote", () => {
   });
 });
 
+describe("criação em paralelo", () => {
+  const strip = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+  it("regras de mesma prioridade em categorias diferentes nunca disputam o mesmo lançamento", () => {
+    // O pacote é criado em lotes paralelos: a ordem de criação (desempate "a mais antiga vence")
+    // não é garantida. Isso só é seguro se um termo não estiver contido em outro de mesma
+    // prioridade e outra categoria.
+    const entries = RULE_PACK.flatMap((group) => group.values.map((value) => ({ ...group, value: strip(value) })));
+    for (const a of entries) {
+      for (const b of entries) {
+        if (a === b || a.category === b.category || a.priority !== b.priority) continue;
+        expect(b.value.includes(a.value), `${a.category}:${a.value} está contido em ${b.category}:${b.value}`).toBe(false);
+      }
+    }
+  });
+});
+
 describe("splitSuggestedRules", () => {
   const categories = [
     { id: "c-transp", name: "Transporte" },

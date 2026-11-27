@@ -239,16 +239,17 @@ describe("createSuggestedCategoriesAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/categorias");
   });
 
-  it("para na primeira falha e informa quantas entraram", async () => {
+  it("cria em lotes de 5: o lote com falha termina, conta as que entraram e não começa outro", async () => {
     vi.mocked(listCategories).mockResolvedValue({ items: [], page: 1, pageSize: 100, total: 0 });
     vi.mocked(createCategory)
       .mockResolvedValueOnce(category())
       .mockResolvedValueOnce(category())
-      .mockRejectedValueOnce(new Error("falha"));
+      .mockRejectedValueOnce(new Error("falha"))
+      .mockResolvedValue(category());
     const result = await createSuggestedCategoriesAction();
 
-    expect(result).toMatchObject({ status: "error", created: 2 });
-    expect(createCategory).toHaveBeenCalledTimes(3);
+    expect(result).toMatchObject({ status: "error", created: 4 });
+    expect(createCategory).toHaveBeenCalledTimes(5);
   });
 
   it("pede para entrar de novo sem sessão", async () => {
@@ -274,9 +275,10 @@ describe("createOneSuggestedCategoryAction", () => {
     expect(createCategory).not.toHaveBeenCalled();
   });
 
-  it("pula quando o nome já existe", async () => {
-    vi.mocked(listCategories).mockResolvedValue({ items: [category({ name: "Saúde" })], page: 1, pageSize: 100, total: 1 });
+  it("cria direto, sem ler a lista antes, e trata o 409 de nome repetido como pulado", async () => {
+    vi.mocked(createCategory).mockRejectedValue(problem(409, "CATEGORY_ALREADY_EXISTS"));
     expect(await createOneSuggestedCategoryAction("Saúde")).toEqual({ status: "done", created: 0, skipped: 1 });
-    expect(createCategory).not.toHaveBeenCalled();
+    expect(listCategories).not.toHaveBeenCalled();
+    expect(createCategory).toHaveBeenCalledTimes(1);
   });
 });

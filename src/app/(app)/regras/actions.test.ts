@@ -283,9 +283,10 @@ describe("applyRulePackAction", () => {
     expect(result.created).toBe(vi.mocked(createCategoryRule).mock.calls.length);
   });
 
-  it("para na primeira falha e informa quantas entraram", async () => {
-    vi.mocked(createCategoryRule).mockResolvedValueOnce(original).mockRejectedValueOnce(new Error("falha"));
-    expect(await applyRulePackAction()).toMatchObject({ status: "error", created: 1 });
+  it("cria em lotes de 5: o lote com falha termina, conta as que entraram e não começa outro", async () => {
+    vi.mocked(createCategoryRule).mockResolvedValueOnce(original).mockRejectedValueOnce(new Error("falha")).mockResolvedValue(original);
+    expect(await applyRulePackAction()).toMatchObject({ status: "error", created: 4 });
+    expect(createCategoryRule).toHaveBeenCalledTimes(5);
   });
 
   it("pede para entrar de novo sem sessão", async () => {
