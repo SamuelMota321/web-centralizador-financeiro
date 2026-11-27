@@ -1,9 +1,11 @@
 import { SkeletonLine, ui } from "@/components/ui";
+import { SlowLoadHint } from "@/components/slow-load-hint";
 import styles from "./categorias.module.css";
 
 export default function Loading() {
   return (
     <div className={styles.page} role="status" aria-label="Carregando suas categorias">
+      <SlowLoadHint />
       <div>
         <SkeletonLine width="10rem" height={24} />
         <div style={{ height: 8 }} />
