@@ -285,3 +285,30 @@ export const IconLightbulb = (p: IconProps) => (
     <path d="M9 17.5h6M10 20.5h4M12 3.5a5.5 5.5 0 0 0-3.3 9.9c.5.4.8 1 .8 1.6v.5h5v-.5c0-.6.3-1.2.8-1.6A5.5 5.5 0 0 0 12 3.5Z" />
   </Icon>
 );
+
+export const IconRefresh = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M19.5 12a7.5 7.5 0 0 1-13 5.1M4.5 12a7.5 7.5 0 0 1 13-5.1" />
+    <path d="M17.5 3.5v3.6h-3.6M6.5 20.5v-3.6h3.6" />
+  </Icon>
+);
+
+export const IconCalendar = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3.5" y="5" width="17" height="15" rx="2" />
+    <path d="M3.5 10h17M8 3.5v3M16 3.5v3" />
+  </Icon>
+);
+
+export const IconTrendUp = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 17l5.5-5.5 3.5 3.5L20 7.5M15 7.5h5v5" />
+  </Icon>
+);
+
+export const IconCoins = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="9" cy="9" r="5.5" />
+    <path d="M15.2 6.4A5.5 5.5 0 1 1 9.4 14.9M9 6.8v4.4M7.6 8.2c.4-.6 1-.9 1.5-.9s1.2.3 1.5.8" />
+  </Icon>
+);

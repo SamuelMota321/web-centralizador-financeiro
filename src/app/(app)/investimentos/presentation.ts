@@ -1,13 +1,16 @@
 import { formatCivilDate } from "@/lib/civil-date";
 import type { ChipTone } from "@/components/ui";
 import type {
+  Allocation,
   AssetClass,
   Availability,
+  CurrencyAllocation,
   ExclusionReason,
   Freshness,
   Portfolio,
   Position,
 } from "@/lib/investments/types";
+import { valuationAge } from "../patrimonio/presentation";
 
 export { PAGE_SIZE, parsePageParam, totalPages } from "../movimentacoes/presentation";
 
@@ -185,4 +188,122 @@ export function groupMeta(members: readonly { source: string; referenceDate: str
   if (dates.some((date) => date === null)) return `${origins} · ${count} · referência ausente em parte`;
   const oldest = [...(dates as string[])].sort((a, b) => Date.parse(a) - Date.parse(b))[0];
   return `${origins} · ${count} · ref. mais antiga ${formatReference(oldest)}`;
+}
+
+// ---------- Faixa de resumo, composição por moeda e dados de cada posição ----------
+
+const SAO_PAULO_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" });
+
+/** Data civil (AAAA-MM-DD) de um instante, no calendário de Brasília; nunca a do servidor (UTC no Render). */
+export function civilDateInSaoPaulo(date: Date): string {
+  return SAO_PAULO_DAY.format(date);
+}
+
+/**
+ * Há quanto tempo é a referência: "hoje", "há 12 dias", "há 5 meses". null sem referência ou
+ * com data inválida ou futura. Mesma regra de "avaliado há" em Bens e dívidas.
+ */
+export function referenceAge(referenceIso: string | null, now: Date): string | null {
+  if (!referenceIso) return null;
+  const date = new Date(referenceIso);
+  if (Number.isNaN(date.getTime())) return null;
+  return valuationAge(civilDateInSaoPaulo(date), civilDateInSaoPaulo(now));
+}
+
+/** Data da referência como "27/11/2025"; ausente vira texto explícito. */
+export function referenceDay(referenceIso: string | null): string {
+  if (!referenceIso) return "Referência não informada";
+  const date = new Date(referenceIso);
+  if (Number.isNaN(date.getTime())) return "Referência não informada";
+  return formatCivilDate(civilDateInSaoPaulo(date));
+}
+
+export interface AvailabilityShare {
+  total: number;
+  complete: number;
+  partial: number;
+  unavailable: number;
+  /** Percentuais inteiros por conexão; arredondados, podem não somar 100. */
+  percent: { complete: number; partial: number; unavailable: number };
+}
+
+/** Disponibilidade contada por CONEXÃO: é o que a carteira informa para todas, não só para a página. */
+export function availabilityShare(connections: readonly { availability: Availability }[]): AvailabilityShare {
+  const count = (kind: Availability) => connections.filter((connection) => connection.availability === kind).length;
+  const total = connections.length;
+  const complete = count("complete");
+  const partial = count("partial");
+  const unavailable = count("unavailable");
+  const pct = (value: number) => (total === 0 ? 0 : Math.round((value / total) * 100));
+  return { total, complete, partial, unavailable, percent: { complete: pct(complete), partial: pct(partial), unavailable: pct(unavailable) } };
+}
+
+/** Classe de cada posição que entra na composição; as demais não têm classe conhecida pelo cliente. */
+export function classByPosition(allocation: Allocation): Map<string, AssetClass> {
+  const result = new Map<string, AssetClass>();
+  for (const currency of allocation.currencies) {
+    for (const group of currency.byClass) {
+      for (const member of group.positions) result.set(member.id, group.assetClass);
+    }
+  }
+  return result;
+}
+
+/** Moeda mostrada na composição: a pedida na URL, se existir; senão BRL, se houver; senão a primeira. */
+export function selectedCurrency(allocation: Allocation, requested: string | null): CurrencyAllocation | null {
+  const { currencies } = allocation;
+  if (currencies.length === 0) return null;
+  return (
+    currencies.find((currency) => currency.currencyCode === requested) ??
+    currencies.find((currency) => currency.currencyCode === "BRL") ??
+    currencies[0]
+  );
+}
+
+export interface PositionDataText {
+  label: string;
+  tone: ChipTone;
+  /** Segunda linha opcional (ex.: a atualização quando os dados são parciais). */
+  detail: string | null;
+}
+
+/**
+ * O que a coluna "Dados" diz de uma posição. Indisponível vence tudo; parcial mostra a atualização
+ * numa segunda linha; completo diz a data (atual) ou a idade (desatualizado).
+ */
+export function positionDataText(position: Pick<Position, "dataQuality" | "referenceDate">, now: Date): PositionDataText {
+  const { availability, freshness } = position.dataQuality;
+  const age = referenceAge(position.referenceDate, now);
+  const freshnessText =
+    freshness === "current"
+      ? `Atualizado em ${referenceDay(position.referenceDate)}`
+      : freshness === "stale"
+        ? `Desatualizado${age ? ` · ${age}` : ""}`
+        : "Referência desconhecida";
+  if (availability === "unavailable") return { label: "Dados indisponíveis", tone: "neutral", detail: null };
+  if (availability === "partial") return { label: "Dados parciais", tone: "warning", detail: freshnessText };
+  return { label: freshnessText, tone: freshnessTone(freshness), detail: null };
+}
+
+/** Taxa para a coluna da tabela: um traço quando a fonte não enviou (o texto completo fica no detalhe). */
+export function rateCell(position: Pick<Position, "rate" | "rateType" | "fixedAnnualRate">): string {
+  return position.rate === null && position.fixedAnnualRate === null ? "—" : rateText(position);
+}
+
+export function resultCell(position: Pick<Position, "resultAmount" | "currencyCode">): string {
+  return position.resultAmount === null ? "—" : formatAmount(position.resultAmount, position.currencyCode);
+}
+
+/** Texto do resultado, para o aviso temporário. */
+export function refreshMessage(state: { total: number; requested: number; running: number; failed: number }): { tone: "success" | "info" | "warning"; text: string } {
+  const { total, requested, running, failed } = state;
+  if (total === 0) return { tone: "info", text: "Você ainda não tem conexões para atualizar." };
+  const parts = [
+    requested > 0 ? `${requested} ${requested === 1 ? "pedida" : "pedidas"}` : null,
+    running > 0 ? `${running} já ${running === 1 ? "estava" : "estavam"} em andamento` : null,
+    failed > 0 ? `${failed} não ${failed === 1 ? "pôde" : "puderam"} ser pedida${failed === 1 ? "" : "s"}` : null,
+  ].filter(Boolean);
+  const base = `Atualização das conexões: ${parts.join(", ")}.`;
+  if (failed > 0) return { tone: "warning", text: `${base} Tente de novo para as que falharam.` };
+  return { tone: "success", text: `${base} Os dados novos podem levar alguns minutos.` };
 }

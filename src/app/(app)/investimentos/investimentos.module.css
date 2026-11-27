@@ -1,7 +1,7 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-5);
 }
 
 .section {
@@ -21,49 +21,160 @@
   font-size: 0.8125rem;
 }
 
-/* ---------- Resumo: total (ou o motivo de não haver) e totais por moeda ---------- */
-.summary {
+.panelPad {
+  padding: 0 var(--space-5) var(--space-4);
+}
+
+/* ---------- Faixa de resumo: um painel, quatro células separadas por linha ---------- */
+.strip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: var(--space-4);
-  padding: var(--space-4);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius-panel);
+  border-radius: var(--radius-frame);
 }
 
-.figure {
+.cell {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 6px;
   min-width: 0;
+  padding: var(--space-4) var(--space-5);
 }
 
-.figureLabel {
+.cell + .cell {
+  border-left: 1px solid var(--line);
+}
+
+.cellLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--muted);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 650;
 }
 
-.figureValue {
+.cellValue {
+  color: var(--foreground);
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--foreground);
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
-.figureMeta {
+.cellHeadline {
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.cellMeta {
+  margin-top: 2px;
   color: var(--muted);
   font-size: 0.75rem;
 }
 
 .currencyList {
-  list-style: none;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
+  list-style: none;
   font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.currencyList li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--foreground);
+}
+
+.currencyCode {
+  color: var(--muted);
   font-weight: 600;
+}
+
+/* Disponibilidade por conexão: segmentos proporcionais à contagem, com texto e contagem escritos. */
+.availabilityBar {
+  display: flex;
+  gap: 2px;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+}
+
+.availabilityBar > span {
+  flex-basis: 0;
+  min-width: 4px;
+}
+
+.availabilityBar [data-kind="complete"],
+.availabilityLegend [data-kind="complete"] i {
+  background: var(--positive);
+}
+
+.availabilityBar [data-kind="partial"],
+.availabilityLegend [data-kind="partial"] i {
+  background: var(--warning);
+}
+
+/* Indisponível: hachurado, para não depender só da cor. */
+.availabilityBar [data-kind="unavailable"],
+.availabilityLegend [data-kind="unavailable"] i {
+  background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 4px);
+}
+
+.availabilityLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  list-style: none;
+  font-size: 0.75rem;
+}
+
+.availabilityLegend li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--body-text);
+}
+
+.availabilityLegend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+@media (max-width: 64rem) {
+  .strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cell:nth-child(3) {
+    border-left: 0;
+  }
+
+  .cell:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 40rem) {
+  .strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cell + .cell {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
 }
 
 /* ---------- Tabelas: rolagem só dentro do painel, nunca na página ---------- */
@@ -74,11 +185,23 @@
   border-radius: var(--radius-panel);
 }
 
+/* Dentro de um bloco de seção: sem borda própria. */
+.tableFlat {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
 .table {
   width: 100%;
   min-width: 36rem;
   border-collapse: collapse;
   font-size: 0.875rem;
+}
+
+.positions {
+  min-width: 52rem;
 }
 
 .table th {
@@ -122,58 +245,147 @@
   text-decoration: underline;
 }
 
-.cellMeta {
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 0.75rem;
+/* Bolinha da classe: cheia quando a posição entra na composição, hachurada quando não. */
+.positionName {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
-/* ---------- Composição: barra 100% estática, sem animação ---------- */
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: repeating-linear-gradient(135deg, var(--muted) 0 2px, transparent 2px 4px);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.dot[data-known] {
+  box-shadow: none;
+}
+
+/* ---------- Composição: uma moeda por vez ---------- */
 .composition {
   display: grid;
-  gap: var(--space-4);
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  padding: 0 var(--space-5) var(--space-5);
 }
 
-@media (min-width: 64rem) {
+@media (max-width: 64rem) {
   .composition {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-.compositionTable {
+.compositionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   min-width: 0;
 }
 
-.share {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: var(--space-3);
-  row-gap: 6px;
+.blockTitle {
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  font-weight: 650;
 }
 
-.barTrack {
-  grid-column: 1 / -1;
-  height: 8px;
+.blockBase {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Barra 100% empilhada: largura pelos valores exatos; estática, sem animação. */
+.classBar {
+  display: flex;
+  gap: 2px;
+  height: 14px;
   overflow: hidden;
+  border-radius: var(--radius-pill);
   background: var(--surface-sunken);
-  border-radius: var(--radius-marker);
 }
 
-.barFill {
-  display: block;
-  height: 100%;
-  border-radius: var(--radius-marker);
+.classBar > span {
+  flex-grow: 0;
+  flex-shrink: 1;
+  min-width: 3px;
 }
 
-.swatch {
-  display: inline-block;
+.legend {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.legend li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) 4.5rem 8rem;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 0;
+  color: var(--body-text);
+}
+
+.legend li + li {
+  border-top: 1px solid var(--line);
+}
+
+.legend i {
   width: 10px;
   height: 10px;
-  margin-right: 8px;
   border-radius: 2px;
-  vertical-align: baseline;
+}
+
+.legendName {
+  display: flex;
+  flex-direction: column;
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.legendName small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.legend li > :nth-child(3),
+.legendAmount {
+  text-align: right;
+}
+
+.institutions {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.institutions th {
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.institutions td {
+  padding: 10px 0;
+  vertical-align: top;
+}
+
+.institutions tr + tr td {
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- Detalhe da posição ---------- */
+.back {
+  align-self: flex-start;
 }
 
 .facts {
@@ -199,26 +411,12 @@
   overflow-wrap: anywhere;
 }
 
-.back {
-  align-self: flex-start;
-}
-
 .skeletonBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   padding: var(--space-4);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }

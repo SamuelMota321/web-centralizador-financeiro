@@ -11,10 +11,14 @@ export default function Loading() {
         <div style={{ height: 10 }} />
         <SkeletonLine width="20rem" />
       </div>
-      {/* Mesma forma: resumo e tabela de posições. */}
+      {/* Mesma forma: faixa de resumo, composição e tabela de posições. */}
       <div className={styles.skeletonBlock} aria-hidden>
         <SkeletonLine width="9rem" height={12} />
         <SkeletonLine width="14rem" height={28} />
+      </div>
+      <div className={styles.skeletonBlock} aria-hidden>
+        <SkeletonLine width="12rem" height={14} />
+        <SkeletonLine width="100%" height={14} />
       </div>
       <div className={styles.skeletonBlock} aria-hidden>
         {Array.from({ length: 5 }, (_, index) => (

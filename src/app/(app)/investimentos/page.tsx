@@ -1,43 +1,83 @@
 import Link from "next/link";
-import { IconAccounts } from "@/components/icons";
-import { EmptyState, Notice, PageHeader, Pagination, StatusChip, ui } from "@/components/ui";
+import { IconAccounts, IconInfo, IconTrendUp } from "@/components/icons";
+import { SectionPanel } from "@/components/section-panel";
+import { Disclosure, EmptyState, Notice, PageHeader, Pagination, StatusChip, ui } from "@/components/ui";
 import { auth0 } from "@/lib/auth0";
 import { listInvestments } from "@/lib/investments/api";
+import { investmentsPreviewEnabled, investmentsPreviewPage } from "@/lib/investments/preview";
+import type { PositionPage } from "@/lib/investments/types";
 import { Composition } from "./composition";
 import {
-  availabilityLabel,
-  availabilityTone,
+  ABSENT,
+  assetClassColor,
+  assetClassLabel,
+  classByPosition,
   formatAmount,
-  formatReference,
-  freshnessLabel,
-  freshnessTone,
   institutionLabel,
-  metaLine,
-  optionalAmount,
   PAGE_SIZE,
   parsePageParam,
-  totalNote,
+  positionDataText,
+  rateCell,
+  resultCell,
+  selectedCurrency,
   totalPages,
 } from "./presentation";
+import { RefreshButton } from "./refresh-button";
+import { Summary } from "./summary";
 import styles from "./investimentos.module.css";
+
+function firstParam(value: string | string[] | undefined): string | null {
+  return (Array.isArray(value) ? value[0] : value) ?? null;
+}
+
+function Dash({ value }: { value: string }) {
+  return value === "—" ? (
+    <>
+      <span aria-hidden>—</span>
+      <span className="visually-hidden">{ABSENT}</span>
+    </>
+  ) : (
+    <>{value}</>
+  );
+}
 
 export default async function InvestimentosPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { pagina } = await searchParams;
-  const page = parsePageParam(pagina);
+  const query = await searchParams;
+  const page = parsePageParam(query.pagina);
+  const requestedCurrency = firstParam(query.moeda)?.toUpperCase().slice(0, 8) ?? null;
+  const preview = investmentsPreviewEnabled();
+  const now = new Date();
 
-  const { token } = await auth0.getAccessToken();
-  // Falha de API vai para error.tsx: sem a carteira não há o que mostrar parcialmente.
-  const data = await listInvestments({ page, pageSize: PAGE_SIZE }, { accessToken: token });
+  let data: PositionPage;
+  if (preview) {
+    data = investmentsPreviewPage(now);
+  } else {
+    const { token } = await auth0.getAccessToken();
+    // Falha de API vai para error.tsx: sem a carteira não há o que mostrar parcialmente.
+    data = await listInvestments({ page, pageSize: PAGE_SIZE }, { accessToken: token });
+  }
   const { portfolio, positions } = data;
   const pages = totalPages(data.total, PAGE_SIZE);
-  const note = totalNote(portfolio);
   const incomplete = portfolio.connections.filter((connection) => connection.availability !== "complete");
+  const classes = classByPosition(portfolio.allocation);
+  const selected = selectedCurrency(portfolio.allocation, requestedCurrency);
 
-  if (data.total === 0 && portfolio.connections.length === 0) {
+  // Pagina e moeda escolhida ficam na URL; trocar um preserva o outro.
+  const href = (params: { pagina?: number; moeda?: string | null }) => {
+    const search = new URLSearchParams();
+    const targetPage = params.pagina ?? page;
+    if (targetPage > 1) search.set("pagina", String(targetPage));
+    const currency = params.moeda === undefined ? requestedCurrency : params.moeda;
+    if (currency) search.set("moeda", currency);
+    const text = search.toString();
+    return text ? `/investimentos?${text}` : "/investimentos";
+  };
+
+  if (!preview && data.total === 0 && portfolio.connections.length === 0) {
     return (
       <div className={styles.page}>
         <PageHeader title="Investimentos" context="Posições lidas das suas conexões autorizadas." />
@@ -60,35 +100,15 @@ export default async function InvestimentosPage({
     <div className={styles.page}>
       <PageHeader
         title="Investimentos"
-        context={`${data.total} ${data.total === 1 ? "posição" : "posições"}, lidas das suas conexões autorizadas`}
+        context="Posições lidas das suas conexões autorizadas."
+        actions={preview ? null : <RefreshButton disabled={portfolio.connections.length === 0} />}
       />
 
-      <section className={styles.summary} aria-label="Resumo da carteira">
-        <div className={styles.figure}>
-          <span className={styles.figureLabel}>Total da carteira</span>
-          <span className={`${styles.figureValue} tabular`}>
-            {portfolio.total ? formatAmount(portfolio.total.amount, portfolio.total.currencyCode) : "Sem total"}
-          </span>
-          <span className={styles.figureMeta}>{note ?? `Posições ativas, referência ${formatReference(portfolio.referenceDate)}`}</span>
-        </div>
-        {portfolio.totalsByCurrency.length > 1 ? (
-          <div className={styles.figure}>
-            <span className={styles.figureLabel}>Por moeda (sem conversão)</span>
-            <ul className={styles.currencyList}>
-              {portfolio.totalsByCurrency.map((money) => (
-                <li key={money.currencyCode} className="tabular">
-                  {formatAmount(money.amount, money.currencyCode)}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        <div className={styles.figure}>
-          <span className={styles.figureLabel}>Disponibilidade dos dados</span>
-          <StatusChip tone={availabilityTone(portfolio.availability)}>{availabilityLabel(portfolio.availability)}</StatusChip>
-          <span className={styles.figureMeta}>Referência mais recente: {formatReference(portfolio.referenceDate)}</span>
-        </div>
-      </section>
+      {preview ? (
+        <Notice tone="info">Prévia com dados de exemplo (INVESTMENTS_PREVIEW). Nada aqui vem das suas conexões.</Notice>
+      ) : null}
+
+      <Summary portfolio={portfolio} now={now} />
 
       {incomplete.length > 0 ? (
         <Notice tone="warning">
@@ -97,17 +117,22 @@ export default async function InvestimentosPage({
         </Notice>
       ) : null}
 
-      <Composition allocation={portfolio.allocation} />
+      <Composition allocation={portfolio.allocation} selected={selected} currencyHref={(code) => href({ moeda: code })} />
 
-      <section className={styles.section} aria-labelledby="positions-title">
-        <h2 id="positions-title" className={styles.sectionTitle}>
-          Posições
-        </h2>
+      <SectionPanel
+        id="positions-title"
+        icon={<IconTrendUp size={22} />}
+        title="Posições"
+        count={data.total}
+        hint="Fonte: Pluggy. A bolinha mostra a classe, quando a posição entra na composição."
+      >
         {positions.length === 0 ? (
-          <Notice tone="info">Nenhuma posição nesta página.</Notice>
+          <div className={styles.panelPad}>
+            <Notice tone="info">Nenhuma posição nesta página.</Notice>
+          </div>
         ) : (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
+          <div className={`${styles.tableWrap} ${styles.tableFlat}`}>
+            <table className={`${styles.table} ${styles.positions}`}>
               <thead>
                 <tr>
                   <th scope="col">Posição</th>
@@ -115,6 +140,7 @@ export default async function InvestimentosPage({
                   <th scope="col" className={styles.num}>
                     Saldo
                   </th>
+                  <th scope="col">Taxa</th>
                   <th scope="col" className={styles.num}>
                     Resultado informado pela fonte
                   </th>
@@ -122,33 +148,72 @@ export default async function InvestimentosPage({
                 </tr>
               </thead>
               <tbody>
-                {positions.map((position) => (
-                  <tr key={position.id}>
-                    <td>
-                      <div className={styles.cellTitle}>
-                        <Link href={`/investimentos/${position.id}?pagina=${page}`}>{position.name}</Link>
-                      </div>
-                      <div className={styles.cellMeta}>{metaLine(position.source, position.referenceDate)}</div>
-                    </td>
-                    <td>{institutionLabel(position.institutionName)}</td>
-                    <td className={`${styles.num} tabular`}>{formatAmount(position.balance, position.currencyCode)}</td>
-                    <td className={`${styles.num} tabular`}>{optionalAmount(position.resultAmount, position.currencyCode)}</td>
-                    <td>
-                      <StatusChip tone={freshnessTone(position.dataQuality.freshness)}>
-                        {freshnessLabel(position.dataQuality.freshness)}
-                      </StatusChip>
-                      {position.providerStatus && position.providerStatus !== "ACTIVE" ? (
-                        <div className={styles.cellMeta}>Situação: {position.providerStatus}</div>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+                {positions.map((position) => {
+                  const assetClass = classes.get(position.id);
+                  const dataText = positionDataText(position, now);
+                  return (
+                    <tr key={position.id}>
+                      <td>
+                        <div className={styles.positionName}>
+                          <span
+                            className={styles.dot}
+                            data-known={assetClass ? "" : undefined}
+                            style={assetClass ? { background: assetClassColor(assetClass) } : undefined}
+                            aria-hidden
+                          />
+                          <span className={styles.cellTitle}>
+                            {preview ? position.name : <Link href={`/investimentos/${position.id}?pagina=${page}`}>{position.name}</Link>}
+                          </span>
+                          {assetClass ? <span className="visually-hidden"> ({assetClassLabel(assetClass)})</span> : null}
+                        </div>
+                      </td>
+                      <td>{institutionLabel(position.institutionName)}</td>
+                      <td className={`${styles.num} tabular`}>{formatAmount(position.balance, position.currencyCode)}</td>
+                      <td className="tabular">
+                        <Dash value={rateCell(position)} />
+                      </td>
+                      <td className={`${styles.num} tabular`}>
+                        <Dash value={resultCell(position)} />
+                      </td>
+                      <td>
+                        <StatusChip tone={dataText.tone}>{dataText.label}</StatusChip>
+                        {dataText.detail ? <div className={styles.cellMeta}>{dataText.detail}</div> : null}
+                        {position.providerStatus && position.providerStatus !== "ACTIVE" ? (
+                          <div className={styles.cellMeta}>Situação: {position.providerStatus}</div>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
-        <Pagination page={page} pages={pages} href={(target) => `/investimentos?pagina=${target}`} label="Páginas das posições" anchor="positions-title" />
-      </section>
+        <Pagination
+          page={page}
+          pages={pages}
+          href={(target) => href({ pagina: target })}
+          label="Páginas das posições"
+          anchor="positions-title"
+        />
+      </SectionPanel>
+
+      <Disclosure icon={<IconInfo size={18} />} summary="Como lemos seus investimentos">
+        <ul>
+          <li>As posições vêm das suas conexões autorizadas. O Coinciente só lê: não compra, não vende e não recomenda.</li>
+          <li>
+            <strong>Disponibilidade</strong> diz se a coleta de cada conexão veio completa, parcial ou indisponível.{" "}
+            <strong>Atualização</strong> diz se a referência do dado é recente. São duas coisas separadas.
+          </li>
+          <li>
+            A composição só considera posições ativas, com saldo positivo, moeda conhecida, coleta completa e referência atual. O que
+            fica de fora aparece escrito, com o motivo: coleta incompleta ou dados desatualizados, posição que não está ativa, saldo
+            zerado ou negativo, moeda não informada.
+          </li>
+          <li>Moedas diferentes nunca são somadas nem convertidas: cada moeda tem o seu total e a sua composição.</li>
+          <li>Nenhuma rentabilidade é calculada. Taxa e resultado aparecem como a fonte enviou.</li>
+        </ul>
+      </Disclosure>
     </div>
   );
 }
