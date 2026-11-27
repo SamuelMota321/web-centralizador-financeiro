@@ -1,4 +1,5 @@
 import { apiServerBaseUrl } from "./config";
+import { describeError, describeResponse, logUpstream } from "./upstream-log";
 
 export interface ApiErrorShape {
   status: number;
@@ -169,13 +170,16 @@ export async function apiRequest<T>(
     try {
       result = await withSlot(() => send(url, init));
     } catch (error) {
+      logUpstream(describeError(path, attempt + 1, error, error instanceof RequestTimeoutError));
       // Falha de rede: instância acordando ou conexão caiu. Escritas, tempo limite e tentativas esgotadas propagam.
       if (!reading || error instanceof RequestTimeoutError || attempt >= RETRY_DELAYS_MS.length) throw error;
       await sleep(jitter(RETRY_DELAYS_MS[attempt]));
       continue;
     }
-    if (!reading) break;
     const status = result.response.status;
+    // 429 e 5xx são o que precisa de explicação: quem respondeu, com que corpo e cabeçalhos.
+    if (status === 429 || status >= 500) logUpstream(describeResponse(path, attempt + 1, result.response, result.raw));
+    if (!reading) break;
     if (!RETRYABLE_STATUS.has(status)) break;
     const schedule = status === 429 ? RATE_LIMIT_DELAYS_MS : RETRY_DELAYS_MS;
     if (attempt >= schedule.length) break;

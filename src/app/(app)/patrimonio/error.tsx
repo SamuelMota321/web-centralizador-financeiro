@@ -1,9 +1,10 @@
 "use client";
 
 import { IconAlert } from "@/components/icons";
+import { RetryButton } from "@/components/retry-button";
 import { EmptyState, ui } from "@/components/ui";
 
-export default function PatrimonioError({ reset }: { reset: () => void }) {
+export default function PatrimonioError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   // A mensagem do erro não é exibida: pode carregar detalhe do backend ou da sessão.
   return (
     <EmptyState
@@ -11,9 +12,7 @@ export default function PatrimonioError({ reset }: { reset: () => void }) {
       title="Não foi possível carregar bens e dívidas"
       action={
         <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-          <button className={`${ui.button} ${ui.primary}`} type="button" onClick={reset}>
-            Tentar de novo
-          </button>
+          <RetryButton error={error} retry={retry} />
           <a className={`${ui.button} ${ui.secondary}`} href="/auth/login?returnTo=/patrimonio">
             Entrar novamente
           </a>
