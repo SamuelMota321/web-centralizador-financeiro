@@ -237,3 +237,46 @@ export function changeField(values: RuleFormValues, field: RuleConditionField): 
     : operators[0];
   return { ...values, conditionField: field, conditionOperator: operator, conditionValue: "" };
 }
+
+/** Meses que a pessoa escolhe no formulário de aplicar; o servidor aceita até ~800 dias. */
+export const APPLY_MAX_MONTHS = 24;
+const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
+
+export type ApplyPeriodResult = { ok: true; from: string; to: string } | { ok: false; message: string };
+
+/**
+ * "AAAA-MM" inicial e final (inclusive) viram datas civis: primeiro dia do primeiro mês até o último
+ * dia do último. Recusa o que o servidor recusaria, com uma frase clara para a pessoa.
+ */
+export function monthsToPeriod(fromMonth: string, toMonth: string): ApplyPeriodResult {
+  const start = MONTH.exec(fromMonth);
+  const end = MONTH.exec(toMonth);
+  if (!start || !end) return { ok: false, message: "Escolha o mês inicial e o mês final." };
+  const startIndex = Number(start[1]) * 12 + Number(start[2]) - 1;
+  const endIndex = Number(end[1]) * 12 + Number(end[2]) - 1;
+  if (endIndex < startIndex) return { ok: false, message: "O mês final não pode ser anterior ao inicial." };
+  if (endIndex - startIndex + 1 > APPLY_MAX_MONTHS) {
+    return { ok: false, message: `Escolha no máximo ${APPLY_MAX_MONTHS} meses por vez.` };
+  }
+  // Dia 0 do mês seguinte = último dia do mês final.
+  const lastDay = new Date(Date.UTC(Number(end[1]), Number(end[2]), 0)).getUTCDate();
+  return { ok: true, from: `${fromMonth}-01`, to: `${toMonth}-${String(lastDay).padStart(2, "0")}` };
+}
+
+/** Sugestão inicial: os últimos três meses, incluindo o atual. */
+export function defaultApplyMonths(now: Date = new Date()): { from: string; to: string } {
+  const month = (date: Date) => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  return { from: month(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 2, 1))), to: month(now) };
+}
+
+/** Frase do resultado de aplicar uma regra. */
+export function applicationMessage(result: { examined: number; categorized: number; truncated: boolean }): string {
+  if (result.categorized === 0) {
+    return result.examined === 0
+      ? "Não há movimentações sem classificação nesse período."
+      : "Nenhuma das movimentações sem classificação nesse período combina com esta regra.";
+  }
+  const noun = result.categorized === 1 ? "movimentação foi categorizada" : "movimentações foram categorizadas";
+  const base = `${result.categorized} ${noun}.`;
+  return result.truncated ? `${base} O período é grande: aplique de novo para continuar de onde parou.` : base;
+}

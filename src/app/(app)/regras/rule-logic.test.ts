@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { CategoryRule } from "@/lib/category-rules/types";
 import {
   ACCOUNT_FALLBACK,
+  applicationMessage,
   buildRulePatch,
   CATEGORY_FALLBACK,
   changeField,
+  defaultApplyMonths,
   EMPTY_RULE_VALUES,
   isDirty,
+  monthsToPeriod,
   parseRuleForm,
   ruleCategory,
   ruleCondition,
@@ -167,5 +170,38 @@ describe("isDirty e changeField", () => {
   it("voltar para descrição mantém um operador válido", () => {
     const next = changeField({ ...EMPTY_RULE_VALUES, conditionField: "type", conditionOperator: "equals" }, "description");
     expect(next.conditionOperator).toBe("equals");
+  });
+});
+
+describe("monthsToPeriod", () => {
+  it("vai do primeiro dia do mês inicial ao último dia do mês final", () => {
+    expect(monthsToPeriod("2026-09", "2026-11")).toEqual({ ok: true, from: "2026-09-01", to: "2026-11-30" });
+    expect(monthsToPeriod("2026-02", "2026-02")).toEqual({ ok: true, from: "2026-02-01", to: "2026-02-28" });
+    expect(monthsToPeriod("2024-02", "2024-02")).toEqual({ ok: true, from: "2024-02-01", to: "2024-02-29" });
+    expect(monthsToPeriod("2025-11", "2026-01")).toEqual({ ok: true, from: "2025-11-01", to: "2026-01-31" });
+  });
+
+  it("recusa mês faltando, mês final antes do inicial e período longo demais", () => {
+    expect(monthsToPeriod("", "2026-09")).toMatchObject({ ok: false });
+    expect(monthsToPeriod("2026-13", "2026-09")).toMatchObject({ ok: false });
+    expect(monthsToPeriod("2026-11", "2026-09")).toMatchObject({ ok: false, message: expect.stringContaining("anterior") });
+    expect(monthsToPeriod("2024-01", "2026-01")).toMatchObject({ ok: false, message: expect.stringContaining("24") });
+    expect(monthsToPeriod("2024-10", "2026-09")).toMatchObject({ ok: true });
+  });
+});
+
+describe("defaultApplyMonths", () => {
+  it("sugere os últimos três meses, inclusive o atual, e atravessa o ano", () => {
+    expect(defaultApplyMonths(new Date("2026-11-27T12:00:00Z"))).toEqual({ from: "2026-09", to: "2026-11" });
+    expect(defaultApplyMonths(new Date("2026-02-10T12:00:00Z"))).toEqual({ from: "2025-12", to: "2026-02" });
+  });
+});
+
+describe("applicationMessage", () => {
+  it("diz o que aconteceu em cada caso", () => {
+    expect(applicationMessage({ examined: 0, categorized: 0, truncated: false })).toContain("Não há movimentações");
+    expect(applicationMessage({ examined: 5, categorized: 0, truncated: false })).toContain("Nenhuma");
+    expect(applicationMessage({ examined: 5, categorized: 1, truncated: false })).toBe("1 movimentação foi categorizada.");
+    expect(applicationMessage({ examined: 5, categorized: 2, truncated: true })).toContain("aplique de novo");
   });
 });

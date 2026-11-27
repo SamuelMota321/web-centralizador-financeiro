@@ -5,6 +5,7 @@ import { ProblemDetailsError, type ProblemDetails } from "@/lib/api/errors";
 import { createCategory, listCategories } from "@/lib/categories/api";
 import {
   activateCategoryRule,
+  applyCategoryRule,
   createCategoryRule,
   deactivateCategoryRule,
   listCategoryRules,
@@ -15,6 +16,7 @@ import type { CategoryRule } from "@/lib/category-rules/types";
 import {
   activateRuleAction,
   addPackGroupAction,
+  applyRuleAction,
   applyRulePackAction,
   createRuleAction,
   deactivateRuleAction,
@@ -37,6 +39,7 @@ vi.mock("@/lib/category-rules/api", () => ({
   createCategoryRule: vi.fn(),
   updateCategoryRule: vi.fn(),
   activateCategoryRule: vi.fn(),
+  applyCategoryRule: vi.fn(),
   deactivateCategoryRule: vi.fn(),
   removeCategoryRule: vi.fn(),
 }));
@@ -112,7 +115,7 @@ describe("createRuleAction", () => {
       },
       { accessToken: "token-ficticio" },
     );
-    expect(state).toEqual({ status: "success" });
+    expect(state).toEqual({ status: "success", ruleId: RULE_ID });
     expect(revalidatePath).toHaveBeenCalledWith("/regras");
   });
 
@@ -399,5 +402,58 @@ describe("addPackGroupAction", () => {
   it("recusa grupo desconhecido", async () => {
     expect(await addPackGroupAction("Viagens")).toMatchObject({ status: "error" });
     expect(listCategories).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyRuleAction", () => {
+  function monthsForm(fromMonth: string, toMonth: string) {
+    const data = new FormData();
+    data.set("fromMonth", fromMonth);
+    data.set("toMonth", toMonth);
+    return data;
+  }
+  const application = { ruleId: RULE_ID, from: "2026-09-01", to: "2026-11-30", examined: 4, categorized: 3, truncated: false };
+
+  it("converte os meses em datas, aplica e atualiza Movimentações e Categorias", async () => {
+    vi.mocked(applyCategoryRule).mockResolvedValue(application);
+
+    const state = await applyRuleAction(RULE_ID, { status: "idle" }, monthsForm("2026-09", "2026-11"));
+
+    expect(applyCategoryRule).toHaveBeenCalledWith(
+      RULE_ID,
+      { from: "2026-09-01", to: "2026-11-30" },
+      { accessToken: "token-ficticio" },
+    );
+    expect(state).toEqual({ status: "done", message: "3 movimentações foram categorizadas.", categorized: 3 });
+    expect(revalidatePath).toHaveBeenCalledWith("/movimentacoes");
+    expect(revalidatePath).toHaveBeenCalledWith("/categorias");
+  });
+
+  it("recusa período inválido sem chamar a API", async () => {
+    const state = await applyRuleAction(RULE_ID, { status: "idle" }, monthsForm("2026-11", "2026-09"));
+
+    expect(state).toMatchObject({ status: "invalid", fromMonth: "2026-11", toMonth: "2026-09" });
+    expect(applyCategoryRule).not.toHaveBeenCalled();
+  });
+
+  it("pede novo login quando a sessão expirou", async () => {
+    vi.mocked(auth0.getAccessToken).mockRejectedValue(new Error("sem sessão"));
+
+    const state = await applyRuleAction(RULE_ID, { status: "idle" }, monthsForm("2026-09", "2026-09"));
+
+    expect(state).toMatchObject({ status: "error", reauth: true });
+    expect(applyCategoryRule).not.toHaveBeenCalled();
+  });
+
+  it("traduz 404 e 409 sem mostrar o detail técnico", async () => {
+    vi.mocked(applyCategoryRule).mockRejectedValueOnce(problem(404, "CATEGORY_RULE_NOT_FOUND"));
+    const notFound = await applyRuleAction(RULE_ID, { status: "idle" }, monthsForm("2026-09", "2026-09"));
+    expect(notFound).toMatchObject({ status: "error", message: "A regra não foi encontrada. Atualize a página." });
+
+    vi.mocked(applyCategoryRule).mockRejectedValueOnce(problem(409, "CATEGORY_ARCHIVED"));
+    const conflict = await applyRuleAction(RULE_ID, { status: "idle" }, monthsForm("2026-09", "2026-09"));
+    expect(conflict).toMatchObject({ status: "error" });
+    expect(JSON.stringify(conflict)).not.toContain("Technical detail");
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

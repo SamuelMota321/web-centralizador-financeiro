@@ -9,6 +9,7 @@ import { createCategory, listCategories } from "@/lib/categories/api";
 import { RULE_PACK, rulesToCreate, splitSuggestedRules, SUGGESTED_CATEGORIES } from "@/lib/categories/suggestions";
 import {
   activateCategoryRule,
+  applyCategoryRule,
   createCategoryRule,
   listCategoryRules,
   deactivateCategoryRule,
@@ -19,8 +20,10 @@ import { categoryRuleSchema } from "@/lib/category-rules/schema";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
 import type { NoticeKey } from "./notices";
 import {
+  applicationMessage,
   buildRulePatch,
   fieldMessage,
+  monthsToPeriod,
   type FieldErrors,
   parseRuleForm,
   type RuleFormValues,
@@ -33,7 +36,7 @@ const UNAVAILABLE_MESSAGE =
 
 export type RuleFormState =
   | { status: "idle" }
-  | { status: "success" }
+  | { status: "success"; ruleId: string }
   | { status: "unchanged"; values: RuleFormValues }
   | { status: "invalid"; values: RuleFormValues; fieldErrors: FieldErrors }
   | { status: "error"; values: RuleFormValues; message: string; reauth?: boolean };
@@ -200,14 +203,15 @@ export async function createRuleAction(
   const token = await accessTokenOrNull();
   if (!token) return { status: "error", values, message: REAUTH_MESSAGE, reauth: true };
 
+  let ruleId: string;
   try {
-    await createCategoryRule(parsed.input, { accessToken: token });
+    ruleId = (await createCategoryRule(parsed.input, { accessToken: token })).id;
   } catch (error) {
     return formFailure(error, values, "Não foi possível criar a regra.");
   }
 
   revalidatePath(REGRAS_PATH);
-  return { status: "success" };
+  return { status: "success", ruleId };
 }
 
 /**
@@ -246,6 +250,51 @@ export async function updateRuleAction(
 
   // `redirect` lança exceção: fica fora do try, conforme a documentação do Next.
   return goToRegras(notice);
+}
+
+export type ApplyRuleState =
+  | { status: "idle" }
+  | { status: "done"; message: string; categorized: number }
+  | { status: "invalid"; message: string; fromMonth: string; toMonth: string }
+  | { status: "error"; message: string; fromMonth: string; toMonth: string; reauth?: boolean };
+
+/**
+ * Aplica uma regra às movimentações já registradas, no período de meses escolhido. `ruleId` vem via
+ * `.bind` e é entrada não confiável: o backend confere dono, estado da regra e da categoria.
+ */
+export async function applyRuleAction(
+  ruleId: string,
+  _previous: ApplyRuleState,
+  formData: FormData,
+): Promise<ApplyRuleState> {
+  const read = (name: string) => {
+    const value = formData.get(name);
+    return typeof value === "string" ? value : "";
+  };
+  const fromMonth = read("fromMonth");
+  const toMonth = read("toMonth");
+  const period = monthsToPeriod(fromMonth, toMonth);
+  if (!period.ok) return { status: "invalid", message: period.message, fromMonth, toMonth };
+
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", message: REAUTH_MESSAGE, fromMonth, toMonth, reauth: true };
+
+  try {
+    const result = await applyCategoryRule(ruleId, { from: period.from, to: period.to }, { accessToken: token });
+    // Categorias e Movimentações mostram o que mudou.
+    revalidatePath("/movimentacoes");
+    revalidatePath("/categorias");
+    return { status: "done", message: applicationMessage(result), categorized: result.categorized };
+  } catch (error) {
+    if (isAuthFailure(error)) return { status: "error", message: REAUTH_MESSAGE, fromMonth, toMonth, reauth: true };
+    const message =
+      error instanceof ProblemDetailsError && error.code === PROBLEM_CODES.categoryRuleNotFound
+        ? "A regra não foi encontrada. Atualize a página."
+        : error instanceof ProblemDetailsError && error.status === 409
+          ? "A regra ou a categoria dela não está disponível. Reative a regra e confira a categoria."
+          : "Não foi possível aplicar a regra. Nada foi perdido: tente de novo.";
+    return { status: "error", message, fromMonth, toMonth };
+  }
 }
 
 export async function activateRuleAction(ruleId: string): Promise<RuleLifecycleState> {

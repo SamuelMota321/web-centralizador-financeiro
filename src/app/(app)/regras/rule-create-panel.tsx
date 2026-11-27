@@ -6,6 +6,7 @@ import { showToast } from "@/components/interactive";
 import { PanelSection } from "@/components/panel";
 import { Notice, PendingLabel, ui } from "@/components/ui";
 import { createRuleAction, type RuleFormState } from "./actions";
+import { ApplyRuleForm } from "./apply-rule-form";
 import { RuleFields } from "./rule-fields";
 import { EMPTY_RULE_VALUES, type NamedOption } from "./rule-logic";
 
@@ -47,7 +48,7 @@ export function RuleCreatePanel({
     }
     showToast(
       "success",
-      "Regra criada. Ela vale para as próximas movimentações; as já registradas não mudam.",
+      "Regra criada. Ela já vale para as próximas movimentações; aplique-a às já registradas abaixo.",
     );
   }, [attempt, result.status]);
 
@@ -59,6 +60,15 @@ export function RuleCreatePanel({
       description="Uma condição por regra. Ela categoriza as próximas movimentações que combinarem."
       closeLabel="Fechar o painel de nova regra"
     >
+      {result.status === "success" ? (
+        <div className={`${ui.rowPanel} ${ui.reveal}`}>
+          <p className={ui.panelDescription}>
+            Quer aplicar esta regra às movimentações que você já registrou? Escolha os meses.
+          </p>
+          <ApplyRuleForm key={result.ruleId} ruleId={result.ruleId} />
+        </div>
+      ) : null}
+
       <form action={formAction} className={ui.form}>
         <RuleFields
           key={`${attempt.version}:${term}`}
