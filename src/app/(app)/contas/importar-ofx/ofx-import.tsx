@@ -41,6 +41,7 @@ import {
 import styles from "./importar-ofx.module.css";
 
 const RETURN_TO = "/contas/importar-ofx";
+const PROCESSING_POLL_MS = 5_000;
 
 interface Props {
   accounts: AccountOption[];
@@ -228,7 +229,9 @@ function ImportFlow({
       : confirm.status === "done"
         ? confirm.run
         : initialRun;
-  const step = stepForStatus(run.status);
+  // Confirmacao que passou do prazo: a previa antiga continua no estado, mas a importacao ja esta no servidor.
+  const waiting = confirm.status === "waiting" && stepForStatus(run.status) === "preview";
+  const step = waiting ? "processing" : stepForStatus(run.status);
 
   // Cada passo novo leva o foco ao seu titulo, para quem navega por teclado ou leitor de tela.
   useEffect(() => {
@@ -255,6 +258,17 @@ function ImportFlow({
     });
   }
 
+  // Em processamento a tela confere sozinha; o botao continua para quem quiser antecipar.
+  const refreshRef = useRef(refresh);
+  useEffect(() => {
+    refreshRef.current = refresh;
+  });
+  useEffect(() => {
+    if (step !== "processing") return;
+    const timer = setInterval(() => refreshRef.current(), PROCESSING_POLL_MS);
+    return () => clearInterval(timer);
+  }, [step]);
+
   const destination = accountLabel(run.destinationAccountId, accounts);
 
   if (step === "processing") {
@@ -277,8 +291,8 @@ function ImportFlow({
             </button>
           }
         >
-          O extrato para {destination} ainda está sendo processado. Você pode verificar de novo em
-          alguns instantes.
+          O extrato para {destination} ainda está sendo processado e continua mesmo se você sair desta
+          tela. Conferimos o andamento sozinhos, e você também pode verificar agora.
         </Notice>
         {refreshError ? (
           <Notice tone="error" actions={refreshError.reauth ? <ReauthLink /> : undefined}>

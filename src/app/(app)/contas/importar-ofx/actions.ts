@@ -14,6 +14,22 @@ import { idempotencyKeySchema } from "@/lib/transactions/schema";
 const uuidSchema = z.uuid();
 const SESSION_EXPIRED = "Sua sessão expirou. Entre novamente para continuar.";
 
+/**
+ * Quanto a tela espera a confirmacao. Abaixo do corte da hospedagem (~100 s), para a pessoa nunca
+ * ficar presa num "Importando…" sem fim. A escrita nao e abortada: o servidor termina e a tela
+ * acompanha o estado da importacao.
+ */
+const CONFIRM_WAIT_MS = 50_000;
+const WAIT_EXPIRED = Symbol("confirm-wait-expired");
+
+function withDeadline<T>(work: Promise<T>, ms: number): Promise<T | typeof WAIT_EXPIRED> {
+  let timer: ReturnType<typeof setTimeout>;
+  const deadline = new Promise<typeof WAIT_EXPIRED>((resolve) => {
+    timer = setTimeout(() => resolve(WAIT_EXPIRED), ms);
+  });
+  return Promise.race([work, deadline]).finally(() => clearTimeout(timer));
+}
+
 export interface PreviewFieldErrors {
   destinationAccountId?: string;
   file?: string;
@@ -43,6 +59,8 @@ export type PreviewState =
 
 export type ConfirmState =
   | { status: "idle"; idempotencyKey: string }
+  /** A confirmacao passou do prazo de espera, mas segue no servidor: a tela acompanha o andamento. */
+  | { status: "waiting"; idempotencyKey: string }
   | { status: "done"; idempotencyKey: string; run: ImportRun }
   | {
       status: "error";
@@ -127,11 +145,15 @@ export async function confirmOfxAction(
   if (!token) return { status: "error", idempotencyKey, message: SESSION_EXPIRED, reauth: true };
 
   try {
-    const run = await confirmImport(
+    const confirmation = confirmImport(
       importRunId.data,
       { destinationAccountId: destinationAccountId.data },
       { accessToken: token, idempotencyKey },
     );
+    // Se o prazo vencer, a promessa segue viva; uma rejeicao tardia nao pode virar erro nao tratado.
+    confirmation.catch(() => undefined);
+    const run = await withDeadline(confirmation, CONFIRM_WAIT_MS);
+    if (run === WAIT_EXPIRED) return { status: "waiting", idempotencyKey };
     revalidatePath("/movimentacoes");
     return { status: "done", idempotencyKey: newIdempotencyKey(), run };
   } catch (error) {
