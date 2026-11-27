@@ -120,17 +120,17 @@ export default function PiggyScene() {
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const dark = window.matchMedia("(prefers-color-scheme: dark)");
     const update = () => {
       setReduced(motion.matches);
       setPalette(readPalette());
     };
     update();
     motion.addEventListener("change", update);
-    dark.addEventListener("change", update);
+    const themeObserver = new MutationObserver(update);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => {
       motion.removeEventListener("change", update);
-      dark.removeEventListener("change", update);
+      themeObserver.disconnect();
     };
   }, []);
 

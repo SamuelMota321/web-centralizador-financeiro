@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import type { MouseEvent, ReactNode } from "react";
 import { IconChevronDown, IconSignOut } from "@/components/icons";
 import { ui } from "@/components/ui";
+import { ThemeSwitch } from "@/components/theme-switch";
 import { clearConnectionPointer } from "@/lib/connections/recovery";
 import shell from "./shell.module.css";
 
@@ -54,6 +55,8 @@ export function AccountMenu({ identity, compact }: { identity: string; compact?:
                 Demonstração acadêmica com dados fictícios
               </span>
             </div>
+            <Menu.Separator className={ui.menuSeparator} />
+            <ThemeSwitch menu />
             <Menu.Separator className={ui.menuSeparator} />
             {/* Âncora comum: a saída precisa de navegação completa, sem prefetch. */}
             <Menu.LinkItem className={ui.menuItem} href="/auth/logout" onClick={() => clearConnectionPointer()}>

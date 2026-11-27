@@ -15,13 +15,11 @@
   margin: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  .chart {
+:root[data-theme="dark"] .chart {
     --ramp-1: #e9edec;
     --ramp-2: #aab3b0;
     --ramp-3: #6b7673;
     --ramp-4: #3a4242;
-  }
 }
 
 /* ---------- Legenda ---------- */

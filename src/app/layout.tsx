@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { MotionProvider } from "@/components/motion-provider";
 import "./globals.css";
 
@@ -26,7 +27,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${newsreader.variable} ${manrope.variable}`}>
+    <html lang="pt-BR" className={`${newsreader.variable} ${manrope.variable}`} suppressHydrationWarning>
+      <Script id="theme-init" strategy="beforeInteractive">
+        {`try { if (localStorage.getItem("coinciente.theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch {}`}
+      </Script>
       <body>
         <div className="root">
           <MotionProvider>{children}</MotionProvider>

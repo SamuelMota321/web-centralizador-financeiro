@@ -5,6 +5,7 @@ import { PairedBarsChart } from "@/components/charts/paired-bars";
 import { IconInflow, IconOutflow, IconTransfer } from "@/components/icons";
 import { PiggyBackground } from "@/components/piggy/piggy-background";
 import { StatusChip } from "@/components/ui";
+import { ThemeSwitch } from "@/components/theme-switch";
 import { auth0 } from "@/lib/auth0";
 import { overviewPreviewEnabled } from "@/lib/overview/flag";
 import { formatMoney } from "@/lib/money";
@@ -58,6 +59,7 @@ export default async function Home() {
       <PiggyBackground />
       <header className={styles.header}>
         <BrandLockup />
+        <ThemeSwitch />
       </header>
 
       <main className={styles.main}>

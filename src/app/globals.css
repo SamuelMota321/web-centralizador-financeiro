@@ -123,8 +123,7 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+:root[data-theme="dark"] {
     --background: #0a0c0c;
     --surface: #101313;
     --surface-soft: #161a1a;
@@ -170,7 +169,23 @@
     --backdrop: rgba(0, 0, 0, 0.56);
 
     color-scheme: dark;
-  }
+}
+
+.theme-toggle {
+  min-height: 44px;
+  margin-left: auto;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--foreground);
+  font: inherit;
+  cursor: pointer;
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 * {
