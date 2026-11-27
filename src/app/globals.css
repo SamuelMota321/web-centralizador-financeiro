@@ -49,8 +49,8 @@
   --cat-12: #c0398f;
   /* Fundo decorativo (Style Guide 2.3): verde da marca em RGB e intensidade máxima das ondas. */
   --deco-rgb: 8 122 85;
-  --deco-alpha: 0.15;
-  /* A lateral tem texto secundário sobre a decoração: 40% da intensidade mantém AA (scripts/deco-contrast.py). */
+  --deco-alpha: 0.25;
+  /* A lateral tem texto secundário sobre a decoração: intensidade reduzida mantém AA (scripts/deco-contrast.py). */
   --deco-alpha-side: 0.06;
   /* Ícone sobre o círculo cheio da categoria. */
   --on-category: #ffffff;

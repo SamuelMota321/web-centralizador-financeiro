@@ -25,6 +25,10 @@
   --a: var(--deco-alpha);
   inset: 0 0 auto 0;
   height: 320px;
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 60%);
+}
+
+:global(:root[data-theme="dark"]) .top {
   mask-image: linear-gradient(to bottom, #000 0%, transparent 80%);
 }
 
