@@ -26,10 +26,10 @@ describe("Visão geral", () => {
     await expect(render()).rejects.toThrow("NOT_FOUND");
   });
 
-  it("avisa que são dados de exemplo e mostra os blocos 1 a 5", async () => {
+  it("mostra os blocos 1 a 5 sem aviso de prévia", async () => {
     vi.stubEnv("OVERVIEW_PREVIEW", "true");
     const html = await render();
-    expect(html).toContain("Prévia com dados de exemplo");
+    expect(html).not.toContain("Prévia com dados de exemplo");
     expect(html).toContain("Outubro de 2026 · parcial");
     // Faixa: Disponível com a conta desatualizada sinalizada.
     expect(html).toContain("R$ 17.340,95");

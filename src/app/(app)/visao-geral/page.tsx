@@ -7,7 +7,7 @@ import { DONUT_OTHER_ID } from "@/components/charts/model";
 import { PairedBarsChart } from "@/components/charts/paired-bars";
 import { IconAccounts, IconChevronDown } from "@/components/icons";
 import { SyncedDetails, SyncedDetailsGroup } from "@/components/synced-details";
-import { EmptyState, Notice, PageHeader, Pagination, ui } from "@/components/ui";
+import { EmptyState, PageHeader, Pagination, ui } from "@/components/ui";
 import { overviewPreviewEnabled } from "@/lib/overview/flag";
 import {
   getAvailableDaily,
@@ -182,11 +182,6 @@ export default async function VisaoGeralPage({
           />
         }
       />
-
-      <Notice tone="info">
-        Prévia com dados de exemplo: estes não são os seus números. A Visão geral passa a
-        mostrar seus saldos quando o cálculo no servidor estiver pronto.
-      </Notice>
 
       {balances !== null && balances.accounts.length === 0 ? (
         <EmptyState

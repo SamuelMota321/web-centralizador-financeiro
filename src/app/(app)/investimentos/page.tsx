@@ -104,10 +104,6 @@ export default async function InvestimentosPage({
         actions={preview ? null : <RefreshButton disabled={portfolio.connections.length === 0} />}
       />
 
-      {preview ? (
-        <Notice tone="info">Prévia com dados de exemplo (INVESTMENTS_PREVIEW). Nada aqui vem das suas conexões.</Notice>
-      ) : null}
-
       <Summary portfolio={portfolio} now={now} />
 
       {incomplete.length > 0 ? (

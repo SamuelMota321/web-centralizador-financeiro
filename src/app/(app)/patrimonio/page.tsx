@@ -70,10 +70,6 @@ export default async function PatrimonioPage({
         context="Registre seus bens, financiamentos e dívidas. Os valores são informados por você."
       />
 
-      {preview ? (
-        <Notice tone="info">Prévia com dados de exemplo (PATRIMONY_PREVIEW). Nada aqui foi informado por você.</Notice>
-      ) : null}
-
       {allAssets.status === "fulfilled" && allAssets.value.truncated ? (
         <Notice tone="info">Você tem mais de 500 bens: o seletor de financiamento mostra só os primeiros.</Notice>
       ) : null}
