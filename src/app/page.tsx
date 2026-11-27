@@ -6,6 +6,7 @@ import { IconInflow, IconOutflow, IconTransfer } from "@/components/icons";
 import { PiggyBackground } from "@/components/piggy/piggy-background";
 import { StatusChip } from "@/components/ui";
 import { auth0 } from "@/lib/auth0";
+import { overviewPreviewEnabled } from "@/lib/overview/flag";
 import { formatMoney } from "@/lib/money";
 import styles from "./page.module.css";
 
@@ -46,8 +47,10 @@ const SAMPLE = [
 ] as const;
 
 export default async function Home() {
+  // Com a prévia da Visão geral ligada, ela é a tela inicial; sem a flag a rota não existe.
+  const landing = overviewPreviewEnabled() ? "/visao-geral" : "/movimentacoes";
   const session = await auth0.getSession();
-  if (session) redirect("/movimentacoes");
+  if (session) redirect(landing);
 
   return (
     <div className={styles.page}>
@@ -64,7 +67,7 @@ export default async function Home() {
             Suas contas e movimentações em uma leitura única, rastreável e honesta.
           </p>
           {/* Link do Next faria prefetch e iniciaria a transação de login por engano. */}
-          <a className={styles.action} href="/auth/login?returnTo=/movimentacoes">
+          <a className={styles.action} href={`/auth/login?returnTo=${landing}`}>
             Entrar
           </a>
         </section>
