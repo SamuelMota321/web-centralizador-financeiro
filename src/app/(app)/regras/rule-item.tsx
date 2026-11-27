@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { IconBadge } from "@/components/icon-badge";
-import { IconPause, IconPencil, IconPlay, IconTrash } from "@/components/icons";
+import { IconPause, IconPencil, IconPlay, IconTrash, IconTrendUp } from "@/components/icons";
 import { ActionMenu, ConfirmDialog } from "@/components/interactive";
 import { Notice, PendingLabel, ui } from "@/components/ui";
 import type { CategoryRule } from "@/lib/category-rules/types";
@@ -14,6 +14,7 @@ import {
   type RuleLifecycleState,
   updateRuleAction,
 } from "./actions";
+import { ApplyRuleForm } from "./apply-rule-form";
 import { RuleFields } from "./rule-fields";
 import {
   type CategoryOption,
@@ -41,6 +42,7 @@ interface Props {
 
 export function RuleItem({ rule, categories, accounts, color, suggested }: Props) {
   const [editing, setEditing] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [activateState, activate, activating] = useActionState(
     activateRuleAction.bind(null, rule.id),
@@ -122,6 +124,9 @@ export function RuleItem({ rule, categories, accounts, color, suggested }: Props
               label="Mais ações para esta regra"
               disabled={busy}
               items={[
+                ...(rule.status === "active" && !category.archived
+                  ? [{ label: "Aplicar às movimentações", icon: <IconTrendUp size={17} />, onSelect: () => setApplying(true) }]
+                  : []),
                 rule.status === "active"
                   ? { label: "Desativar", icon: <IconPause size={17} />, onSelect: toggleStatus }
                   : { label: "Ativar", icon: <IconPlay size={17} />, onSelect: toggleStatus },
@@ -142,6 +147,13 @@ export function RuleItem({ rule, categories, accounts, color, suggested }: Props
           <Notice tone="error" actions={lifecycleError.reauth ? <ReauthLink /> : undefined}>
             {lifecycleError.message}
           </Notice>
+        </div>
+      ) : null}
+
+      {applying ? (
+        <div className={`${ui.rowPanel} ${ui.reveal}`}>
+          <p className={ui.panelDescription}>Escolha os meses em que esta regra deve categorizar o que ainda não tem categoria.</p>
+          <ApplyRuleForm ruleId={rule.id} onClose={() => setApplying(false)} />
         </div>
       ) : null}
 

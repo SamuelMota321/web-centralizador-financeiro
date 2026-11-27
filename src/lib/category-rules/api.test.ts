@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   activateCategoryRule,
+  applyCategoryRule,
   createCategoryRule,
   deactivateCategoryRule,
   listCategoryRules,
@@ -127,5 +128,32 @@ describe("ciclo de vida", () => {
     stubFetch(200, { items: [view(), view({ status: "removed", removedAt: "2026-09-21T10:00:00.000Z" })], page: 1, pageSize: 20, total: 2 });
     const page = await listCategoryRules({}, context);
     expect(page.items.map((rule) => rule.status)).toEqual(["active", "removed"]);
+  });
+});
+
+describe("applyCategoryRule", () => {
+  const result = { ruleId: RULE_ID, from: "2026-09-01", to: "2026-11-30", examined: 4, categorized: 3, truncated: false };
+
+  it("envia o período e valida a resposta", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(result), { status: 200, headers: { "content-type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(applyCategoryRule(RULE_ID, { from: "2026-09-01", to: "2026-11-30" }, context)).resolves.toEqual(result);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain(`/category-rules/${RULE_ID}/applications`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({ from: "2026-09-01", to: "2026-11-30" });
+    vi.unstubAllGlobals();
+  });
+
+  it("recusa id e datas malformados sem chamar a API", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(applyCategoryRule("nao-e-uuid", { from: "2026-09-01", to: "2026-11-30" }, context)).rejects.toThrow();
+    await expect(applyCategoryRule(RULE_ID, { from: "09/2026", to: "2026-11-30" }, context)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });
