@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ProblemDetailsError } from "../api/errors";
-import { getSyncRun, isFinalSyncRunStatus, isTrustedStatusUrl, requestSyncRun } from "./api";
-import { RUN_ID, SYNC_CONNECTION_ID, syncRunView } from "./fixtures";
+import { getLatestSyncRuns, getSyncRun, isFinalSyncRunStatus, isTrustedStatusUrl, requestSyncRun, requestUpdateSession } from "./api";
+import { latestSyncRunsView, RUN_ID, SYNC_CONNECTION_ID, syncRunView } from "./fixtures";
 import { SYNC_RUN_STATUSES } from "./types";
 
 const context = { accessToken: "token-ficticio" };
@@ -39,7 +39,7 @@ describe("requestSyncRun", () => {
     expect(call.init.body).toBeUndefined();
     expect(call.headers.get("authorization")).toBe("Bearer token-ficticio");
     expect(call.headers.has("idempotency-key")).toBe(false);
-    expect(run).toMatchObject({ runId: RUN_ID, status: "queued", startedAt: null, completedAt: null });
+    expect(run).toMatchObject({ runId: RUN_ID, status: "queued", trigger: "manual", startedAt: null, completedAt: null, reasons: [] });
   });
 
   it("recusa connectionId que não é UUID antes de chamar a API", async () => {
@@ -78,6 +78,57 @@ describe("getSyncRun", () => {
     expect(call.init.method).toBe("GET");
     expect(run.status).toBe("succeeded");
     expect(run.completedAt).toBe("2026-11-02T12:01:00.000Z");
+  });
+});
+
+describe("getLatestSyncRuns", () => {
+  it("lê a última execução e a última reconciliada, ambas anuláveis", async () => {
+    const fetchMock = stubFetch(200, latestSyncRunsView({ latest: null }));
+    const result = await getLatestSyncRuns(SYNC_CONNECTION_ID, context);
+    expect(lastCall(fetchMock).url).toBe(`${BASE}/connections/${SYNC_CONNECTION_ID}/sync-runs/latest`);
+    expect(result).toEqual({ latest: null, lastReconciled: null });
+  });
+
+  it("preserva trigger, data de referência e motivos", async () => {
+    stubFetch(
+      200,
+      latestSyncRunsView({
+        latest: syncRunView({
+          status: "partial",
+          trigger: "daily",
+          referenceDate: "2026-11-02T12:00:00.000Z",
+          reasons: [{ dataType: "investments", code: "unavailable" }],
+        }),
+      }),
+    );
+    const { latest } = await getLatestSyncRuns(SYNC_CONNECTION_ID, context);
+    expect(latest).toMatchObject({
+      trigger: "daily",
+      referenceDate: "2026-11-02T12:00:00.000Z",
+      reasons: [{ dataType: "investments", code: "unavailable" }],
+    });
+  });
+
+  it("recusa motivo com código fora do contrato", async () => {
+    stubFetch(200, latestSyncRunsView({ latest: syncRunView({ reasons: [{ dataType: "accounts", code: "novo" }] }) }));
+    await expect(getLatestSyncRuns(SYNC_CONNECTION_ID, context)).rejects.toThrow();
+  });
+});
+
+describe("requestUpdateSession", () => {
+  it("pede a sessão sem corpo e lê o token limitado", async () => {
+    const fetchMock = stubFetch(200, { connectToken: "token-limitado", expiresAt: "2026-11-02T12:30:00.000Z" });
+    const session = await requestUpdateSession(SYNC_CONNECTION_ID, context);
+    const call = lastCall(fetchMock);
+    expect(call.url).toBe(`${BASE}/connections/${SYNC_CONNECTION_ID}/update-session`);
+    expect(call.init.method).toBe("POST");
+    expect(call.init.body).toBeUndefined();
+    expect(session.connectToken).toBe("token-limitado");
+  });
+
+  it("converte conflito em ProblemDetailsError", async () => {
+    stubFetch(409, problemBody(409, "CONNECTION_CONFLICT"));
+    await expect(requestUpdateSession(SYNC_CONNECTION_ID, context)).rejects.toBeInstanceOf(ProblemDetailsError);
   });
 });
 

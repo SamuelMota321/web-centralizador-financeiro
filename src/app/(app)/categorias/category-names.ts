@@ -1,9 +1,4 @@
-import type { Category, CategoryStatus } from "@/lib/categories/types";
-
-export const CATEGORY_STATUS_LABELS: Record<CategoryStatus, string> = {
-  active: "Ativa",
-  archived: "Arquivada",
-};
+import type { Category } from "@/lib/categories/types";
 
 export const DUPLICATE_NAME_MESSAGE =
   "Você já tem uma categoria com este nome (inclusive arquivada). Use outro nome.";

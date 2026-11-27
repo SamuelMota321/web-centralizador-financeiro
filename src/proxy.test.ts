@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 
 describe("proxy", () => {
-  it.each(["/contas", "/contas/qualquer", "/movimentacoes", "/movimentacoes/qualquer", "/categorias", "/regras"])("redireciona %s sem sessão para o login", async (path) => {
+  it.each(["/contas", "/contas/qualquer", "/movimentacoes", "/movimentacoes/qualquer", "/categorias", "/regras", "/investimentos", "/investimentos/qualquer", "/patrimonio", "/patrimonio/bens/qualquer"])("redireciona %s sem sessão para o login", async (path) => {
     vi.mocked(auth0.getSession).mockResolvedValue(null);
     const response = await proxy(request(path));
     expect(response.status).toBe(307);
@@ -42,6 +42,18 @@ describe("proxy", () => {
   it("delega /auth/* ao SDK sem consultar sessão", async () => {
     expect(await proxy(request("/auth/login"))).toBe(sdkResponse);
     expect(auth0.getSession).not.toHaveBeenCalled();
+  });
+
+  it("sair apaga o cookie do ponteiro de retomada; os demais /auth/* não", async () => {
+    const logout = NextResponse.next();
+    vi.mocked(auth0.middleware).mockResolvedValue(logout);
+    await proxy(request("/auth/logout"));
+    expect(logout.cookies.get("coinciente_conexao")).toMatchObject({ value: "", maxAge: 0, path: "/contas/conectar" });
+
+    const login = NextResponse.next();
+    vi.mocked(auth0.middleware).mockResolvedValue(login);
+    await proxy(request("/auth/login"));
+    expect(login.cookies.get("coinciente_conexao")).toBeUndefined();
   });
 
   it("não protege a página publica", async () => {

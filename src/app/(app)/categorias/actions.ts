@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
 import { PROBLEM_CODES, ProblemDetailsError } from "@/lib/api/errors";
+import { runInBatches } from "@/lib/api/batch";
 import { listAllPages } from "@/lib/api/pagination";
 import {
   createCategory,
@@ -11,6 +12,7 @@ import {
   renameCategory,
 } from "@/lib/categories/api";
 import { categoryNameSchema } from "@/lib/categories/schema";
+import { categoriesToCreate, SUGGESTED_CATEGORIES } from "@/lib/categories/suggestions";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
 import { transactionsErrorMessage } from "@/lib/transactions/messages";
 import { DUPLICATE_NAME_MESSAGE, hasNameConflict } from "./category-names";
@@ -18,6 +20,7 @@ import type { NoticeKey } from "./notices";
 
 const CATEGORIAS_PATH = "/categorias";
 const MOVIMENTACOES_PATH = "/movimentacoes";
+const REGRAS_PATH = "/regras";
 const REAUTH_MESSAGE = "Sua sessão expirou. Entre novamente para continuar.";
 
 export type CategoryFormState =
@@ -29,6 +32,75 @@ export type CategoryFormState =
 export type ArchiveCategoryState =
   | { status: "idle" }
   | { status: "error"; message: string; reauth?: boolean };
+
+export type SuggestionState =
+  | { status: "idle" }
+  | { status: "done"; created: number; skipped: number }
+  | { status: "error"; created: number; message: string; reauth?: boolean };
+
+/**
+ * Cria as categorias sugeridas que ainda não existem, uma por vez, pela mesma API da tela.
+ * Repetir é seguro: o que já existe é pulado. Em falha, para e informa quantas entraram.
+ */
+export async function createSuggestedCategoriesAction(): Promise<SuggestionState> {
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };
+  const context = { accessToken: token };
+
+  let created = 0;
+  try {
+    const { items } = await listAllPages((query) => listCategories(query, context));
+    const names = categoriesToCreate(items);
+    // Em lotes paralelos: 12 idas e voltas em série no Render passavam de 5 s.
+    const batch = await runInBatches(names, (name) => createCategory({ name }, context));
+    created += batch.done;
+    if (batch.failed) throw batch.error;
+    revalidatePath(CATEGORIAS_PATH);
+    revalidatePath(MOVIMENTACOES_PATH);
+    revalidatePath(REGRAS_PATH);
+    return { status: "done", created, skipped: SUGGESTED_CATEGORIES.length - names.length };
+  } catch (error) {
+    if (created > 0) {
+      revalidatePath(CATEGORIAS_PATH);
+      revalidatePath(MOVIMENTACOES_PATH);
+      revalidatePath(REGRAS_PATH);
+    }
+    if (isAuthFailure(error)) return { status: "error", created, message: REAUTH_MESSAGE, reauth: true };
+    return {
+      status: "error",
+      created,
+      message: `Não foi possível criar todas as categorias sugeridas. ${created > 0 ? `${created} entraram; ` : ""}tente de novo para criar as que faltam.`,
+    };
+  }
+}
+
+/**
+ * Adiciona uma única categoria sugerida (chip "+ Saúde"). O nome precisa estar na lista de
+ * sugeridas: o cliente não escolhe texto livre por aqui.
+ */
+export async function createOneSuggestedCategoryAction(name: string): Promise<SuggestionState> {
+  if (!(SUGGESTED_CATEGORIES as readonly string[]).includes(name)) {
+    return { status: "error", created: 0, message: "Esta sugestão não existe." };
+  }
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };
+  const context = { accessToken: token };
+  try {
+    // Cria direto: o banco recusa nome repetido (409, tratado abaixo). Ler todas as categorias antes
+    // só para conferir custava uma ida e volta a mais por clique.
+    await createCategory({ name }, context);
+  } catch (error) {
+    if (isAuthFailure(error)) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };
+    if (error instanceof ProblemDetailsError && error.code === PROBLEM_CODES.categoryAlreadyExists) {
+      return { status: "done", created: 0, skipped: 1 };
+    }
+    return { status: "error", created: 0, message: `Não foi possível adicionar “${name}”. Tente de novo.` };
+  }
+  revalidatePath(CATEGORIAS_PATH);
+  revalidatePath(MOVIMENTACOES_PATH);
+  revalidatePath(REGRAS_PATH);
+  return { status: "done", created: 1, skipped: 0 };
+}
 
 export async function createCategoryAction(
   _previous: CategoryFormState,
@@ -53,6 +125,7 @@ export async function createCategoryAction(
 
   revalidatePath(CATEGORIAS_PATH);
   revalidatePath(MOVIMENTACOES_PATH);
+  revalidatePath(REGRAS_PATH);
   return { status: "success" };
 }
 
@@ -169,5 +242,6 @@ function formFailure(error: unknown, name: string, fallback: string): CategoryFo
 function goToCategorias(notice: NoticeKey): never {
   revalidatePath(CATEGORIAS_PATH);
   revalidatePath(MOVIMENTACOES_PATH);
+  revalidatePath(REGRAS_PATH);
   redirect(`${CATEGORIAS_PATH}?aviso=${notice}`, RedirectType.replace);
 }

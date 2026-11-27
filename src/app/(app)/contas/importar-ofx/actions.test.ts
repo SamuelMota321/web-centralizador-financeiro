@@ -171,6 +171,34 @@ describe("confirmOfxAction", () => {
     expect(state).toMatchObject({ status: "error", restart: true, idempotencyKey: KEY });
   });
 
+  it("passado o prazo, devolve 'waiting' com a mesma chave em vez de esperar para sempre", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(confirmImport).mockReturnValue(new Promise(() => undefined));
+      const pending = confirmOfxAction(CONFIRM_IDLE, confirmForm());
+      await vi.advanceTimersByTimeAsync(50_000);
+      await expect(pending).resolves.toEqual({ status: "waiting", idempotencyKey: KEY });
+      expect(revalidatePath).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("falha que chega depois do prazo não vira erro não tratado", async () => {
+    vi.useFakeTimers();
+    try {
+      let reject: (reason: unknown) => void = () => undefined;
+      vi.mocked(confirmImport).mockReturnValue(new Promise((_, r) => (reject = r)));
+      const pending = confirmOfxAction(CONFIRM_IDLE, confirmForm());
+      await vi.advanceTimersByTimeAsync(50_000);
+      await pending;
+      reject(new Error("rede"));
+      await vi.advanceTimersByTimeAsync(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("conta arquivada não é tratada como prévia expirada", async () => {
     vi.mocked(confirmImport).mockRejectedValue(problem(409, "ACCOUNT_ARCHIVED"));
     const state = await confirmOfxAction(CONFIRM_IDLE, confirmForm());

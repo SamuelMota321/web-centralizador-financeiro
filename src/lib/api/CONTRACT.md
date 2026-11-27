@@ -4,9 +4,155 @@ O contrato e propriedade do backend (`backend-centralizador-financeiro`), servid
 `GET /api/v1/openapi.json` e `GET /api/v1/docs`, e versionado em `openapi/openapi.json`
 naquele repositorio.
 
-`openapi.snapshot.json` (nesta pasta) e uma copia de referencia do contrato
-em `backend @ 2c416cd`. Os tipos em `src/lib/accounts/types.ts` e os schemas em
-`src/lib/accounts/schema.ts` sao transcritos a mao e devem acompanhar esse snapshot.
+O [snapshot local](openapi.snapshot.json) registra as operações incorporadas a
+este cliente. As revisões de origem e a comparação com o backend estão abaixo.
+
+## Contrato vigente conferido em 24/11/2026
+
+Referência da comparação estática `backend b9f6a7a`. Os tipos e schemas do
+cliente são mantidos localmente à mão. Os testes em
+[contract.test.ts](contract.test.ts) usam o snapshot local. A correspondência
+com o backend depende da revisão e da operação comparadas.
+
+### Pluggy
+
+O [snapshot web](openapi.snapshot.json) corresponde, desde 24/11/2026, ao
+OpenAPI do backend em `b5826a3`. Os 16 schemas de componentes coincidem; as
+rotas novas usam esquemas inline.
+
+| Operação em `/api/v1` | Resposta publicada | Consumo web |
+|---|---|---|
+| `POST /connections/pluggy/sessions` | `201` com conexão, Connect Token e vencimento | Abre a sessão e gera a chave de conclusão no servidor Next. |
+| `POST /connections/pluggy/completions` | `202` com `connection` e `initialImport`. `Idempotency-Key` obrigatória. | Envia `itemId` e a chave. Reutiliza ambos no retry e valida o corpo aceito. |
+| `GET /connections/{connectionId}` | `200` com detalhe e `initialImport` anulável | A tela consulta o detalhe e permite atualizar manualmente enquanto houver andamento. |
+| `POST /connections/{connectionId}/disconnect` | `200` com conexão | Disponível na tela de conexão. |
+| `PUT /connections/{connectionId}/accounts/{providerAccountId}/mapping` | `200` com `accountId` e `initialImport` atualizado. Corpo `link` com `accountId` ou `create`. | `mapPluggyAccount` em `lib/connections/api.ts`. Na etapa `awaiting_account_mapping`, a tela de conexão lista as contas do banco e oferece criar conta nova ou vincular a uma conta manual ativa (até 100 contas). |
+
+`initialImport` tem estados `queued`, `processing`, `awaiting_account_mapping`,
+`completed`, `completed_with_errors` e `failed`. O schema separa status da
+conexão, disponibilidade de contas e transações, mapeamentos e contadores.
+`awaiting_account_mapping` é uma etapa da importação inicial Pluggy. O web já
+consome o mapeamento, e o Dev 1 verifica os guardas de elegibilidade definidos
+em C-02. O Dev 3 registra a validação em plano próprio.
+
+Para uma movimentação manual, o cliente envia uma chave por criação. Para
+movimentações coletadas pelo Pluggy, o backend deduplica pela identidade da
+movimentação na conexão e conta externas. A chave da conclusão identifica a
+requisição que inicia a importação.
+
+### OFX
+
+O upload da prévia recebe `file` e `destinationAccountId` e retorna `201`. A
+confirmação recebe o mesmo destino em JSON, processa de forma síncrona e retorna
+`200`. As duas escritas exigem `Idempotency-Key`. A consulta por `importRunId`
+retorna `200` sem chave. Os três caminhos têm a mesma definição no snapshot e
+no OpenAPI vigente. O schema do cliente representa `preview_ready`, `queued`,
+`processing`, `completed`, `completed_with_errors`, `failed` e `expired`.
+
+A S3-08 prevê seleção da conta após a leitura do arquivo, antes da prévia final,
+e vencimento em 24 horas. A API atual exige conta manual ativa do tenant já no
+upload. O seletor do cliente lista contas ativas, incluindo as conectadas, que
+o backend recusa como destino OFX com `409`. O estado `awaiting_account_mapping`
+e o campo `expiresAt` da prévia estão ausentes do contrato OFX. O enum `expired`
+representa um estado previsto, sem validação de idade localizada na confirmação.
+O `retentionExpiresAt` registra o prazo de metadados/resultados, calculado em 90
+dias após um estado terminal. O código tenta excluir a origem do R2 no caminho
+de confirmação terminal. A limpeza de prévias abandonadas e o expurgo dos
+resultados seguem sem evidência nesta revisão.
+
+Os erros publicados seguem Problem Details. Na prévia, `413` indica arquivo
+acima do limite da API, `415` mídia não suportada e `422` OFX inválido.
+`409` também abrange conflitos de conta, execução e idempotência. A API limita
+o arquivo a 10 MiB. O web limita o arquivo a 4 MiB.
+
+### HU-008 — sincronização recorrente
+
+Snapshot atualizado em 24/11/2026 para o OpenAPI do backend em `b5826a3`
+(33 caminhos; os 23 anteriores não mudaram). Entraram no snapshot:
+`PUT .../accounts/{providerAccountId}/mapping`, `POST .../sync-runs`,
+`GET .../sync-runs/latest`, `GET .../sync-runs/{runId}`, `POST .../update-session`,
+`GET /investments`, `GET /investments/{id}/movements` e as rotas
+`/patrimony/{collection}` (lista, criação, detalhe, alteração e histórico).
+Investimentos (fase 2) e bens e dívidas (fase 3) têm cliente e tela; ver as seções abaixo.
+
+`POST .../sync-runs` (`202`) não pede `Idempotency-Key`; durante uma execução
+ativa, a API reaproveita essa execução. Erros publicados: `400`, `401`, `404`,
+`409`, `500` e `503` (`latest` e `GET` por `runId`: `400`, `401`, `404`).
+
+A execução tem `runId`, `connectionId`, `status`, `trigger` (`manual` ou
+`daily`), `acceptedAt`, `startedAt`, `completedAt`, `referenceDate`, `reasons` e
+`statusUrl`; os três instantes e `referenceDate` são anuláveis. `reasons` lista
+pares `dataType` (`accounts`, `transactions`, `investments`,
+`investment_transactions`, `connection`) e `code` (`unavailable`, `failed`,
+`ambiguous_identity`). `latest` devolve `latest` e `lastReconciled`, ambos
+anuláveis. `update-session` devolve `connectToken` e `expiresAt`.
+
+`src/lib/sync-runs/` cobre as quatro rotas (`requestSyncRun`, `getSyncRun`,
+`getLatestSyncRuns`, `requestUpdateSession`) e o `contract.test.ts` compara os
+campos e enums com o snapshot.
+
+Consumo na tela (fase 4): o detalhe da conexão em `contas/conectar` mostra o painel
+"Sincronização" para conexões `connected` ou `partially_available`. Ao abrir, lê
+`latest`; com execução `queued` ou `running`, consulta por `runId` a cada 10 s (C-03,
+aprovado em 16/11/2026) só com a aba visível, e para em `action_required`,
+`succeeded`, `partial` ou `failed`. "Sincronizar agora" fica desabilitado durante uma
+execução ativa. `partial` lista os `reasons`; `failed` oferece nova tentativa;
+`action_required` abre o widget da Pluggy com o token de `update-session` e, ao
+concluir, pede nova execução (se o backend já a criou, a API devolve a ativa). O
+`statusUrl` é validado no servidor e nunca seguido: a consulta usa a rota tipada.
+Todas as chamadas passam por Server Actions; o navegador recebe só o token limitado
+do widget.
+
+Pendências com o Developer 1: confirmar que o token de `update-session` basta para
+abrir o widget em modo de atualização sem o `itemId` (o cliente não o guarda), e se a
+nova execução após a reautorização nasce no cliente ou no backend.
+
+#### Ponteiro de retomada (C-01)
+
+O backend não lista conexões. O `connection.id` devolvido pela conclusão fica em
+cookie `coinciente_conexao` (httpOnly, `sameSite=lax`, `path=/contas/conectar`,
+sem expiração fixa), gravado no servidor e amarrado ao usuário por hash do `sub`.
+A página `contas/conectar` usa o ponteiro quando o link não traz `conexao`. O
+ponteiro é apagado ao sair (`/auth/logout` no `proxy.ts`), ao desconectar e quando
+a API responde `403` ou `404`; outro usuário na mesma máquina não o lê. Nunca
+deriva de `accountId` nem do Item da Pluggy. Escolha pelo cookie em vez de
+`localStorage`: não precisa sobreviver a dados do site apagados, e o navegador não
+o lê por script.
+
+### HU-009 e HU-011 — investimentos e alocação
+
+`src/lib/investments/` cobre `GET /investments` (carteira, `allocation` e posições
+paginadas) e `GET /investments/{id}/movements`. A API não tem leitura de uma posição
+isolada: o detalhe localiza a posição na carteira do usuário e consulta os movimentos
+(`404` vira "não encontrada"). O `contract.test.ts` compara campos, enums de
+disponibilidade, frescor, classe e motivo de exclusão com o snapshot.
+
+Regras no cliente: valores e quantidades são strings decimais, formatadas sem
+arredondar; campo `null` é escrito como "Não informado pela fonte", nunca zero;
+`resultAmount` aparece como "Resultado informado pela fonte"; moedas nunca se somam
+nem se convertem; a barra da composição usa `amount ÷ denominatorAmount` em BigInt, e o
+percentual escrito é o do backend, sem ajuste para fechar 100,0%. O total só aparece
+quando `portfolio.total` não é `null`; o motivo da ausência é explicado sem
+adivinhar a causa. Nada anima. Validado com fixtures sintéticas; sem Item Sandbox real.
+
+### HU-012 — bens, financiamentos e passivos
+
+`src/lib/patrimony/` cobre `/patrimony/{collection}` (`assets`, `financings`,
+`liabilities`): lista paginada, criação (`201`), leitura e `PATCH` por id e histórico.
+A tela `/patrimonio` mostra as três tabelas com paginação independente (`pb`, `pf`,
+`pp`), cria em painel e edita na própria linha; o histórico fica em
+`/patrimonio/{bens|financiamentos|passivos}/{id}`.
+
+Regras no cliente: valor em pt-BR convertido para o decimal do contrato, aceitando
+zero (o contrato permite) e recusando negativo; data DD/MM/AAAA convertida para
+AAAA-MM-DD; o `PATCH` compara com o estado gravado no momento e envia só o que mudou;
+o bem do financiamento aparece pela descrição, nunca pelo UUID ("Bem indisponível"
+quando não está na lista). Nada é somado: patrimônio líquido é HU-013 (Sprint 5).
+
+Lacunas do contrato, para o Developer 1: não há exclusão, nem `Idempotency-Key` na
+criação (o botão desabilitado reduz, mas não impede, o duplo envio), nem controle
+de concorrência no `PATCH` (`version` existe, mas não é exigido: duas abas sobrescrevem
+uma à outra). A ordem da lista não é definida; o cliente mantém a ordem recebida.
 
 ## Cobertura atual
 
@@ -22,8 +168,8 @@ em `backend @ 2c416cd`. Os tipos em `src/lib/accounts/types.ts` e os schemas em
 estao descritas na secao "Transactions (Sprint 2)".
 
 `contract.test.ts` verifica que as operacoes consumidas existem no snapshot, exigem
-bearer Auth0 e usam os mesmos campos dos schemas do cliente. Ao atualizar o snapshot, rode
-`pnpm test`: mudanca incompativel no contrato quebra esse teste.
+bearer Auth0 e usam os campos verificados nos schemas do cliente. Ao atualizar o snapshot, rode
+`pnpm test` e confira o diff contra o OpenAPI da revisão de origem.
 Regras em `especificacao-manutencao-isolamento-contas.html` (docs): PATCH parcial e estrito,
 saldo inicial e data de referencia somente juntos, conta conectada somente leitura,
 desativacao logica e idempotente, sem DELETE e sem reativacao.
@@ -165,6 +311,10 @@ Enquanto nao houver decisao, o acesso usa `src/lib/api/http-client.ts` + tipos a
 
 ## Sprint 3
 
+> **Registro histórico.** A seção abaixo descreve os contratos usados na entrega
+> de outubro de 2026, com as limitações e hipóteses daquele momento. Para o
+> comportamento vigente e os bloqueios, consulte a comparação acima.
+
 Baseline da Fase 1 do Dev 2 (2026-10-07), atualizado com o contrato backend S3-01 do Dev 1
 (`docs/planejamento/sprint-03/contrato-backend-s3-01.html`) e, em 2026-10-09, com o OpenAPI do
 backend em `2c416cd`, que publica as rotas de OFX, e depois em `605cb07`, que publica as rotas de
@@ -186,7 +336,7 @@ como Proposed; o que falta no contrato esta em "Divergencias e pendencias com o 
 | `POST /api/v1/connections/pluggy/completions` (JSON: `itemId`) | `completePluggyConnection()` | Approved — OpenAPI @ 605cb07 |
 | `GET /api/v1/connections/{connectionId}` | `getConnection()` | Approved — OpenAPI @ 605cb07 |
 | `POST /api/v1/connections/{connectionId}/disconnect` (sem corpo) | `disconnectConnection()` | Approved — OpenAPI @ 605cb07 |
-| `PUT /api/v1/connections/{connectionId}/accounts/{providerAccountId}/mapping` | — | contrato S3-01; fora do OpenAPI (S3-08) |
+| `PUT /api/v1/connections/{connectionId}/accounts/{providerAccountId}/mapping` (JSON: `action` `link` com `accountId` ou `create`) | `mapPluggyAccount()` | No snapshot atual (antes: contrato S3-01, fora do OpenAPI na S3-08) |
 
 Modulos: `src/lib/ingestions/` e `src/lib/connections/`. Os schemas de ingestao sao inline no OpenAPI (fora de
 `components.schemas`) e transcritos a mao. `contract.test.ts` cobre as tres operacoes: bearer,
@@ -305,7 +455,10 @@ Status: dependencia do cliente pendente. Quando o fluxo for integrado, a origem 
 - HU-008 continua pendente: nao foram encontradas chamadas sync-runs, nem acompanhamento por runId/statusUrl. Nao presumir listagem de conexoes para implementar a retomada.
 - Este merge nao atualiza o snapshot cliente para o backend atual. A compatibilidade da conclusao Pluggy e do mapeamento de contas precisa ser revalidada; os testes contra o snapshot local nao comprovam essa integracao.
 
-## Sprint 4 HU-008 — camada cliente `sync-runs` (preparada, rotas ainda não publicadas)
+## Sprint 4 HU-008 — registro da preparação da camada cliente `sync-runs`
+
+> Registro de 02/11/2026, anterior à publicação das rotas. A seção de contrato
+> vigente acima descreve o backend e os bloqueios atuais.
 
 Em 2026-11-02 foi criada `src/lib/sync-runs/` (tipos, esquema, `requestSyncRun`, `getSyncRun`,
 `isFinalSyncRunStatus`, `isTrustedStatusUrl`, fixtures e testes) contra o contrato C-03 consolidado no

@@ -1,7 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { ProblemDetailsError } from "../api/errors";
-import { completePluggyConnection, disconnectConnection, getConnection, startPluggySession } from "./api";
-import { COMPLETION_KEY, CONNECT_TOKEN, CONNECTION_ID, completionAcceptedView, connectionView, initialImportView, ITEM_ID, sessionView } from "./fixtures";
+import { completePluggyConnection, disconnectConnection, getConnection, mapPluggyAccount, startPluggySession } from "./api";
+import {
+  accountMappingResultView,
+  COMPLETION_KEY,
+  CONNECT_TOKEN,
+  CONNECTION_ID,
+  completionAcceptedView,
+  connectionView,
+  initialImportView,
+  ITEM_ID,
+  LOCAL_ACCOUNT_ID,
+  PROVIDER_ACCOUNT_ID,
+  sessionView,
+} from "./fixtures";
 
 const context = { accessToken: "token-ficticio" };
 const BASE = "http://api.test.local/api/v1";
@@ -130,5 +142,41 @@ describe("getConnection e disconnectConnection", () => {
     await expect(getConnection("../x", context)).rejects.toThrow();
     await expect(disconnectConnection("../x", context)).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("mapPluggyAccount", () => {
+  it("vincula a conta do banco a uma conta existente com PUT", async () => {
+    const fetchMock = stubFetch(200, accountMappingResultView());
+    const result = await mapPluggyAccount(CONNECTION_ID, PROVIDER_ACCOUNT_ID, { action: "link", accountId: LOCAL_ACCOUNT_ID }, context);
+
+    const call = lastCall(fetchMock);
+    expect(call.url).toBe(`${BASE}/connections/${CONNECTION_ID}/accounts/${PROVIDER_ACCOUNT_ID}/mapping`);
+    expect(call.init.method).toBe("PUT");
+    expect(call.headers.get("authorization")).toBe("Bearer token-ficticio");
+    expect(JSON.parse(String(call.init.body))).toEqual({ action: "link", accountId: LOCAL_ACCOUNT_ID });
+    expect(result.accountId).toBe(LOCAL_ACCOUNT_ID);
+    expect(result.initialImport.status).toBe("processing");
+  });
+
+  it("pede a criação de conta só com a ação", async () => {
+    const fetchMock = stubFetch(200, accountMappingResultView());
+    await mapPluggyAccount(CONNECTION_ID, PROVIDER_ACCOUNT_ID, { action: "create" }, context);
+    expect(JSON.parse(String(lastCall(fetchMock).init.body))).toEqual({ action: "create" });
+  });
+
+  it("recusa ids e escolhas inválidos antes de chamar o backend", async () => {
+    const fetchMock = stubFetch(200, accountMappingResultView());
+    await expect(mapPluggyAccount("../x", PROVIDER_ACCOUNT_ID, { action: "create" }, context)).rejects.toThrow();
+    await expect(mapPluggyAccount(CONNECTION_ID, "../x", { action: "create" }, context)).rejects.toThrow();
+    await expect(mapPluggyAccount(CONNECTION_ID, PROVIDER_ACCOUNT_ID, { action: "link", accountId: "x" }, context)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("converte o conflito do backend em ProblemDetailsError", async () => {
+    stubFetch(409, problemBody(409, "CONNECTION_CONFLICT"));
+    const error = await mapPluggyAccount(CONNECTION_ID, PROVIDER_ACCOUNT_ID, { action: "create" }, context).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ProblemDetailsError);
+    expect(error).toMatchObject({ status: 409, code: "CONNECTION_CONFLICT" });
   });
 });

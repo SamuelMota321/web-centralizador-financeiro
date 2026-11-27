@@ -1,4 +1,5 @@
 .page {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -274,4 +275,26 @@
   .previewRow {
     padding: 8px 12px;
   }
+}
+
+/* ---------- Camada do porquinho ----------
+ * O conteúdo fica acima do fundo 3D. Os contêineres deixam o ponteiro passar para o
+ * porquinho nas áreas vazias; texto, botão e prévia continuam recebendo clique e seleção. */
+.header,
+.main,
+.footer {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.header > *,
+.intro > *,
+.preview,
+.footer > * {
+  pointer-events: auto;
+}
+
+.intro {
+  pointer-events: none;
 }

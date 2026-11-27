@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { IconPause, IconPlay, IconTrash } from "@/components/icons";
+import { IconBadge } from "@/components/icon-badge";
+import { IconPause, IconPencil, IconPlay, IconTrash } from "@/components/icons";
 import { ActionMenu, ConfirmDialog } from "@/components/interactive";
-import { Notice, PendingLabel, StatusChip, ui } from "@/components/ui";
+import { Notice, PendingLabel, ui } from "@/components/ui";
 import type { CategoryRule } from "@/lib/category-rules/types";
 import {
   activateRuleAction,
@@ -32,9 +33,13 @@ interface Props {
   /** Ativas e arquivadas, para ler o nome; o formulário recebe só as ativas. */
   categories: CategoryOption[] | null;
   accounts: NamedOption[] | null;
+  /** Cor fixa da categoria (a mesma de Categorias e Movimentações). */
+  color: string | null;
+  /** Mostrada fora do bloco de sugeridas (busca): diz de onde veio. */
+  suggested?: boolean;
 }
 
-export function RuleItem({ rule, categories, accounts }: Props) {
+export function RuleItem({ rule, categories, accounts, color, suggested }: Props) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [activateState, activate, activating] = useActionState(
@@ -68,10 +73,13 @@ export function RuleItem({ rule, categories, accounts }: Props) {
 
   return (
     <li
+      id={`regra-${rule.id.toLowerCase()}`}
       className={styles.row}
-      data-removed={removed || undefined}
+      data-status={rule.status}
       data-open={editing || undefined}
     >
+      <IconBadge name={category.name} color={category.archived || removed ? null : color} />
+
       <div className={styles.rowMain}>
         <p className={styles.sentence}>
           {condition.lead} <span className={styles.value}>{condition.value}</span>{" "}
@@ -81,22 +89,21 @@ export function RuleItem({ rule, categories, accounts }: Props) {
           <strong className={styles.category}>{category.name}</strong>
           {category.archived ? " (arquivada)" : ""}
         </p>
+        {suggested ? <p className={styles.rowMeta}>Regra sugerida</p> : null}
         {category.archived && !removed ? (
-          <p className={styles.rowMeta}>
-            Não será aplicada enquanto a categoria estiver arquivada.
-          </p>
+          <p className={styles.rowMeta}>Não é aplicada enquanto a categoria estiver arquivada.</p>
         ) : null}
         {removed ? <p className={styles.rowMeta}>Somente leitura</p> : null}
       </div>
 
-      <p className={`${styles.priority} tabular`}>
+      <p className={styles.priority}>
         <span className={styles.priorityLabel}>Prioridade </span>
-        {rule.priority}
+        <span className={`${styles.priorityPill} tabular`}>{rule.priority}</span>
       </p>
 
-      <StatusChip tone={rule.status === "active" ? "positive" : "neutral"}>
+      <p className={styles.status} data-status={rule.status}>
         {busy ? (activating ? "Ativando…" : "Desativando…") : STATUS_LABELS[rule.status]}
-      </StatusChip>
+      </p>
 
       <div className={ui.rowActions}>
         {removed ? null : (
@@ -108,6 +115,7 @@ export function RuleItem({ rule, categories, accounts }: Props) {
               onClick={() => setEditing(!editing)}
               disabled={busy}
             >
+              <IconPencil size={15} />
               Editar
             </button>
             <ActionMenu

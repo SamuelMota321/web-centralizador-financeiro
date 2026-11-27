@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CONNECTION_STATUSES } from "@/lib/connections/types";
-import { connectionView, ITEM_ID } from "@/lib/connections/fixtures";
-import { connectionSchema } from "@/lib/connections/schema";
+import { awaitingMappingImportView, connectionView, initialImportView, ITEM_ID } from "@/lib/connections/fixtures";
+import { connectionSchema, initialImportSchema } from "@/lib/connections/schema";
 import {
+  canCreateFromProvider,
   canCheckAgain,
   canDisconnect,
   canRefreshInitialImport,
@@ -10,8 +11,11 @@ import {
   consentSummary,
   formatTimestamp,
   initialImportStatus,
+  mappingStatusText,
+  needsAccountMapping,
   needsReconnect,
   productLabel,
+  providerAccountTypeLabel,
   statusView,
 } from "./presentation";
 import { itemIdFromSuccess } from "./widget-payload";
@@ -116,5 +120,31 @@ describe("connectionCelebrates", () => {
     for (const status of CONNECTION_STATUSES) {
       expect(connectionCelebrates(status)).toBe(status === "connected");
     }
+  });
+});
+
+describe("mapeamento de contas", () => {
+  const awaiting = initialImportSchema.parse(awaitingMappingImportView());
+  const [pending, mapped, unsupported] = awaiting.accountMapping.accounts;
+
+  it("só pede a escolha enquanto a importação aguarda o mapeamento", () => {
+    expect(needsAccountMapping(awaiting)).toBe(true);
+    expect(needsAccountMapping(initialImportSchema.parse(initialImportView("processing")))).toBe(false);
+    expect(needsAccountMapping(null)).toBe(false);
+    expect(needsAccountMapping(undefined)).toBe(false);
+  });
+
+  it("permite criar só contas com tipo reconhecido em reais", () => {
+    expect(canCreateFromProvider(pending)).toBe(true);
+    expect(canCreateFromProvider(unsupported)).toBe(false);
+    expect(canCreateFromProvider({ ...pending, currencyCode: "USD" })).toBe(false);
+  });
+
+  it("descreve tipo e estado em texto", () => {
+    expect(providerAccountTypeLabel("checking")).toBe("Conta corrente");
+    expect(providerAccountTypeLabel(null)).toBe("Tipo não suportado");
+    expect(mappingStatusText(pending)).toMatch(/escolha/);
+    expect(mappingStatusText(mapped)).toBe("Vinculada");
+    expect(mappingStatusText(unsupported)).toMatch(/não será importada/);
   });
 });

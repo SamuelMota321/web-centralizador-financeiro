@@ -2,15 +2,19 @@ import type { ComponentType } from "react";
 import { type CategoryIconKey, categoryIconKey } from "@/lib/categories/category-icon";
 import styles from "./category-mark.module.css";
 import {
-  IconBolt,
-  IconBook,
+  IconBriefcase,
   IconCar,
+  IconCart,
+  IconFlower,
+  IconGraduation,
   IconHeartPulse,
   IconHome,
   IconInflow,
   IconOutflow,
   IconQuestion,
+  IconReceipt,
   IconShoppingBag,
+  IconStar,
   IconTag,
   IconTicket,
   IconTransfer,
@@ -19,14 +23,17 @@ import {
 
 const CATEGORY_ICONS: Record<CategoryIconKey, ComponentType<{ size?: number }>> = {
   home: IconHome,
+  groceries: IconCart,
   food: IconUtensils,
   transport: IconCar,
+  care: IconFlower,
   health: IconHeartPulse,
   leisure: IconTicket,
-  education: IconBook,
+  education: IconGraduation,
   shopping: IconShoppingBag,
-  bills: IconBolt,
-  income: IconInflow,
+  bills: IconReceipt,
+  salary: IconBriefcase,
+  income: IconStar,
   generic: IconTag,
 };
 

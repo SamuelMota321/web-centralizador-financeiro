@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
 import { showToast } from "@/components/interactive";
 import { PanelSection } from "@/components/panel";
@@ -33,10 +34,17 @@ export function RuleCreatePanel({
   );
   const { result } = attempt;
   const announced = useRef<Attempt | null>(null);
+  // Termo vindo do simulador ("Criar regra 'descrição contém'"): preenche o valor da condição.
+  const term = useSearchParams().get("termo")?.slice(0, 200) ?? "";
 
   useEffect(() => {
     if (result.status !== "success" || announced.current === attempt) return;
     announced.current = attempt;
+    const search = new URLSearchParams(window.location.search);
+    if (search.has("termo")) {
+      search.delete("termo");
+      window.history.replaceState(null, "", search.size ? `?${search.toString()}` : window.location.pathname);
+    }
     showToast(
       "success",
       "Regra criada. Ela vale para as próximas movimentações; as já registradas não mudam.",
@@ -53,8 +61,8 @@ export function RuleCreatePanel({
     >
       <form action={formAction} className={ui.form}>
         <RuleFields
-          key={attempt.version}
-          initial={"values" in result ? result.values : EMPTY_RULE_VALUES}
+          key={`${attempt.version}:${term}`}
+          initial={"values" in result ? result.values : { ...EMPTY_RULE_VALUES, conditionValue: term }}
           fieldErrors={result.status === "invalid" ? result.fieldErrors : undefined}
           categories={categories}
           accounts={accounts}

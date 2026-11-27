@@ -46,6 +46,46 @@ const OVERVIEW_GROUP = {
   items: [{ href: "/visao-geral", label: "Visão geral", Icon: IconOverview }],
 } as const;
 
+// Investimentos: barras e linha de base de uma carteira, no traço dos ícones do app.
+function IconInvestments({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      <path d="M4 18 9 12l4 3 7-9M15 6h5v5" />
+    </svg>
+  );
+}
+
+// Bens e dívidas: uma casa sobre a linha de base, no mesmo traço.
+function IconAssets({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      <path d="M4 20h16M6 20v-8l6-5 6 5v8M10 20v-5h4v5" />
+    </svg>
+  );
+}
+
 /** Registros guardam o que aconteceu; Organização define como ler (categorias e regras). */
 const NAV_GROUPS: readonly { label: string; items: readonly NavItem[] }[] = [
   {
@@ -53,6 +93,13 @@ const NAV_GROUPS: readonly { label: string; items: readonly NavItem[] }[] = [
     items: [
       { href: "/movimentacoes", label: "Movimentações", Icon: IconMovements },
       { href: "/contas", label: "Contas", Icon: IconAccounts },
+    ],
+  },
+  {
+    label: "Patrimônio",
+    items: [
+      { href: "/investimentos", label: "Investimentos", Icon: IconInvestments },
+      { href: "/patrimonio", label: "Bens e dívidas", Icon: IconAssets },
     ],
   },
   {

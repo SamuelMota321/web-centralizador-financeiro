@@ -1,13 +1,21 @@
 "use server";
 
 import { z } from "zod";
+import { listAccounts } from "@/lib/accounts/api";
+import type { Account } from "@/lib/accounts/types";
 import {
   completePluggyConnection,
   disconnectConnection,
   getConnection,
+  mapPluggyAccount,
   startPluggySession,
 } from "@/lib/connections/api";
 import { connectionErrorMessage, isConnectionDenied } from "@/lib/connections/messages";
+import { isAccessDenied } from "@/lib/connections/resume-pointer";
+import { getLatestSyncRuns, getSyncRun, isTrustedStatusUrl, requestSyncRun, requestUpdateSession } from "@/lib/sync-runs/api";
+import type { SyncRun } from "@/lib/sync-runs/types";
+import { clearResumePointer, saveResumePointer } from "@/lib/connections/resume-store";
+import { type AccountMappingChoice, accountMappingInputSchema, type InitialImport } from "@/lib/connections/schema";
 import type { Connection } from "@/lib/connections/types";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
@@ -55,6 +63,8 @@ export async function completeConnectionAction(itemId: string, idempotencyKey: s
 
   try {
     const accepted = await completePluggyConnection(parsed.data, key.data, { accessToken: token });
+    // C-01: o id devolvido pela conclusao e o unico ponteiro de retomada (nunca accountId nem o Item).
+    await saveResumePointer(accepted.connection.id);
     return { status: "ok", connection: { ...accepted.connection, initialImport: accepted.initialImport } };
   } catch (error) {
     return failure(error, "Não foi possível registrar a conexão. Tente de novo.");
@@ -66,7 +76,14 @@ export async function refreshConnectionAction(connectionId: string): Promise<Con
 }
 
 export async function disconnectAction(connectionId: string): Promise<ConnectionResult> {
-  return withConnection(connectionId, disconnectConnection, "Não foi possível remover a conexão. Tente de novo.");
+  const result = await withConnection(connectionId, disconnectConnection, "Não foi possível remover a conexão. Tente de novo.");
+  if (result.status === "ok") await clearResumePointer();
+  return result;
+}
+
+/** A pagina nao grava cookie: quando o ponteiro guardado e recusado pela API, o cliente pede o descarte. */
+export async function forgetResumePointerAction(): Promise<void> {
+  await clearResumePointer();
 }
 
 async function withConnection(
@@ -83,6 +100,7 @@ async function withConnection(
   try {
     return { status: "ok", connection: await call(id.data, { accessToken: token }) };
   } catch (error) {
+    if (isAccessDenied(error)) await clearResumePointer();
     return failure(error, fallback);
   }
 }
@@ -90,4 +108,112 @@ async function withConnection(
 function failure(error: unknown, fallback: string): ActionError {
   if (isAuthFailure(error)) return { status: "error", message: SESSION_EXPIRED, reauth: true };
   return { status: "error", message: connectionErrorMessage(error, fallback), clearPointer: isConnectionDenied(error) };
+}
+
+// ---------- Mapeamento de contas da importação inicial ----------
+
+export type MappingResult = { status: "ok"; initialImport: InitialImport } | ActionError;
+export type LinkableAccountsResult = { status: "ok"; accounts: Account[] } | ActionError;
+
+/** Teto da API para uma página de contas; acima disso a lista de vínculo fica parcial. */
+const LINKABLE_PAGE_SIZE = 100;
+
+/**
+ * Liga uma conta do banco a uma conta manual existente ou cria uma conta conectada. Ids e escolha
+ * vêm do navegador e são validados aqui; o backend confere a posse de cada um.
+ */
+export async function mapAccountAction(
+  connectionId: string,
+  providerAccountId: string,
+  choice: AccountMappingChoice,
+): Promise<MappingResult> {
+  const providerId = uuidSchema.safeParse(providerAccountId);
+  const parsedChoice = accountMappingInputSchema.safeParse(choice);
+  if (!providerId.success || !parsedChoice.success) {
+    return { status: "error", message: "Escolha uma opção válida para esta conta." };
+  }
+  return withSyncToken(
+    connectionId,
+    async (id, context) =>
+      ({ status: "ok", initialImport: (await mapPluggyAccount(id, providerId.data, parsedChoice.data, context)).initialImport }) as const,
+    "Não foi possível vincular a conta. Tente de novo.",
+  );
+}
+
+/** Só contas manuais ativas recebem vínculo: as conectadas já pertencem a outra conta do banco. */
+export async function listLinkableAccountsAction(): Promise<LinkableAccountsResult> {
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", message: SESSION_EXPIRED, reauth: true };
+  try {
+    const page = await listAccounts({ page: 1, pageSize: LINKABLE_PAGE_SIZE }, { accessToken: token });
+    return {
+      status: "ok",
+      accounts: page.items.filter((account) => account.origin === "manual" && account.archivedAt === null),
+    };
+  } catch (error) {
+    return failure(error, "Não foi possível carregar suas contas.");
+  }
+}
+
+// ---------- HU-008: sincronização manual ----------
+
+export type SyncRunResult = { status: "ok"; run: SyncRun } | ActionError;
+export type LatestSyncResult = { status: "ok"; latest: SyncRun | null; lastReconciled: SyncRun | null } | ActionError;
+export type UpdateSessionResult = { status: "ok"; connectToken: string } | ActionError;
+
+async function withSyncToken<T>(
+  connectionId: string,
+  run: (id: string, context: { accessToken: string }) => Promise<T>,
+  fallback: string,
+): Promise<T | ActionError> {
+  const id = uuidSchema.safeParse(connectionId);
+  if (!id.success) return { status: "error", message: "Não foi possível encontrar esta conexão." };
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", message: SESSION_EXPIRED, reauth: true };
+  try {
+    return await run(id.data, { accessToken: token });
+  } catch (error) {
+    if (isAccessDenied(error)) await clearResumePointer();
+    return failure(error, fallback);
+  }
+}
+
+/** Uma execução por conexão: com outra ativa, a API devolve a existente e a tela a mostra. */
+export async function requestSyncAction(connectionId: string): Promise<SyncRunResult> {
+  const result = await withSyncToken(
+    connectionId,
+    async (id, context) => ({ status: "ok", run: await requestSyncRun(id, context) }) as const,
+    "Não foi possível pedir a sincronização. Tente de novo.",
+  );
+  // C-01: a URL de andamento só é aceita na origem da API; a consulta segue pela rota tipada pelo id.
+  if (result.status === "ok" && !isTrustedStatusUrl(result.run.statusUrl)) {
+    return { status: "error", message: "A resposta do servidor não pôde ser confirmada. Tente de novo." };
+  }
+  return result;
+}
+
+export async function getSyncRunAction(connectionId: string, runId: string): Promise<SyncRunResult> {
+  if (!uuidSchema.safeParse(runId).success) return { status: "error", message: "Execução inválida." };
+  return withSyncToken(
+    connectionId,
+    async (id, context) => ({ status: "ok", run: await getSyncRun(id, runId, context) }) as const,
+    "Não foi possível consultar a sincronização.",
+  );
+}
+
+export async function getLatestSyncAction(connectionId: string): Promise<LatestSyncResult> {
+  return withSyncToken(
+    connectionId,
+    async (id, context) => ({ status: "ok", ...(await getLatestSyncRuns(id, context)) }) as const,
+    "Não foi possível consultar a última sincronização.",
+  );
+}
+
+/** Só o token limitado do widget vai ao navegador; ele expira e nunca é guardado. */
+export async function startUpdateSessionAction(connectionId: string): Promise<UpdateSessionResult> {
+  return withSyncToken(
+    connectionId,
+    async (id, context) => ({ status: "ok", connectToken: (await requestUpdateSession(id, context)).connectToken }) as const,
+    "Não foi possível abrir a autorização no banco. Tente de novo.",
+  );
 }

@@ -7,26 +7,57 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
-/* Colunas: conta | origem | saldo inicial | ações. */
+.listTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.listTitle {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.listTop > form {
+  flex: 1 1 24rem;
+  justify-content: flex-end;
+}
+
+/* Painel único: cabeçalho, grupos e linhas. */
+.table {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+.rows {
+  list-style: none;
+}
+
+.rows > li {
+  border-top: 1px solid var(--line);
+}
+
+/* Colunas: conta | tipo | instituição | saldo inicial | origem | ações. */
 .listHead,
 .row {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) 7rem minmax(9rem, 1fr) 7.5rem;
-  column-gap: var(--space-5);
+  grid-template-columns: minmax(0, 1.6fr) 9rem minmax(0, 1fr) minmax(9rem, 1fr) 7rem 3rem;
+  column-gap: var(--space-4);
 }
 
-/* Cabeçalho de tabela preso ao painel da lista (Style Guide 2.0). */
+/* Cabeçalho técnico da tabela (Style Guide 2.0). */
 .listHead {
   align-items: center;
   min-height: 32px;
   padding: 0 16px;
-  border: 1px solid var(--line);
-  border-bottom: 0;
-  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
-  background: var(--surface);
   color: var(--muted);
   font-size: 0.6875rem;
   font-weight: 650;
@@ -34,22 +65,22 @@
   text-transform: uppercase;
 }
 
-.listHead + ul {
-  margin-top: calc(-1 * var(--space-2));
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-}
-
-.listHead > :nth-child(3) {
+.listHead > :nth-child(4) {
   text-align: right;
 }
 
 .row {
   align-items: center;
   row-gap: var(--space-2);
-  min-height: 48px;
+  min-height: 56px;
   padding: 8px 16px;
   transition: background-color var(--motion-hover) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row:hover {
+    background: var(--surface-soft);
+  }
 }
 
 .row[data-open] {
@@ -57,6 +88,13 @@
 }
 
 .rowMain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.rowName {
   min-width: 0;
 }
 
@@ -70,6 +108,31 @@
   font-size: 0.75rem;
 }
 
+/* Tipo e instituição aparecem em colunas no desktop e na meta da conta no celular. */
+.compactOnly {
+  display: none;
+}
+
+.typeTag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
+  color: var(--body-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rowInstitution {
+  min-width: 0;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
 .rowBalance {
   text-align: right;
 }
@@ -81,14 +144,39 @@
   white-space: nowrap;
 }
 
-@media (max-width: 52rem) {
+.footnote {
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 64rem) {
+  .listHead,
+  .row {
+    grid-template-columns: minmax(0, 1.6fr) minmax(9rem, 1fr) 7rem 3rem;
+  }
+
+  .listHead > :nth-child(2),
+  .listHead > :nth-child(3),
+  .rowType,
+  .rowInstitution {
+    display: none;
+  }
+
+  .listHead > :nth-child(4) {
+    text-align: right;
+  }
+
+  .compactOnly {
+    display: block;
+  }
+}
+
+@media (max-width: 40rem) {
   .listHead {
     display: none;
   }
 
   .row {
     grid-template-columns: minmax(0, 1fr) auto;
-    padding: 8px 16px;
   }
 
   .rowOrigin {
@@ -102,7 +190,7 @@
     text-align: left;
   }
 
-  .row > :nth-child(4) {
+  .rowActionsCell {
     grid-column: 2;
     align-self: end;
   }

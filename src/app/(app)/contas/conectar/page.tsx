@@ -4,6 +4,8 @@ import { z } from "zod";
 import { PageHeader, ui } from "@/components/ui";
 import { getConnection } from "@/lib/connections/api";
 import { connectionErrorMessage, isConnectionDenied } from "@/lib/connections/messages";
+import { isAccessDenied } from "@/lib/connections/resume-pointer";
+import { readResumePointer } from "@/lib/connections/resume-store";
 import type { Connection } from "@/lib/connections/types";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
 import { auth0 } from "@/lib/auth0";
@@ -17,15 +19,19 @@ export default async function ConectarPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // `conexao` so existe depois de uma conexao concluida nesta tela: o backend nao lista conexoes.
+  // O backend nao lista conexoes: o id vem do link (`conexao`) ou do ponteiro guardado no servidor
+  // na ultima conclusao deste usuario (C-01).
   const { conexao } = await searchParams;
-  const connectionId = z.uuid().safeParse(conexao);
   const session = await auth0.getSession();
   const owner = session?.user.sub
     ? createHash("sha256").update(session.user.sub).digest("hex")
     : "";
+  const fromUrl = z.uuid().safeParse(conexao);
+  const pointer = fromUrl.success ? null : await readResumePointer();
+  const connectionId = fromUrl.success ? fromUrl : z.uuid().safeParse(pointer);
 
   let connection: Connection | null = null;
+  let stalePointer = false;
   let notice: { tone: "error"; message: string; reauth?: boolean } | undefined;
   let deniedConnectionId: string | undefined;
   if (connectionId.success) {
@@ -37,9 +43,14 @@ export default async function ConectarPage({
         connection = await getConnection(connectionId.data, { accessToken: token });
       } catch (error) {
         if (isConnectionDenied(error)) deniedConnectionId = connectionId.data;
-        notice = isAuthFailure(error)
-          ? { tone: "error", message: SESSION_EXPIRED, reauth: true }
-          : { tone: "error", message: connectionErrorMessage(error, "Não foi possível abrir esta conexão. Tente de novo.") };
+        if (pointer && isAccessDenied(error)) {
+          // Ponteiro de outra epoca: volta ao inicio sem alarme e pede o descarte do cookie.
+          stalePointer = true;
+        } else {
+          notice = isAuthFailure(error)
+            ? { tone: "error", message: SESSION_EXPIRED, reauth: true }
+            : { tone: "error", message: connectionErrorMessage(error, "Não foi possível abrir esta conexão. Tente de novo.") };
+        }
       }
     }
   }
@@ -55,7 +66,7 @@ export default async function ConectarPage({
           </Link>
         }
       />
-      <ConnectFlow owner={owner} initialConnection={connection} initialNotice={notice} deniedConnectionId={deniedConnectionId} />
+      <ConnectFlow owner={owner} initialConnection={connection} initialNotice={notice} deniedConnectionId={deniedConnectionId} stalePointer={stalePointer} />
     </div>
   );
 }

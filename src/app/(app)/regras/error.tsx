@@ -1,9 +1,10 @@
 "use client";
 
 import { IconAlert } from "@/components/icons";
+import { RetryButton } from "@/components/retry-button";
 import { EmptyState, ui } from "@/components/ui";
 
-export default function RegrasError({ reset }: { reset: () => void }) {
+export default function RegrasError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   // A mensagem do erro não é exibida: pode carregar detalhe do backend ou da sessão.
   return (
     <EmptyState
@@ -11,9 +12,7 @@ export default function RegrasError({ reset }: { reset: () => void }) {
       title="Não foi possível carregar suas regras"
       action={
         <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-          <button className={`${ui.button} ${ui.primary}`} type="button" onClick={reset}>
-            Tentar de novo
-          </button>
+          <RetryButton error={error} retry={retry} />
           {/* Se a sessão expirou, tentar de novo não basta. */}
           <a className={`${ui.button} ${ui.secondary}`} href="/auth/login?returnTo=/regras">
             Entrar novamente
@@ -21,7 +20,7 @@ export default function RegrasError({ reset }: { reset: () => void }) {
         </span>
       }
     >
-      Pode ser uma falha momentânea de conexão. Suas regras não foram alteradas.
+      Pode ser uma falha momentânea de conexão ou o servidor ainda acordando, o que pode levar até 1 minuto. Tente de novo em alguns segundos. Suas regras não foram alteradas.
     </EmptyState>
   );
 }

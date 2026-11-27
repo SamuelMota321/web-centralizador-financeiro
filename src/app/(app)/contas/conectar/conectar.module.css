@@ -69,3 +69,78 @@
   align-items: center;
   gap: var(--space-3);
 }
+
+/* ---------- Sincronização (HU-008): só opacidade muda entre estados ---------- */
+.sync {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.syncTitle {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.syncState {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: opacity var(--motion-hover) var(--ease-out);
+}
+
+.syncState[data-active] {
+  opacity: 0.85;
+}
+
+.syncMeta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.syncReasons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 1.1em;
+  font-size: 0.875rem;
+}
+
+/* ---------- Mapeamento de contas da importação inicial ---------- */
+.mappingList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.mappingItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--line);
+}
+
+.mappingItem:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.mappingName {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.mappingControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+}
+
+.mappingControls > :first-child {
+  flex: 1 1 16rem;
+}

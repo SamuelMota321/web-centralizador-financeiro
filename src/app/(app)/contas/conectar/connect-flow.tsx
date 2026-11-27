@@ -12,6 +12,7 @@ import {
   type ActionError,
   completeConnectionAction,
   disconnectAction,
+  forgetResumePointerAction,
   refreshConnectionAction,
   startSessionAction,
 } from "./actions";
@@ -23,9 +24,12 @@ import {
   consentSummary,
   formatTimestamp,
   initialImportStatus,
+  needsAccountMapping,
   needsReconnect,
   statusView,
 } from "./presentation";
+import { AccountMapping } from "./account-mapping";
+import { SyncPanel } from "./sync-panel";
 import styles from "./conectar.module.css";
 
 const RETURN_TO = "/contas/conectar";
@@ -60,15 +64,20 @@ interface Props {
   /** Falha ao abrir a conexao indicada na URL. */
   initialNotice?: FlowNotice;
   deniedConnectionId?: string;
+  /** O ponteiro de retomada guardado foi recusado pela API: descartar o cookie. */
+  stalePointer?: boolean;
 }
 
-export function ConnectFlow({ owner, initialConnection, initialNotice, deniedConnectionId }: Props) {
+export function ConnectFlow({ owner, initialConnection, initialNotice, deniedConnectionId, stalePointer }: Props) {
   const [phase, setPhase] = useState<Phase>(
     initialConnection ? { kind: "connection", connection: initialConnection } : { kind: "intro", notice: initialNotice },
   );
   const [starting, startTransition] = useTransition();
   const [restoring, setRestoring] = useState(false);
   const [retryRecovery, setRetryRecovery] = useState(false);
+  useEffect(() => {
+    if (stalePointer) void forgetResumePointerAction();
+  }, [stalePointer]);
   // O widget dispara onClose tambem depois do sucesso; so o fechamento sem item e cancelamento.
   const itemReceived = useRef(false);
   const completionInFlight = useRef(false);
@@ -367,6 +376,7 @@ function ConnectionDetail({
       }
       setRemoveError(null);
       setConfirmOpen(false);
+      clearConnectionPointer();
       onChange(result.connection);
       showToast("success", "Conexão removida. A coleta de novos dados parou.");
     });
@@ -386,6 +396,13 @@ function ConnectionDetail({
 
       <Notice tone={view.noticeTone}>{view.explanation}</Notice>
       {importView ? <Notice tone={importView.tone}>{importView.message}</Notice> : null}
+      {needsAccountMapping(connection.initialImport) ? (
+        <AccountMapping
+          connectionId={connection.id}
+          initialImport={connection.initialImport}
+          onMapped={(initialImport) => onChange({ ...connection, initialImport })}
+        />
+      ) : null}
 
       <dl className={styles.summary}>
         <div className={styles.summaryItem}>
@@ -415,6 +432,8 @@ function ConnectionDetail({
           <dd>{formatTimestamp(connection.updatedAt)}</dd>
         </div>
       </dl>
+
+      {canSync(connection.status) ? <SyncPanel connectionId={connection.id} /> : null}
 
       {checkError ? (
         <Notice tone="error" actions={checkError.reauth ? <ReauthLink /> : undefined}>
@@ -474,6 +493,11 @@ function ConnectionDetail({
       />
     </section>
   );
+}
+
+/** Sincronizar só faz sentido com a conexão ativa; expirada ou revogada pede nova conexão. */
+function canSync(status: Connection["status"]): boolean {
+  return status === "connected" || status === "partially_available";
 }
 
 function ReauthLink() {

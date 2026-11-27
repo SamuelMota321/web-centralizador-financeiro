@@ -422,12 +422,21 @@
   transition: color var(--motion-hover) ease;
 }
 
-.segment[aria-pressed="true"] {
+.segment[aria-pressed="true"],
+.segment[aria-current="true"] {
   color: var(--foreground);
 }
 
+/* Segmento como link: centraliza o texto como o botão. */
+a.segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
-  .segment:hover:not([aria-pressed="true"]) {
+  .segment:hover:not([aria-pressed="true"]):not([aria-current="true"]) {
     color: var(--body-text);
   }
 }
@@ -1157,4 +1166,477 @@
 
 .toast[data-type="error"] .toastIcon {
   color: var(--negative);
+}
+
+/* ---------- Cards de resumo (StatCard) ---------- */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-3);
+}
+
+.statCard {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+}
+
+.statIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-control);
+  background: var(--primary-tint);
+  color: var(--primary);
+}
+
+.statBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.statLabel {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statValue {
+  color: var(--foreground);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.statMeta {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.statMeter {
+  display: block;
+  height: 4px;
+  margin-top: var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+}
+
+.statMeter > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.statCard[data-tone="positive"] .statIcon {
+  background: color-mix(in srgb, var(--positive) 14%, transparent);
+  color: var(--positive);
+}
+
+.statCard[data-tone="negative"] .statIcon {
+  background: color-mix(in srgb, var(--negative) 14%, transparent);
+  color: var(--negative);
+}
+
+.statTrend {
+  flex: none;
+  align-self: flex-end;
+  width: 120px;
+  color: var(--primary);
+}
+
+.statCard[data-tone="negative"] .statTrend {
+  color: var(--negative);
+}
+
+/* O minigráfico herda a cor do card (verde ou vermelho); fora daqui ele é neutro. */
+.statTrend svg path {
+  stroke: currentColor;
+}
+
+.statTrend svg circle {
+  fill: currentColor;
+}
+
+@media (max-width: 40rem) {
+  .statTrend {
+    display: none;
+  }
+}
+
+/* ---------- Monograma (no lugar de logos) ---------- */
+.monogram {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-soft);
+  color: var(--body-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Busca e filtro de lista ---------- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toolbarSearch {
+  flex: 1 1 14rem;
+  width: auto;
+}
+
+.toolbarFilter {
+  flex: 0 1 11rem;
+  min-width: 9rem;
+}
+
+/* Cabeçalho de grupo dentro de uma lista, ex.: "Bancos (2)". */
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 16px 6px;
+  background: var(--surface-soft);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.groupCount {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Painel "Filtros" da barra de busca: recolhível, sem JavaScript. */
+.toolbarMore {
+  position: relative;
+}
+
+.toolbarMore > summary {
+  list-style: none;
+}
+
+.toolbarMore > summary::-webkit-details-marker {
+  display: none;
+}
+
+.toolbarMore[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.toolbarBadge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--primary-tint);
+  color: var(--primary);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.toolbarMorePanel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-topbar);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(20rem, calc(100vw - 2rem));
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+}
+
+/* ---------- Ícone de categoria em círculo ---------- */
+.iconBadge {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: var(--badge-color);
+}
+
+.iconBadge[data-tone="tint"] {
+  background: color-mix(in srgb, var(--badge-color) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--badge-color) 28%, transparent);
+}
+
+.iconBadge[data-size="small"] {
+  width: 24px;
+  height: 24px;
+}
+
+.iconBadge[data-size="large"] {
+  width: 44px;
+  height: 44px;
+}
+
+/* ---------- Fileira de ícones (sugeridas) ---------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.75rem, 1fr));
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 100%;
+  padding: var(--space-3) var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-panel);
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  text-align: center;
+  transition:
+    background-color var(--motion-hover) ease,
+    border-color var(--motion-hover) ease;
+}
+
+button.tile {
+  cursor: pointer;
+}
+
+button.tile:hover {
+  background: var(--surface-soft);
+}
+
+button.tile:hover .iconBadge {
+  transform: translateY(-2px);
+}
+
+.tile .iconBadge {
+  transition:
+    transform var(--motion-hover) ease,
+    background-color var(--motion-settle) ease;
+}
+
+.tile[aria-pressed="true"] {
+  border-color: var(--line-strong);
+  background: var(--surface-soft);
+}
+
+.tileLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.tileDetail {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+/* Falta: círculo tracejado, ícone apagado e um "+" no canto. */
+.tile[data-state="missing"] .iconBadge {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  outline: 1px dashed transparent;
+}
+
+.tile[data-state="missing"] .iconBadge > span {
+  color: var(--muted) !important;
+}
+
+.tile[data-state="missing"] .tileLabel {
+  color: var(--body-text);
+  font-weight: 500;
+}
+
+.tile[data-state="off"] .iconBadge {
+  opacity: 0.45;
+}
+
+.tileMark {
+  position: absolute;
+  top: calc(var(--space-3) - 4px);
+  left: calc(50% + 12px);
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--surface);
+  border-radius: var(--radius-pill);
+  background: var(--foreground);
+  color: var(--surface);
+}
+
+.tile[data-state="on"] .tileMark {
+  background: var(--positive);
+  color: var(--on-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.tile:hover .iconBadge {
+    transform: none;
+  }
+}
+
+/* ---------- Bloco de seção (cabeçalho dentro da borda) ---------- */
+.sectionPanel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+}
+
+.sectionPanelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+
+.sectionPanelIcon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  color: var(--primary);
+}
+
+.sectionPanelText {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sectionPanelTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--foreground);
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.sectionPanelHint {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.sectionPanelActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.countPill {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+/* ---------- Faixa de destaque ---------- */
+/* Exceção registrada no DESIGN.md: único gradiente da interface, suave e verde. */
+.heroBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--line));
+  border-radius: var(--radius-frame);
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 60%),
+    var(--surface);
+}
+
+.heroIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+}
+
+.heroMedia {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--primary);
+}
+
+.heroText {
+  display: flex;
+  flex: 1 1 18rem;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.heroTitle {
+  color: var(--foreground);
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.heroBody {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.heroAction {
+  flex: none;
+}
+
+/* Ação da faixa: contorno no verde da marca, como sinal. */
+.heroAction > .button,
+.heroAction > a.button {
+  border-color: var(--primary);
+  border-radius: var(--radius-pill);
+  color: var(--primary);
 }

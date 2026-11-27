@@ -9,7 +9,8 @@ import {
   renameCategory,
 } from "@/lib/categories/api";
 import type { Category } from "@/lib/categories/types";
-import { archiveCategoryAction, createCategoryAction, renameCategoryAction } from "./actions";
+import { archiveCategoryAction, createCategoryAction, createOneSuggestedCategoryAction, createSuggestedCategoriesAction, renameCategoryAction } from "./actions";
+import { SUGGESTED_CATEGORIES } from "@/lib/categories/suggestions";
 import { DUPLICATE_NAME_MESSAGE } from "./category-names";
 
 vi.mock("@/lib/auth0", () => ({ auth0: { getAccessToken: vi.fn() } }));
@@ -219,5 +220,65 @@ describe("archiveCategoryAction", () => {
     vi.mocked(deactivateCategory).mockRejectedValue(problem(status, code));
 
     expect(await archiveCategoryAction(CATEGORY_ID)).toMatchObject({ reauth: true });
+  });
+});
+
+describe("createSuggestedCategoriesAction", () => {
+  beforeEach(() => {
+    vi.mocked(createCategory).mockReset().mockResolvedValue(category());
+    vi.mocked(listCategories).mockReset();
+  });
+
+  it("cria só as sugeridas que faltam, uma por vez", async () => {
+    vi.mocked(listCategories).mockResolvedValue({ items: [category({ name: "Mercado" })], page: 1, pageSize: 100, total: 1 });
+    const result = await createSuggestedCategoriesAction();
+
+    expect(result).toEqual({ status: "done", created: SUGGESTED_CATEGORIES.length - 1, skipped: 1 });
+    expect(createCategory).toHaveBeenCalledTimes(SUGGESTED_CATEGORIES.length - 1);
+    expect(createCategory).not.toHaveBeenCalledWith({ name: "Mercado" }, expect.anything());
+    expect(revalidatePath).toHaveBeenCalledWith("/categorias");
+  });
+
+  it("cria em lotes de 5: o lote com falha termina, conta as que entraram e não começa outro", async () => {
+    vi.mocked(listCategories).mockResolvedValue({ items: [], page: 1, pageSize: 100, total: 0 });
+    vi.mocked(createCategory)
+      .mockResolvedValueOnce(category())
+      .mockResolvedValueOnce(category())
+      .mockRejectedValueOnce(new Error("falha"))
+      .mockResolvedValue(category());
+    const result = await createSuggestedCategoriesAction();
+
+    expect(result).toMatchObject({ status: "error", created: 4 });
+    expect(createCategory).toHaveBeenCalledTimes(5);
+  });
+
+  it("pede para entrar de novo sem sessão", async () => {
+    vi.mocked(auth0.getAccessToken).mockRejectedValue(new Error("sem sessão"));
+    expect(await createSuggestedCategoriesAction()).toMatchObject({ status: "error", reauth: true, created: 0 });
+    expect(createCategory).not.toHaveBeenCalled();
+  });
+});
+
+describe("createOneSuggestedCategoryAction", () => {
+  beforeEach(() => {
+    vi.mocked(createCategory).mockReset().mockResolvedValue(category());
+    vi.mocked(listCategories).mockReset().mockResolvedValue({ items: [], page: 1, pageSize: 100, total: 0 });
+  });
+
+  it("cria a sugerida pedida", async () => {
+    expect(await createOneSuggestedCategoryAction("Saúde")).toEqual({ status: "done", created: 1, skipped: 0 });
+    expect(createCategory).toHaveBeenCalledWith({ name: "Saúde" }, { accessToken: "token-ficticio" });
+  });
+
+  it("recusa nome fora da lista sem chamar a API", async () => {
+    expect(await createOneSuggestedCategoryAction("Qualquer coisa")).toMatchObject({ status: "error" });
+    expect(createCategory).not.toHaveBeenCalled();
+  });
+
+  it("cria direto, sem ler a lista antes, e trata o 409 de nome repetido como pulado", async () => {
+    vi.mocked(createCategory).mockRejectedValue(problem(409, "CATEGORY_ALREADY_EXISTS"));
+    expect(await createOneSuggestedCategoryAction("Saúde")).toEqual({ status: "done", created: 0, skipped: 1 });
+    expect(listCategories).not.toHaveBeenCalled();
+    expect(createCategory).toHaveBeenCalledTimes(1);
   });
 });
