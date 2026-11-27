@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASSET_UNAVAILABLE, assetLabel, assetMeta, collectionFromSlug, formatStamp, NO_ASSET, sectionHref } from "./presentation";
+import { ASSET_UNAVAILABLE, assetLabel, assetMeta, collectionFromSlug, formatStamp, NO_ASSET, sectionHref, valuationAge } from "./presentation";
 
 describe("presentation de bens e dívidas", () => {
   it("traduz o segmento da URL e recusa o desconhecido", () => {
@@ -29,5 +29,30 @@ describe("presentation de bens e dívidas", () => {
   it("pagina uma seção sem perder as outras", () => {
     expect(sectionHref({ assets: 2, financings: 1, liabilities: 3 }, "financings", 2)).toBe("/patrimonio?pb=2&pf=2&pp=3");
     expect(sectionHref({ assets: 2, financings: 1, liabilities: 1 }, "assets", 1)).toBe("/patrimonio");
+  });
+});
+
+describe("valuationAge", () => {
+  const today = "2025-11-27";
+
+  it("hoje, dias, meses e anos (meses inteiros, pelo calendário)", () => {
+    expect(valuationAge("2025-11-27", today)).toBe("hoje");
+    expect(valuationAge("2025-11-26", today)).toBe("há 1 dia");
+    expect(valuationAge("2025-11-10", today)).toBe("há 17 dias");
+    expect(valuationAge("2025-10-27", today)).toBe("há 1 mês");
+    expect(valuationAge("2024-06-15", today)).toBe("há 17 meses");
+    expect(valuationAge("2024-11-27", today)).toBe("há 12 meses");
+    expect(valuationAge("2024-01-10", today)).toBe("há 22 meses");
+    expect(valuationAge("2023-11-27", today)).toBe("há 2 anos");
+    expect(valuationAge("2023-01-10", today)).toBe("há 2 anos");
+  });
+
+  it("o dia do mês decide o mês incompleto", () => {
+    expect(valuationAge("2025-10-28", today)).toBe("há 30 dias");
+    expect(valuationAge("2024-11-28", today)).toBe("há 11 meses");
+  });
+
+  it("data futura não tem texto", () => {
+    expect(valuationAge("2025-12-01", today)).toBeNull();
   });
 });

@@ -29,6 +29,45 @@
   font-size: 0.8125rem;
 }
 
+/* Dentro do bloco de seção: o painel de criação e os avisos ganham o respiro do bloco. */
+.inner {
+  padding: 0 var(--space-5);
+}
+
+.inner:has(> [hidden]) {
+  display: none;
+}
+
+.inner:not(:empty) {
+  padding-bottom: var(--space-4);
+}
+
+.emptyNote {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border-top: 1px solid var(--line);
+}
+
+/* A tabela dentro do bloco: sem borda própria; o bloco já tem. */
+.tableFlat {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Círculo de ícone e nome, lado a lado. */
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.source {
+  max-width: 16rem;
+  color: var(--body-text);
+  overflow-wrap: anywhere;
+}
+
 /* Rolagem só dentro do painel, nunca na página. */
 .tableWrap {
   overflow-x: auto;

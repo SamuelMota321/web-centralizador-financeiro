@@ -5,7 +5,9 @@ import { useCallback, useState } from "react";
 import { ui } from "@/components/ui";
 import type { PatrimonyCollection, PatrimonyItem } from "@/lib/patrimony/types";
 import { PatrimonyForm } from "./patrimony-form";
-import { amountText, assetLabel, assetMeta, SLUGS } from "./presentation";
+import { formatCivilDate } from "@/lib/civil-date";
+import { AssetBadge } from "./asset-badge";
+import { amountText, assetLabel, SLUGS, valuationAge } from "./presentation";
 import styles from "./patrimonio.module.css";
 
 /** Linha da tabela com edição no lugar: a linha seguinte abre o formulário. */
@@ -14,11 +16,14 @@ export function ItemRow({
   item,
   assets,
   columns,
+  today,
 }: {
   collection: PatrimonyCollection;
   item: PatrimonyItem;
-  assets: { id: string; description: string }[] | null;
+  assets: { id: string; description: string; type?: string }[] | null;
   columns: number;
+  /** Hoje (AAAA-MM-DD), vindo do servidor: o texto "há N meses" não muda entre servidor e navegador. */
+  today: string;
 }) {
   const [editing, setEditing] = useState(false);
   const close = useCallback(() => setEditing(false), []);
@@ -27,13 +32,41 @@ export function ItemRow({
     <>
       <tr data-open={editing || undefined}>
         <td>
-          <div className={styles.cellTitle}>{item.description}</div>
-          {item.kind === "asset" ? <div className={styles.cellMeta}>{assetMeta(item)}</div> : null}
+          {item.kind === "asset" ? (
+            <div className={styles.identity}>
+              <AssetBadge type={item.type} />
+              <div className={styles.cellTitle}>{item.description}</div>
+            </div>
+          ) : (
+            <div className={styles.cellTitle}>{item.description}</div>
+          )}
         </td>
-        {item.kind === "financing" ? <td>{assetLabel(item.assetId, assets)}</td> : null}
+        {item.kind === "financing" ? (
+          <td>
+            {item.assetId === null ? (
+              <span className={styles.note}>{assetLabel(item.assetId, assets)}</span>
+            ) : (
+              <div className={styles.identity}>
+                <AssetBadge type={assets?.find((asset) => asset.id === item.assetId)?.type} />
+                <span>{assetLabel(item.assetId, assets)}</span>
+              </div>
+            )}
+          </td>
+        ) : null}
         <td className={`${styles.num} tabular`}>
           {amountText(item.kind === "asset" ? item.estimatedValue : item.outstandingBalance)}
         </td>
+        {item.kind === "asset" ? (
+          <>
+            <td>
+              <div className="tabular">{formatCivilDate(item.valuationDate)}</div>
+              {valuationAge(item.valuationDate, today) ? (
+                <div className={styles.cellMeta}>{valuationAge(item.valuationDate, today)}</div>
+              ) : null}
+            </td>
+            <td className={styles.source}>{item.source}</td>
+          </>
+        ) : null}
         <td className={styles.actions}>
           <button
             className={`${ui.button} ${ui.ghost} ${ui.small}`}

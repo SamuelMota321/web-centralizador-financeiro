@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { IconAccounts, IconHome, IconReceipt } from "@/components/icons";
 import { PanelSection, PanelToggle } from "@/components/panel";
+import { SectionPanel } from "@/components/section-panel";
 import { Notice, PageHeader, Pagination, ui } from "@/components/ui";
 import { listAllPages } from "@/lib/api/pagination";
 import { auth0 } from "@/lib/auth0";
+import { todayCivilDate } from "@/lib/civil-date";
 import { listPatrimony } from "@/lib/patrimony/api";
 import { PATRIMONY_COLLECTIONS, type PatrimonyCollection, type PatrimonyItem } from "@/lib/patrimony/types";
 import { ItemRow } from "./item-rows";
@@ -10,11 +13,13 @@ import { PatrimonyForm } from "./patrimony-form";
 import { PAGE_PARAMS, PAGE_SIZE, parsePageParam, SECTIONS, sectionHref, totalPages } from "./presentation";
 import styles from "./patrimonio.module.css";
 
-const HEADERS: Record<PatrimonyCollection, string[]> = {
-  assets: ["Bem", "Valor estimado", ""],
-  financings: ["Financiamento", "Bem associado", "Saldo devedor", ""],
-  liabilities: ["Dívida", "Saldo devedor", ""],
+const HEADERS: Record<PatrimonyCollection, { label: string; num?: boolean }[]> = {
+  assets: [{ label: "Bem" }, { label: "Valor estimado", num: true }, { label: "Avaliado em" }, { label: "Fonte" }, { label: "" }],
+  financings: [{ label: "Financiamento" }, { label: "Bem associado" }, { label: "Saldo devedor", num: true }, { label: "" }],
+  liabilities: [{ label: "Dívida" }, { label: "Saldo devedor", num: true }, { label: "" }],
 };
+
+const SECTION_ICONS = { assets: IconHome, financings: IconReceipt, liabilities: IconAccounts } as const;
 
 export default async function PatrimonioPage({
   searchParams,
@@ -40,14 +45,15 @@ export default async function PatrimonioPage({
   const results = { assets, financings, liabilities };
   const assetOptions =
     allAssets.status === "fulfilled"
-      ? allAssets.value.items.map(({ id, description }) => ({ id, description }))
+      ? allAssets.value.items.map(({ id, description, type }) => ({ id, description, type }))
       : null;
+  const today = todayCivilDate();
 
   return (
     <div className={styles.page}>
       <PageHeader
         title="Bens e dívidas"
-        context="Bens com o valor que você estima e dívidas com o saldo devedor. Os valores são informados por você; o app não soma nem calcula patrimônio."
+        context="Registre seus bens, financiamentos e dívidas. Os valores são informados por você."
       />
 
       {allAssets.status === "fulfilled" && allAssets.value.truncated ? (
@@ -60,66 +66,66 @@ export default async function PatrimonioPage({
         const titleId = `section-${collection}`;
         const sectionPages = result.status === "fulfilled" ? totalPages(result.value.total, PAGE_SIZE) : 1;
         const empty = result.status === "fulfilled" && result.value.total === 0;
+        const SectionIcon = SECTION_ICONS[collection];
 
         return (
-          <section key={collection} className={styles.section} aria-labelledby={titleId}>
-            <div className={styles.sectionHeader}>
-              <h2 id={titleId} className={styles.sectionTitle}>
-                {section.title}
-                {result.status === "fulfilled" && result.value.total > 0 ? (
-                  <span className={styles.note}> · {result.value.total}</span>
-                ) : null}
-              </h2>
-              <PanelToggle flag={section.flag}>{section.create}</PanelToggle>
+          <SectionPanel
+            key={collection}
+            id={titleId}
+            icon={<SectionIcon size={22} />}
+            title={section.title}
+            count={result.status === "fulfilled" ? result.value.total : undefined}
+            actions={<PanelToggle flag={section.flag}>{section.create}</PanelToggle>}
+          >
+            <div className={styles.inner}>
+              <PanelSection
+                flag={section.flag}
+                title={section.create}
+                description={
+                  collection === "assets"
+                    ? "Informe o valor que você estima e de onde ele veio. Você pode atualizar depois; cada mudança fica no histórico."
+                    : collection === "financings"
+                      ? "Informe o saldo devedor atual. Se o financiamento pagou um bem, associe-o."
+                      : "Empréstimos, parcelamentos e outras dívidas, com o saldo devedor atual."
+                }
+                closeLabel={`Fechar o painel de ${section.create.toLowerCase()}`}
+              >
+                <PatrimonyForm collection={collection} assets={assetOptions} />
+              </PanelSection>
             </div>
 
-            <PanelSection
-              flag={section.flag}
-              title={section.create}
-              description={
-                collection === "assets"
-                  ? "Informe o valor que você estima e de onde ele veio. Você pode atualizar depois; cada mudança fica no histórico."
-                  : collection === "financings"
-                    ? "Informe o saldo devedor atual. Se o financiamento pagou um bem, associe-o."
-                    : "Empréstimos, parcelamentos e outras dívidas, com o saldo devedor atual."
-              }
-              closeLabel={`Fechar o painel de ${section.create.toLowerCase()}`}
-            >
-              <PatrimonyForm collection={collection} assets={assetOptions} />
-            </PanelSection>
-
             {result.status === "rejected" ? (
-              <Notice
-                tone="error"
-                actions={
-                  <Link className={ui.inlineLink} href={sectionHref(pages, collection, pages[collection])}>
-                    Tentar de novo
-                  </Link>
-                }
-              >
-                Não foi possível carregar {section.title.toLowerCase()}. As outras seções seguem disponíveis.
-              </Notice>
+              <div className={styles.inner}>
+                <Notice
+                  tone="error"
+                  actions={
+                    <Link className={ui.inlineLink} href={sectionHref(pages, collection, pages[collection])} scroll={false}>
+                      Tentar de novo
+                    </Link>
+                  }
+                >
+                  Não foi possível carregar {section.title.toLowerCase()}. As outras seções seguem disponíveis.
+                </Notice>
+              </div>
             ) : empty ? (
-              <p className={styles.note}>{section.empty}</p>
+              <p className={`${styles.note} ${styles.emptyNote}`}>{section.empty}</p>
             ) : result.value.items.length === 0 ? (
-              <Notice tone="info">
-                Esta página não existe.{" "}
-                <Link className={ui.inlineLink} href={sectionHref(pages, collection, 1)}>
-                  Voltar para a primeira página
-                </Link>
-              </Notice>
+              <div className={styles.inner}>
+                <Notice tone="info">
+                  Esta página não existe.{" "}
+                  <Link className={ui.inlineLink} href={sectionHref(pages, collection, 1)}>
+                    Voltar para a primeira página
+                  </Link>
+                </Notice>
+              </div>
             ) : (
-              <div className={styles.tableWrap}>
+              <div className={`${styles.tableWrap} ${styles.tableFlat}`}>
                 <table className={styles.table}>
                   <thead>
                     <tr>
                       {HEADERS[collection].map((header, index) => (
-                        <th
-                          key={`${header}-${index}`}
-                          scope="col"
-                          className={index === HEADERS[collection].length - 2 ? styles.num : undefined}
-                        >
-                          {header || <span className="visually-hidden">Ações</span>}
+                        <th key={`${header.label}-${index}`} scope="col" className={header.num ? styles.num : undefined}>
+                          {header.label || <span className="visually-hidden">Ações</span>}
                         </th>
                       ))}
                     </tr>
@@ -133,6 +139,7 @@ export default async function PatrimonioPage({
                         item={item}
                         assets={assetOptions}
                         columns={HEADERS[collection].length}
+                        today={today}
                       />
                     ))}
                   </tbody>
@@ -147,9 +154,11 @@ export default async function PatrimonioPage({
               label={`Páginas de ${section.title.toLowerCase()}`}
               anchor={titleId}
             />
-          </section>
+          </SectionPanel>
         );
       })}
+
+      <Notice tone="info">Os valores são informados por você; o app não soma nem calcula patrimônio.</Notice>
     </div>
   );
 }

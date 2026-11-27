@@ -65,6 +65,34 @@ export function assetMeta(asset: Pick<Asset, "type" | "source" | "valuationDate"
   return `${asset.type} · fonte: ${asset.source} · avaliado em ${formatCivilDate(asset.valuationDate)}`;
 }
 
+/** Meses inteiros entre duas datas civis (AAAA-MM-DD); negativo se `to` for anterior a `from`. */
+function wholeMonths(from: string, to: string): number {
+  const [y1, m1, d1] = from.split("-").map(Number);
+  const [y2, m2, d2] = to.split("-").map(Number);
+  return (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0);
+}
+
+function daysBetween(from: string, to: string): number {
+  const [y1, m1, d1] = from.split("-").map(Number);
+  const [y2, m2, d2] = to.split("-").map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
+}
+
+/**
+ * Há quanto tempo o valor foi avaliado: "hoje", "há 12 dias", "há 5 meses", "há 2 anos" (anos só a partir de 24 meses). Sinal honesto
+ * de que o valor pode estar velho; calculado só da data da avaliação. Data futura não tem texto.
+ */
+export function valuationAge(valuationDate: string, today: string): string | null {
+  const days = daysBetween(valuationDate, today);
+  if (days < 0) return null;
+  if (days === 0) return "hoje";
+  const months = wholeMonths(valuationDate, today);
+  if (months < 1) return days === 1 ? "há 1 dia" : `há ${days} dias`;
+  // Meses até 23: "há 17 meses" diz mais que "há 1 ano". Daqui em diante, anos inteiros.
+  if (months < 24) return months === 1 ? "há 1 mês" : `há ${months} meses`;
+  return `há ${Math.floor(months / 12)} anos`;
+}
+
 export function amountText(value: string): string {
   return formatMoney(value);
 }
