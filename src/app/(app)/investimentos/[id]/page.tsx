@@ -146,6 +146,7 @@ export default async function PosicaoPage({
           pages={pages}
           href={(target) => `/investimentos/${id}?pagina=${target}&origem=${parsePageParam(origem)}`}
           label="Páginas das movimentações"
+          anchor="movements-title"
         />
       </section>
     </div>

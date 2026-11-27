@@ -147,7 +147,7 @@ export default async function InvestimentosPage({
             </table>
           </div>
         )}
-        <Pagination page={page} pages={pages} href={(target) => `/investimentos?pagina=${target}`} label="Páginas das posições" />
+        <Pagination page={page} pages={pages} href={(target) => `/investimentos?pagina=${target}`} label="Páginas das posições" anchor="positions-title" />
       </section>
     </div>
   );

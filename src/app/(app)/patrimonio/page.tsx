@@ -145,6 +145,7 @@ export default async function PatrimonioPage({
               pages={sectionPages}
               href={(target) => sectionHref(pages, collection, target)}
               label={`Páginas de ${section.title.toLowerCase()}`}
+              anchor={titleId}
             />
           </section>
         );

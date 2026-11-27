@@ -1,3 +1,4 @@
+import Form from "next/form";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { IconChevronDown } from "./icons";
@@ -41,7 +42,8 @@ export function ListToolbar({
   // Componente de servidor: o id vem da rota, única por tela.
   const id = `toolbar${action.replace(/[^a-z0-9]/gi, "-")}`;
   return (
-    <form className={ui.toolbar} action={action} method="get" role="search" aria-label={label}>
+    // Form do Next: navega sem recarregar a página nem voltar ao topo; sem JavaScript segue como GET.
+    <Form className={ui.toolbar} action={action} scroll={false} role="search" aria-label={label}>
       <label className="visually-hidden" htmlFor={`${id}-busca`}>
         {placeholder}
       </label>
@@ -84,11 +86,11 @@ export function ListToolbar({
         Aplicar
       </button>
       {active ? (
-        <Link className={ui.inlineLink} href={action}>
+        <Link className={ui.inlineLink} href={action} scroll={false}>
           Limpar
         </Link>
       ) : null}
-    </form>
+    </Form>
   );
 }
 
@@ -115,7 +117,7 @@ export function SegmentedLinks({
     >
       {options.some((option) => option.current) ? <span className={ui.segmentIndicator} aria-hidden /> : null}
       {options.map((option) => (
-        <Link key={option.href} className={ui.segment} href={option.href} aria-current={option.current ? "true" : undefined}>
+        <Link key={option.href} className={ui.segment} href={option.href} scroll={false} aria-current={option.current ? "true" : undefined}>
           {option.label}
         </Link>
       ))}

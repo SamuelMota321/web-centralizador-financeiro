@@ -180,19 +180,28 @@ export function Pagination({
   pages,
   href,
   label,
+  anchor,
 }: {
   page: number;
   pages: number;
   href: (page: number) => string;
   /** Nome da navegação para leitores de tela, ex.: "Páginas do histórico". */
   label: string;
+  /**
+   * Id do título da lista. Em listas longas, a paginação fica no fim e a página nova começa no
+   * topo da lista: o link leva a esse id, em vez de ao topo da tela. Sem ele (blocos de altura
+   * fixa, como na Visão geral), a posição de rolagem fica como está.
+   */
+  anchor?: string;
 }) {
   if (pages <= 1) return null;
+  const target = (to: number) => (anchor ? `${href(to)}#${anchor}` : href(to));
+  const scroll = anchor ? undefined : false;
 
   return (
     <nav className={ui.pagination} aria-label={label}>
       {page > 1 ? (
-        <Link className={ui.pageLink} href={href(page - 1)}>
+        <Link className={ui.pageLink} href={target(page - 1)} scroll={scroll}>
           <IconChevronLeft size={16} />
           Anterior
         </Link>
@@ -213,7 +222,8 @@ export function Pagination({
             <li key={slot}>
               <Link
                 className={ui.pageNumber}
-                href={href(slot)}
+                href={target(slot)}
+                scroll={scroll}
                 aria-current={slot === page ? "page" : undefined}
                 aria-label={`Página ${slot}`}
               >
@@ -228,7 +238,7 @@ export function Pagination({
       </span>
 
       {page < pages ? (
-        <Link className={`${ui.pageLink} ${ui.pageLinkNext}`} href={href(page + 1)}>
+        <Link className={`${ui.pageLink} ${ui.pageLinkNext}`} href={target(page + 1)} scroll={scroll}>
           Próxima
           <IconChevronRight size={16} />
         </Link>

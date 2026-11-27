@@ -216,7 +216,7 @@ export default async function CategoriasPage({
         ) : arranged.length === 0 ? (
           <p className={styles.tableEmpty}>
             Nenhuma categoria ativa combina com a busca.{" "}
-            <Link className={ui.inlineLink} href={categoriesHref(params, { search: "" })}>
+            <Link className={ui.inlineLink} href={categoriesHref(params, { search: "" })} scroll={false}>
               Limpar busca
             </Link>
           </p>
@@ -265,13 +265,14 @@ export default async function CategoriasPage({
               pages={activePage.pages}
               href={(page) => categoriesHref(params, { page })}
               label="Páginas das categorias"
+              anchor="suas-categorias"
             />
           </>
         )}
       </SectionPanel>
 
       {arrangedArchived.length > 0 ? (
-        <details className={`${ui.sectionPanel} ${styles.archived}`} open={params.archivedPage > 1 || undefined}>
+        <details id="arquivadas" className={`${ui.sectionPanel} ${styles.archived}`} open={params.archivedPage > 1 || undefined}>
           <summary className={`${ui.sectionPanelHead} ${styles.suggestedSummary}`}>
             <span className={ui.sectionPanelText}>
               <span className={ui.sectionPanelTitle}>
@@ -290,6 +291,7 @@ export default async function CategoriasPage({
             pages={archivedPage.pages}
             href={(page) => categoriesHref(params, { archivedPage: page })}
             label="Páginas das categorias arquivadas"
+            anchor="arquivadas"
           />
         </details>
       ) : null}

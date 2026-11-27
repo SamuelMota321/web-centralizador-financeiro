@@ -190,7 +190,7 @@ export default async function RegrasPage({
       {allRules.length > 0 ? (
         <nav className={styles.stats} aria-label="Resumo das regras">
           {stats.map((stat) => (
-            <Link key={stat.key} className={styles.stat} data-kind={stat.key} href={stat.href} aria-current={stat.current ? "true" : undefined}>
+            <Link key={stat.key} className={styles.stat} data-kind={stat.key} href={stat.href} scroll={stat.href.includes("#") ? undefined : false} aria-current={stat.current ? "true" : undefined}>
               <span className={styles.statIcon} aria-hidden>
                 {stat.icon}
               </span>
@@ -260,7 +260,7 @@ export default async function RegrasPage({
             <>
               {params.status === "ativas" ? "Só as ativas, " : params.status === "inativas" ? "Só as inativas, " : ""}
               incluindo as sugeridas.{" "}
-              <Link className={ui.inlineLink} href="/regras">
+              <Link className={ui.inlineLink} href="/regras" scroll={false}>
                 Limpar filtros
               </Link>
             </>

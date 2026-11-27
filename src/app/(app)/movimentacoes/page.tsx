@@ -393,7 +393,7 @@ export default async function MovimentacoesPage({
               icon={<IconMovements size={22} />}
               title="Nenhuma movimentação neste período"
               action={
-                <Link className={`${ui.button} ${ui.secondary}`} href={allHistoryHref}>
+                <Link className={`${ui.button} ${ui.secondary}`} href={allHistoryHref} scroll={false}>
                   Ver todo o histórico
                 </Link>
               }
@@ -405,7 +405,7 @@ export default async function MovimentacoesPage({
               icon={<IconMovements size={22} />}
               title="Esta página não existe"
               action={
-                <Link className={`${ui.button} ${ui.secondary}`} href={pageHref(1)}>
+                <Link className={`${ui.button} ${ui.secondary}`} href={pageHref(1)} scroll={false}>
                   Voltar para a primeira página
                 </Link>
               }
@@ -440,7 +440,7 @@ export default async function MovimentacoesPage({
                 </ul>
                 <div className={styles.historyFooter}>
                   <p className="tabular">{showingText(page, PAGE_SIZE, listItems.length, listTotal)}</p>
-                  <Pagination page={page} pages={pages} href={pageHref} label="Páginas do histórico" />
+                  <Pagination page={page} pages={pages} href={pageHref} label="Páginas do histórico" anchor="historico-titulo" />
                 </div>
               </div>
             </>
