@@ -21,7 +21,7 @@ import styles from "./categorias.module.css";
 const ARCHIVE_INITIAL: ArchiveCategoryState = { status: "idle" };
 const RENAME_INITIAL: CategoryFormState = { status: "idle" };
 
-export interface CardFigure {
+export interface RowFigure {
   kind: "gasto" | "recebido" | "nenhum";
   value: string | null;
   share: string | null;
@@ -30,11 +30,11 @@ export interface CardFigure {
 }
 
 /**
- * Cartão da categoria: cor e ícone fixos, valor do período (quando o período inteiro foi lido),
- * participação nas despesas, quantidade de lançamentos e de regras, minigráfico acumulado.
- * O texto sempre diz o que a cor e o gráfico mostram.
+ * Linha da tabela de categorias: círculo na cor fixa, nome com lançamentos e regras, evolução
+ * acumulada no período (na cor da categoria), valor e parte das despesas. Receita mostra
+ * "recebido" no lugar da parte, para não misturar entradas com saídas.
  */
-export function CategoryCard({
+export function CategoryRow({
   category,
   color,
   figure,
@@ -44,8 +44,8 @@ export function CategoryCard({
 }: {
   category: Category;
   color: string | null;
-  /** null: o período não foi lido por inteiro; o cartão não mostra valores. */
-  figure: CardFigure | null;
+  /** null: o período não foi lido por inteiro; a linha não mostra valores. */
+  figure: RowFigure | null;
   rules: number;
   periodName: string;
   movementsHref: string;
@@ -55,16 +55,51 @@ export function CategoryCard({
   const [confirming, setConfirming] = useState(false);
   const [archiveState, archive, archiving] = useActionState(archiveCategoryAction.bind(null, category.id), ARCHIVE_INITIAL);
   const archived = category.status === "archived";
-  const cardStyle = { "--card-color": color ?? "var(--cat-other)" } as React.CSSProperties;
+  const rowStyle = { "--row-color": color ?? "var(--cat-other)" } as React.CSSProperties;
 
   return (
-    <li className={styles.card} data-archived={archived || undefined} data-open={renaming || undefined} style={cardStyle}>
-      <div className={styles.cardTop}>
-        <IconBadge name={category.name} color={color} size="large" />
-        <div className={styles.cardTitleGroup}>
-          <p className={styles.cardTitle}>{category.name}</p>
+    <li className={styles.row} data-archived={archived || undefined} data-open={renaming || undefined} style={rowStyle}>
+      <IconBadge name={category.name} color={archived ? null : color} />
+      <div className={styles.rowName}>
+        <p className={styles.rowTitle}>
+          {category.name}
           {archived ? <StatusChip tone="neutral">Arquivada</StatusChip> : null}
-        </div>
+        </p>
+        <p className={styles.rowMeta}>
+          {figure ? `${figure.count} ${figure.count === 1 ? "lançamento" : "lançamentos"} · ` : null}
+          {rules === 0 ? (
+            archived ? "sem regras" : <Link className={ui.inlineLink} href="/regras">sem regras</Link>
+          ) : (
+            `${rules} ${rules === 1 ? "regra" : "regras"}`
+          )}
+        </p>
+      </div>
+      <div className={styles.rowSpark} aria-hidden>
+        {figure && figure.value && figure.series.length > 1 ? <Sparkline values={figure.series} width={88} height={28} /> : null}
+      </div>
+      <p className={`${styles.rowValue} tabular`}>
+        {figure?.value ? (
+          <>
+            <span className="visually-hidden">{figure.kind === "gasto" ? `Gasto em ${periodName}: ` : `Recebido em ${periodName}: `}</span>
+            {formatMoney(figure.value)}
+          </>
+        ) : (
+          <span className={styles.rowEmpty}>
+            —<span className="visually-hidden">{figure ? `sem lançamentos em ${periodName}` : "valor indisponível"}</span>
+          </span>
+        )}
+      </p>
+      <p className={`${styles.rowShare} tabular`}>
+        {figure?.kind === "gasto" && figure.share ? (
+          <>
+            {figure.share}
+            <span className="visually-hidden"> das despesas</span>
+          </>
+        ) : figure?.kind === "recebido" ? (
+          <span className={styles.rowIncome}>recebido</span>
+        ) : null}
+      </p>
+      <div className={styles.rowMenu}>
         <ActionMenu
           label={`Ações para ${category.name}`}
           items={[
@@ -77,36 +112,11 @@ export function CategoryCard({
         />
       </div>
 
-      {figure ? (
-        <div className={styles.cardFigure}>
-          <div>
-            <p className={styles.cardLabel}>
-              {figure.kind === "gasto" ? `Gasto em ${periodName}` : figure.kind === "recebido" ? `Recebido em ${periodName}` : `Em ${periodName}`}
-            </p>
-            <p className={`${styles.cardValue} tabular`}>
-              {figure.value ? formatMoney(figure.value) : <span className={styles.cardEmpty}>Sem lançamentos</span>}
-            </p>
-            {figure.share ? <p className={styles.cardShare}>{figure.share} das despesas</p> : null}
-          </div>
-          {figure.series.length > 1 && figure.value ? (
-            <div className={styles.cardSpark} aria-hidden>
-              <Sparkline values={figure.series} width={96} height={32} />
-            </div>
-          ) : null}
+      {renaming ? (
+        <div className={`${ui.rowPanel} ${ui.reveal}`}>
+          <RenamePanel category={category} onClose={() => setRenaming(false)} />
         </div>
       ) : null}
-
-      <p className={styles.cardMeta}>
-        {figure ? `${figure.count} ${figure.count === 1 ? "lançamento" : "lançamentos"} · ` : null}
-        {rules === 0 ? (
-          archived ? "sem regras" : <Link className={ui.inlineLink} href="/regras">sem regras</Link>
-        ) : (
-          `${rules} ${rules === 1 ? "regra" : "regras"}`
-        )}
-        {archived ? " · continua no histórico" : null}
-      </p>
-
-      {renaming ? <RenamePanel category={category} onClose={() => setRenaming(false)} /> : null}
 
       <ConfirmDialog
         open={confirming}
@@ -144,7 +154,7 @@ function RenamePanel({ category, onClose }: { category: Category; onClose: () =>
   const error = state.status === "invalid" ? state.message : undefined;
 
   return (
-    <form action={formAction} className={styles.cardRename}>
+    <form action={formAction} className={styles.rowRename}>
       <label className={ui.label} htmlFor={`${id}-name`}>
         Novo nome
       </label>
@@ -164,7 +174,7 @@ function RenamePanel({ category, onClose }: { category: Category; onClose: () =>
           {state.message}
         </Notice>
       ) : null}
-      <div className={styles.cardRenameActions}>
+      <div className={styles.rowRenameActions}>
         <button className={`${ui.button} ${ui.primary} ${ui.small}`} type="submit" disabled={pending} aria-busy={pending}>
           <PendingLabel pending={pending} idle="Salvar nome" busy="Salvando…" />
         </button>

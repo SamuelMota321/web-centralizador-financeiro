@@ -1375,7 +1375,7 @@ a.segment {
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
 }
 
-/* ---------- Ícone de categoria em círculo tingido ---------- */
+/* ---------- Ícone de categoria em círculo ---------- */
 .iconBadge {
   display: inline-grid;
   flex: none;
@@ -1383,48 +1383,180 @@ a.segment {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-pill);
+  background: var(--badge-color);
+}
+
+.iconBadge[data-tone="tint"] {
   background: color-mix(in srgb, var(--badge-color) 16%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--badge-color) 28%, transparent);
 }
 
-.iconBadge[data-size="large"] {
-  width: 40px;
-  height: 40px;
+.iconBadge[data-size="small"] {
+  width: 24px;
+  height: 24px;
 }
 
-/* ---------- Cabeçalho de seção ---------- */
-.sectionHeader {
+.iconBadge[data-size="large"] {
+  width: 44px;
+  height: 44px;
+}
+
+/* ---------- Fileira de ícones (sugeridas) ---------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.75rem, 1fr));
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 100%;
+  padding: var(--space-3) var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-panel);
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  text-align: center;
+  transition:
+    background-color var(--motion-hover) ease,
+    border-color var(--motion-hover) ease;
+}
+
+button.tile {
+  cursor: pointer;
+}
+
+button.tile:hover {
+  background: var(--surface-soft);
+}
+
+button.tile:hover .iconBadge {
+  transform: translateY(-2px);
+}
+
+.tile .iconBadge {
+  transition:
+    transform var(--motion-hover) ease,
+    background-color var(--motion-settle) ease;
+}
+
+.tile[aria-pressed="true"] {
+  border-color: var(--line-strong);
+  background: var(--surface-soft);
+}
+
+.tileLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.tileDetail {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+/* Falta: círculo tracejado, ícone apagado e um "+" no canto. */
+.tile[data-state="missing"] .iconBadge {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  outline: 1px dashed transparent;
+}
+
+.tile[data-state="missing"] .iconBadge > span {
+  color: var(--muted) !important;
+}
+
+.tile[data-state="missing"] .tileLabel {
+  color: var(--body-text);
+  font-weight: 500;
+}
+
+.tile[data-state="off"] .iconBadge {
+  opacity: 0.45;
+}
+
+.tileMark {
+  position: absolute;
+  top: calc(var(--space-3) - 4px);
+  left: calc(50% + 12px);
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--surface);
+  border-radius: var(--radius-pill);
+  background: var(--foreground);
+  color: var(--surface);
+}
+
+.tile[data-state="on"] .tileMark {
+  background: var(--positive);
+  color: var(--on-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.tile:hover .iconBadge {
+    transform: none;
+  }
+}
+
+/* ---------- Bloco de seção (cabeçalho dentro da borda) ---------- */
+.sectionPanel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+}
+
+.sectionPanelHead {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
 }
 
-.sectionHeaderText {
+.sectionPanelIcon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  color: var(--primary);
+}
+
+.sectionPanelText {
   display: flex;
+  flex: 1 1 14rem;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.sectionHeaderTitle {
+.sectionPanelTitle {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
   color: var(--foreground);
-  font-size: 1rem;
-  font-weight: 650;
+  font-size: 1.0625rem;
+  font-weight: 700;
 }
 
-.sectionHeaderHint {
+.sectionPanelHint {
   color: var(--muted);
   font-size: 0.8125rem;
 }
 
-.sectionHeaderActions {
+.sectionPanelActions {
   display: flex;
-  flex: 1 1 22rem;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
@@ -1446,23 +1578,17 @@ a.segment {
 }
 
 /* ---------- Faixa de destaque ---------- */
+/* Exceção registrada no DESIGN.md: único gradiente da interface, suave e verde. */
 .heroBanner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3) var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  border: 1px solid color-mix(in srgb, var(--primary) 26%, var(--line));
-  border-radius: var(--radius-panel);
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--line));
+  border-radius: var(--radius-frame);
   background:
-    linear-gradient(110deg, color-mix(in srgb, var(--primary) 12%, transparent), transparent 62%),
-    var(--surface);
-}
-
-.heroBanner[data-tone="neutral"] {
-  border-color: var(--line);
-  background:
-    linear-gradient(110deg, color-mix(in srgb, var(--info) 8%, transparent), transparent 60%),
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 60%),
     var(--surface);
 }
 
@@ -1470,10 +1596,17 @@ a.segment {
   display: grid;
   flex: none;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: var(--radius-pill);
-  background: var(--primary-tint);
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+}
+
+.heroMedia {
+  display: grid;
+  flex: none;
+  place-items: center;
   color: var(--primary);
 }
 
@@ -1487,6 +1620,7 @@ a.segment {
 
 .heroTitle {
   color: var(--foreground);
+  font-size: 1.0625rem;
   font-weight: 700;
 }
 
@@ -1497,4 +1631,12 @@ a.segment {
 
 .heroAction {
   flex: none;
+}
+
+/* Ação da faixa: contorno no verde da marca, como sinal. */
+.heroAction > .button,
+.heroAction > a.button {
+  border-color: var(--primary);
+  border-radius: var(--radius-pill);
+  color: var(--primary);
 }

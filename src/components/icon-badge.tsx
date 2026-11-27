@@ -2,18 +2,35 @@ import { CategoryIcon } from "./category-mark";
 import ui from "./ui.module.css";
 
 /**
- * Ícone da categoria num círculo tingido com a cor fixa dela. Decorativo: o nome da categoria
- * sempre aparece escrito ao lado. Sem cor (7ª categoria em diante), usa o neutro.
+ * Ícone da categoria num círculo com a cor fixa dela: "solid" (círculo cheio, ícone claro),
+ * como nas listas e fileiras de Categorias e Regras, ou "tint" (círculo tingido, ícone na cor).
+ * Decorativo: o nome da categoria sempre aparece escrito ao lado. Sem cor (13ª em diante), neutro.
  */
-export function IconBadge({ name, color, size = "regular" }: { name: string | null; color: string | null; size?: "regular" | "large" }) {
+export function IconBadge({
+  name,
+  color,
+  size = "regular",
+  tone = "solid",
+}: {
+  name: string | null;
+  color: string | null;
+  size?: "small" | "regular" | "large";
+  tone?: "solid" | "tint";
+}) {
+  const badgeColor = color ?? "var(--cat-other)";
   return (
     <span
       className={ui.iconBadge}
       data-size={size}
-      style={{ "--badge-color": color ?? "var(--cat-other)" } as React.CSSProperties}
+      data-tone={tone}
+      style={{ "--badge-color": badgeColor } as React.CSSProperties}
       aria-hidden
     >
-      <CategoryIcon name={name} color={color ?? "var(--cat-other)"} size={size === "large" ? 20 : 16} />
+      <CategoryIcon
+        name={name}
+        color={tone === "solid" ? "var(--on-category)" : badgeColor}
+        size={size === "large" ? 22 : size === "small" ? 14 : 17}
+      />
     </span>
   );
 }

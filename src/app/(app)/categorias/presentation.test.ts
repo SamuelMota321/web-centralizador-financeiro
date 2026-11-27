@@ -3,11 +3,12 @@ import type { Transaction } from "@/lib/transactions/types";
 import {
   arrangeCategories,
   categoriesHref,
-  composition,
   downsample,
+  expenseShare,
   parseCategoryParams,
   periodRange,
   periodUsage,
+  reviewHref,
   rulesPerCategory,
   usageFigure,
 } from "./presentation";
@@ -85,16 +86,16 @@ describe("periodUsage", () => {
     expect(usageFigure(undefined, usage.totalExpense)).toEqual({ kind: "nenhum", value: null, share: null });
   });
 
-  it("composição: maiores, 'Outras' e 'Sem categoria' por último, somando o total", () => {
-    const names = new Map([["mercado", "Mercado"]]);
-    const colors = new Map([["mercado", "var(--cat-1)"]]);
-    const items2 = composition(usage, names, colors);
-    expect(items2.map((item) => item.label)).toEqual(["Mercado", "Sem categoria"]);
-    expect(items2.at(-1)).toMatchObject({ uncategorized: true, value: "40.00", share: "21,0%" });
+  it("a revisar: separa sem categoria de incertas e aponta o filtro certo", () => {
+    expect(usage.reviewKinds).toEqual({ unclassified: 1, uncertain: 0 });
+    expect(reviewHref({ unclassified: 1, uncertain: 0 }, "1m")).toBe("/movimentacoes?tipo=despesas&situacao=sem-categoria");
+    expect(reviewHref({ unclassified: 0, uncertain: 2 }, "3m")).toBe("/movimentacoes?tipo=despesas&situacao=incertas&periodo=3m");
+    expect(reviewHref({ unclassified: 1, uncertain: 1 }, "1m")).toBe("/movimentacoes?tipo=despesas");
   });
 
-  it("sem despesa no período não há composição", () => {
-    expect(composition(periodUsage([], "2026-10-26", TODAY), new Map(), new Map())).toEqual([]);
+  it("parte das despesas; sem despesa no período não há parte", () => {
+    expect(expenseShare(usage.uncategorizedExpense, usage.totalExpense)).toBe("21,0%");
+    expect(expenseShare(BigInt(10), BigInt(0))).toBeNull();
   });
 });
 

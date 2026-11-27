@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
 import { PROBLEM_CODES, ProblemDetailsError } from "@/lib/api/errors";
 import { listAllPages } from "@/lib/api/pagination";
-import { listCategories } from "@/lib/categories/api";
-import { rulesToCreate } from "@/lib/categories/suggestions";
+import { createCategory, listCategories } from "@/lib/categories/api";
+import { RULE_PACK, rulesToCreate, splitSuggestedRules, SUGGESTED_CATEGORIES } from "@/lib/categories/suggestions";
 import {
   activateCategoryRule,
   createCategoryRule,
@@ -84,6 +84,103 @@ export async function applyRulePackAction(): Promise<RulePackState> {
       status: "error",
       created,
       message: `Não foi possível adicionar o pacote inteiro. ${created > 0 ? `${created} regras entraram; ` : ""}tente de novo para criar as que faltam.`,
+    };
+  }
+}
+
+/**
+ * Adiciona um grupo do pacote: cria a categoria sugerida se não houver uma ativa com esse nome
+ * e, em seguida, as regras do grupo que faltam. A entrada é só o nome do grupo.
+ */
+export async function addPackGroupAction(category: string): Promise<RulePackState> {
+  const group = RULE_PACK.find((item) => item.category === category);
+  if (!group) return { status: "error", created: 0, message: "Este grupo de regras não existe." };
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };
+  const context = { accessToken: token };
+
+  let created = 0;
+  try {
+    const [categories, rules] = await Promise.all([
+      listAllPages((query) => listCategories(query, context)),
+      listAllPages((query) => listCategoryRules(query, context)),
+    ]);
+    let pool = categories.items;
+    if (rulesToCreate(pool, [], [group]).missingCategories.length > 0) {
+      pool = [...pool, await createCategory({ name: group.category }, context)];
+      revalidatePath("/categorias");
+    }
+    const { toCreate } = rulesToCreate(pool, rules.items, [group]);
+    for (const rule of toCreate) {
+      await createCategoryRule(
+        {
+          categoryId: rule.categoryId,
+          conditionField: "description",
+          conditionOperator: "contains",
+          conditionValue: rule.conditionValue,
+          priority: rule.priority,
+        },
+        context,
+      );
+      created += 1;
+    }
+    revalidatePath(REGRAS_PATH);
+    return { status: "done", created, missingCategories: [] };
+  } catch (error) {
+    revalidatePath(REGRAS_PATH);
+    if (isAuthFailure(error)) return { status: "error", created, message: REAUTH_MESSAGE, reauth: true };
+    if (error instanceof ProblemDetailsError && error.code === PROBLEM_CODES.categoryAlreadyExists) {
+      return {
+        status: "error",
+        created,
+        message: `Já existe uma categoria “${group.category}” arquivada, e categorias arquivadas não voltam. Crie suas regras com outra categoria.`,
+      };
+    }
+    return { status: "error", created, message: `Não foi possível adicionar o grupo ${group.category} inteiro. Tente de novo para criar o que falta.` };
+  }
+}
+
+export type GroupStatusState =
+  | { status: "idle" }
+  | { status: "done"; changed: number }
+  | { status: "error"; changed: number; message: string; reauth?: boolean };
+
+/**
+ * Ativa ou desativa, uma por vez, as regras sugeridas de uma categoria do pacote. A entrada é só
+ * o nome do grupo: as regras são relidas e reagrupadas aqui, nunca vêm do cliente. Removidas e
+ * as que já estão no estado pedido ficam como estão.
+ */
+export async function setSuggestedGroupStatusAction(category: string, target: "active" | "inactive"): Promise<GroupStatusState> {
+  if (!(SUGGESTED_CATEGORIES as readonly string[]).includes(category) || (target !== "active" && target !== "inactive")) {
+    return { status: "error", changed: 0, message: "Este grupo de regras não existe." };
+  }
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", changed: 0, message: REAUTH_MESSAGE, reauth: true };
+  const context = { accessToken: token };
+
+  let changed = 0;
+  try {
+    const [categories, rules] = await Promise.all([
+      listAllPages((query) => listCategories(query, context)),
+      listAllPages((query) => listCategoryRules(query, context)),
+    ]);
+    const group = splitSuggestedRules(rules.items, categories.items).suggested.find((item) => item.category === category);
+    const pending = (group?.rules ?? []).filter((rule) => rule.status !== "removed" && rule.status !== target);
+    const operation = target === "active" ? activateCategoryRule : deactivateCategoryRule;
+    for (const rule of pending) {
+      await operation(rule.id, context);
+      changed += 1;
+    }
+    revalidatePath(REGRAS_PATH);
+    return { status: "done", changed };
+  } catch (error) {
+    if (changed > 0) revalidatePath(REGRAS_PATH);
+    if (isAuthFailure(error)) return { status: "error", changed, message: REAUTH_MESSAGE, reauth: true };
+    const verb = target === "active" ? "ativar" : "desativar";
+    return {
+      status: "error",
+      changed,
+      message: `Não foi possível ${verb} o grupo inteiro. ${changed > 0 ? `${changed} ${changed === 1 ? "regra mudou" : "regras mudaram"}; ` : ""}tente de novo para as que faltam.`,
     };
   }
 }

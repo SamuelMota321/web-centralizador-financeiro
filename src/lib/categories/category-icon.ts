@@ -4,26 +4,32 @@
 
 export type CategoryIconKey =
   | "home"
+  | "groceries"
   | "food"
   | "transport"
+  | "care"
   | "health"
   | "leisure"
   | "education"
   | "shopping"
   | "bills"
+  | "salary"
   | "income"
   | "generic";
 
 const RULES: readonly (readonly [CategoryIconKey, readonly string[]])[] = [
   ["home", ["moradia", "casa", "aluguel", "condominio", "imovel", "lar"]],
-  ["food", ["alimentacao", "comida", "mercado", "supermercado", "restaurante", "padaria", "lanche", "lanchonete", "feira", "delivery"]],
+  ["groceries", ["mercado", "supermercado", "feira", "hortifruti", "atacado"]],
+  ["food", ["alimentacao", "comida", "restaurante", "padaria", "lanche", "lanchonete", "delivery"]],
   ["transport", ["transporte", "combustivel", "gasolina", "uber", "taxi", "onibus", "metro", "estacionamento", "carro", "veiculo"]],
-  ["health", ["saude", "farmacia", "medico", "consulta", "exame", "hospital", "dentista", "remedio", "academia", "cuidados", "beleza", "higiene"]],
+  ["care", ["cuidados", "beleza", "higiene", "salao", "barbearia", "estetica"]],
+  ["health", ["saude", "farmacia", "medico", "consulta", "exame", "hospital", "dentista", "remedio", "academia"]],
   ["leisure", ["lazer", "entretenimento", "cinema", "streaming", "viagem", "viagens", "passeio", "show", "jogos"]],
   ["education", ["educacao", "curso", "cursos", "escola", "faculdade", "livro", "livros", "estudo", "estudos"]],
   ["shopping", ["compras", "compra", "roupa", "roupas", "vestuario", "presente", "presentes"]],
   ["bills", ["contas", "conta", "luz", "energia", "agua", "internet", "telefone", "celular", "gas", "servicos"]],
-  ["income", ["renda", "salario", "receita", "receitas", "rendimento", "freela", "freelance"]],
+  ["salary", ["salario", "salarios", "folha", "pagamento", "trabalho"]],
+  ["income", ["renda", "receita", "receitas", "rendimento", "rendimentos", "freela", "freelance"]],
 ];
 
 function words(name: string): Set<string> {

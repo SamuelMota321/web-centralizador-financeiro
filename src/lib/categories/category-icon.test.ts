@@ -14,6 +14,15 @@ describe("categoryIconKey", () => {
     expect(categoryIconKey("Renda")).toBe("income");
   });
 
+  it("as sugeridas têm ícones distintos entre si", () => {
+    expect(categoryIconKey("Mercado")).toBe("groceries");
+    expect(categoryIconKey("Alimentação")).toBe("food");
+    expect(categoryIconKey("Cuidados pessoais")).toBe("care");
+    expect(categoryIconKey("Salário")).toBe("salary");
+    expect(categoryIconKey("Outras receitas")).toBe("income");
+    expect(categoryIconKey("Contas fixas")).toBe("bills");
+  });
+
   it("compara palavras inteiras e a primeira regra decide", () => {
     // "lazer" aparece dentro de "lazeres", mas só palavra inteira conta.
     expect(categoryIconKey("Lazeres")).toBe("generic");

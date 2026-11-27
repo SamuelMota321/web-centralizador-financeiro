@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { revalidatePath } from "next/cache";
 import { auth0 } from "@/lib/auth0";
 import { ProblemDetailsError, type ProblemDetails } from "@/lib/api/errors";
-import { listCategories } from "@/lib/categories/api";
+import { createCategory, listCategories } from "@/lib/categories/api";
 import {
   activateCategoryRule,
   createCategoryRule,
@@ -14,10 +14,12 @@ import {
 import type { CategoryRule } from "@/lib/category-rules/types";
 import {
   activateRuleAction,
+  addPackGroupAction,
   applyRulePackAction,
   createRuleAction,
   deactivateRuleAction,
   removeRuleAction,
+  setSuggestedGroupStatusAction,
   updateRuleAction,
 } from "./actions";
 
@@ -29,7 +31,7 @@ vi.mock("next/navigation", () => ({
     throw new Error(`NEXT_REDIRECT ${url}`);
   }),
 }));
-vi.mock("@/lib/categories/api", () => ({ listCategories: vi.fn() }));
+vi.mock("@/lib/categories/api", () => ({ listCategories: vi.fn(), createCategory: vi.fn() }));
 vi.mock("@/lib/category-rules/api", () => ({
   listCategoryRules: vi.fn(),
   createCategoryRule: vi.fn(),
@@ -289,5 +291,112 @@ describe("applyRulePackAction", () => {
   it("pede para entrar de novo sem sessão", async () => {
     vi.mocked(auth0.getAccessToken).mockRejectedValue(new Error("sem sessão"));
     expect(await applyRulePackAction()).toMatchObject({ status: "error", reauth: true, created: 0 });
+  });
+});
+
+describe("setSuggestedGroupStatusAction", () => {
+  const transporte = { id: CATEGORY_ID, name: "Transporte", source: "user" as const, status: "active" as const, archivedAt: null, createdAt: "2026-09-20T12:00:00.000Z", updatedAt: "2026-09-20T12:00:00.000Z" };
+  const rule = (id: string, conditionValue: string, status: CategoryRule["status"]) => ({
+    ...original,
+    id,
+    conditionValue,
+    status,
+    removedAt: status === "removed" ? "2026-09-21T12:00:00.000Z" : null,
+  });
+
+  beforeEach(() => {
+    vi.mocked(deactivateCategoryRule).mockReset().mockResolvedValue(original);
+    vi.mocked(activateCategoryRule).mockReset().mockResolvedValue(original);
+    vi.mocked(listCategories).mockReset().mockResolvedValue({ items: [transporte], page: 1, pageSize: 100, total: 1 });
+    vi.mocked(listCategoryRules).mockReset().mockResolvedValue({
+      items: [rule("r-uber", "uber", "active"), rule("r-99", "99app", "inactive"), rule("r-ped", "pedágio", "removed"), rule("r-minha", "uber centro", "active")],
+      page: 1,
+      pageSize: 100,
+      total: 4,
+    });
+  });
+
+  it("desativa só as sugeridas do grupo que estão ativas (nem removidas, nem as da pessoa)", async () => {
+    expect(await setSuggestedGroupStatusAction("Transporte", "inactive")).toEqual({ status: "done", changed: 1 });
+    expect(deactivateCategoryRule).toHaveBeenCalledTimes(1);
+    expect(deactivateCategoryRule).toHaveBeenCalledWith("r-uber", { accessToken: "token-ficticio" });
+    expect(revalidatePath).toHaveBeenCalledWith("/regras");
+  });
+
+  it("ativa as inativas do grupo", async () => {
+    expect(await setSuggestedGroupStatusAction("Transporte", "active")).toEqual({ status: "done", changed: 1 });
+    expect(activateCategoryRule).toHaveBeenCalledWith("r-99", { accessToken: "token-ficticio" });
+  });
+
+  it("recusa grupo ou estado desconhecido sem chamar a API", async () => {
+    expect(await setSuggestedGroupStatusAction("Qualquer", "active")).toMatchObject({ status: "error" });
+    expect(await setSuggestedGroupStatusAction("Transporte", "removed" as "active")).toMatchObject({ status: "error" });
+    expect(listCategoryRules).not.toHaveBeenCalled();
+  });
+
+  it("falha no meio informa quantas mudaram", async () => {
+    vi.mocked(listCategoryRules).mockResolvedValue({
+      items: [rule("r-uber", "uber", "active"), rule("r-99", "99app", "active")],
+      page: 1,
+      pageSize: 100,
+      total: 2,
+    });
+    vi.mocked(deactivateCategoryRule).mockResolvedValueOnce(original).mockRejectedValueOnce(new Error("falha"));
+    expect(await setSuggestedGroupStatusAction("Transporte", "inactive")).toMatchObject({ status: "error", changed: 1 });
+  });
+});
+
+describe("addPackGroupAction", () => {
+  const category = (id: string, name: string, status: "active" | "archived" = "active") => ({
+    id,
+    name,
+    source: "user" as const,
+    status,
+    archivedAt: status === "archived" ? "2026-09-21T12:00:00.000Z" : null,
+    createdAt: "2026-09-20T12:00:00.000Z",
+    updatedAt: "2026-09-20T12:00:00.000Z",
+  });
+
+  beforeEach(() => {
+    vi.mocked(createCategoryRule).mockReset().mockResolvedValue(original);
+    vi.mocked(createCategory).mockReset().mockResolvedValue(category("c-saude", "Saúde"));
+    vi.mocked(listCategories).mockReset().mockResolvedValue({ items: [], page: 1, pageSize: 100, total: 0 });
+    vi.mocked(listCategoryRules).mockReset().mockResolvedValue({ items: [], page: 1, pageSize: 100, total: 0 });
+  });
+
+  it("cria a categoria que falta e só as regras daquele grupo", async () => {
+    const result = await addPackGroupAction("Saúde");
+    expect(createCategory).toHaveBeenCalledWith({ name: "Saúde" }, { accessToken: "token-ficticio" });
+    const values = vi.mocked(createCategoryRule).mock.calls.map(([input]) => input.conditionValue);
+    expect(values).toContain("drogaria");
+    expect(values).not.toContain("uber");
+    expect(new Set(vi.mocked(createCategoryRule).mock.calls.map(([input]) => input.categoryId))).toEqual(new Set(["c-saude"]));
+    expect(result).toEqual({ status: "done", created: values.length, missingCategories: [] });
+  });
+
+  it("usa a categoria ativa existente (sem acento também) e não recria regra igual", async () => {
+    vi.mocked(listCategories).mockResolvedValue({ items: [category("c-s", "Saude")], page: 1, pageSize: 100, total: 1 });
+    vi.mocked(listCategoryRules).mockResolvedValue({
+      items: [{ ...original, categoryId: "c-s", conditionValue: "drogaria" }],
+      page: 1,
+      pageSize: 100,
+      total: 1,
+    });
+    await addPackGroupAction("Saúde");
+    expect(createCategory).not.toHaveBeenCalled();
+    expect(createCategoryRule).not.toHaveBeenCalledWith(expect.objectContaining({ conditionValue: "drogaria" }), expect.anything());
+  });
+
+  it("categoria arquivada com o mesmo nome explica que não volta", async () => {
+    vi.mocked(listCategories).mockResolvedValue({ items: [category("c-x", "Saúde", "archived")], page: 1, pageSize: 100, total: 1 });
+    vi.mocked(createCategory).mockRejectedValue(problem(409, "CATEGORY_ALREADY_EXISTS"));
+    const result = await addPackGroupAction("Saúde");
+    expect(result).toMatchObject({ status: "error", created: 0 });
+    expect(result.status === "error" && result.message).toContain("arquivada");
+  });
+
+  it("recusa grupo desconhecido", async () => {
+    expect(await addPackGroupAction("Viagens")).toMatchObject({ status: "error" });
+    expect(listCategories).not.toHaveBeenCalled();
   });
 });

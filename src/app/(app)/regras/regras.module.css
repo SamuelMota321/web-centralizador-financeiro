@@ -1,32 +1,222 @@
 .page {
   display: flex;
   flex-direction: column;
+  gap: var(--space-5);
+}
+
+.anchor {
+  scroll-margin-top: var(--space-6);
+}
+
+/* ---------- Painel de teste (aberto pela faixa) ---------- */
+.testPanel {
+  position: relative;
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+  scroll-margin-top: var(--space-6);
+}
+
+.testPanel[hidden] {
+  display: none;
+}
+
+.testClose {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+
+.testGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(16rem, 1fr);
   gap: var(--space-6);
 }
 
-.list {
+.testGrid > :only-child {
+  grid-column: 1 / -1;
+}
+
+.testPanel .simulator {
+  padding: 0;
+  border: 0;
+}
+
+.howTo {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--line);
 }
 
-/* Colunas: frase da regra | prioridade | status | ações. */
-.listHead,
-.row {
+.testGrid > .howTo:only-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.howToTitle {
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.howToList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 1.1em;
+  color: var(--body-text);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 60rem) {
+  .testGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .howTo {
+    padding-top: var(--space-4);
+    padding-left: 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+}
+
+/* ---------- Resumo: um painel, quatro células (faixa de números com ícone) ---------- */
+.stats {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 6.5rem 7.5rem 7.5rem;
-  column-gap: var(--space-5);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
 }
 
-/* Cabeçalho de tabela preso ao painel da lista (Style Guide 2.0). */
-.listHead {
+.stat {
+  display: flex;
   align-items: center;
-  min-height: 32px;
-  padding: 0 16px;
+  gap: var(--space-3);
+  min-height: 84px;
+  padding: var(--space-4) var(--space-5);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--motion-hover) ease;
+}
+
+.stat + .stat {
+  border-left: 1px solid var(--line);
+}
+
+.stat:first-child {
+  border-radius: var(--radius-frame) 0 0 var(--radius-frame);
+}
+
+.stat:last-child {
+  border-radius: 0 var(--radius-frame) var(--radius-frame) 0;
+}
+
+.stat:hover {
+  background: var(--surface-soft);
+}
+
+.stat[aria-current="true"] {
+  background: var(--surface-soft);
+  box-shadow: inset 0 -2px 0 var(--stat-color);
+}
+
+.stat {
+  --stat-color: var(--muted);
+}
+
+.stat[data-kind="ativas"] {
+  --stat-color: var(--positive);
+}
+
+.stat[data-kind="sugeridas"] {
+  --stat-color: var(--info);
+}
+
+.stat[data-kind="inativas"] {
+  --stat-color: var(--body-text);
+}
+
+.statIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--stat-color) 14%, transparent);
+  color: var(--stat-color);
+}
+
+.statText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.statValue {
+  color: var(--foreground);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.statLabel {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 52rem) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat:nth-child(3) {
+    border-left: 0;
+  }
+
+  .stat:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+
+  .stat,
+  .stat:first-child,
+  .stat:last-child {
+    border-radius: 0;
+  }
+}
+
+/* ---------- Simulador ---------- */
+.simulator {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--line);
-  border-bottom: 0;
-  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  border-radius: var(--radius-panel);
   background: var(--surface);
+}
+
+.simulatorHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.simulatorTitle {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.simulatorTag {
+  padding: 1px 8px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-pill);
   color: var(--muted);
   font-size: 0.6875rem;
   font-weight: 650;
@@ -34,26 +224,341 @@
   text-transform: uppercase;
 }
 
-.listHead + ul {
-  margin-top: calc(-1 * var(--space-2));
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+.simulatorInputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }
 
-.listHead > :nth-child(2) {
+.simulatorInput {
+  flex: 1 1 18rem;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.simulatorRecent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.simulatorRecentLabel {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.simulatorChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 18rem;
+  min-height: 28px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-soft);
+  color: var(--body-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--motion-hover) ease,
+    border-color var(--motion-hover) ease;
+}
+
+.simulatorChip:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-sunken);
+}
+
+.simulatorChip[aria-pressed="true"] {
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+
+.simulatorChip[data-action] {
+  border-style: dashed;
+  color: var(--primary);
+  font-weight: 650;
+}
+
+.simulatorChip:active {
+  transform: scale(0.97);
+}
+
+.simulatorResult {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 3.25rem;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+}
+
+.simulatorIdle {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.verdict > svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.verdict[data-tone="positive"] > svg {
+  color: var(--positive);
+}
+
+.verdictCategory {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+.verdictWhy,
+.verdictOthers {
+  color: var(--body-text);
+  font-size: 0.875rem;
+}
+
+.verdictText {
+  color: var(--muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.verdictMark {
+  padding: 0 2px;
+  border-radius: var(--radius-marker);
+  background: color-mix(in srgb, var(--positive) 22%, transparent);
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.verdictOthers {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: var(--space-5);
+  color: var(--muted);
+}
+
+.simulatorNote {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+/* ---------- Regras sugeridas ---------- */
+.packBar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.packTiles {
+  flex: 1;
+}
+
+.packToggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: var(--space-3);
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--body-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.packToggle:hover {
+  background: var(--surface-soft);
+}
+
+.packToggle svg {
+  transition: transform var(--motion-reveal) ease;
+}
+
+.packToggle svg[data-open] {
+  transform: rotate(180deg);
+}
+
+.packGroups {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+
+.packGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+
+.packGroup + .packGroup {
+  border-top: 1px solid var(--line);
+}
+
+.groupHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.groupText {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.groupName {
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.groupMeta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.groupActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.groupTerms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+}
+
+/* Cheio = regra ativa para o termo; tracejado = falta ou está inativa (também dito em texto). */
+.groupTerm {
+  padding: 1px 9px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.groupTerm[data-on] {
+  border-style: solid;
+  border-color: var(--line);
+  background: var(--surface-sunken);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.groupRules .row {
+  padding-inline: var(--space-4);
+}
+
+.packAction {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+/* ---------- Tabela de regras ---------- */
+/* Colunas: círculo | regra | prioridade | status | ações. */
+.tableHead,
+.row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 6.5rem 7rem 9rem;
+  align-items: center;
+  column-gap: var(--space-4);
+}
+
+.tableHead {
+  min-height: 34px;
+  padding: 0 var(--space-5);
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tableHead > :nth-child(3) {
+  text-align: center;
+}
+
+.tableHead > :nth-child(5) {
   text-align: right;
 }
 
+.table {
+  list-style: none;
+}
+
+.table > .row {
+  border-top: 1px solid var(--line);
+}
+
 .row {
-  align-items: center;
   row-gap: var(--space-2);
-  min-height: 48px;
-  padding: 8px 16px;
+  min-height: 56px;
+  padding: 8px var(--space-5);
+  scroll-margin-top: var(--space-12);
   transition: background-color var(--motion-hover) ease;
 }
 
+.row:hover,
 .row[data-open] {
   background: var(--surface-soft);
+}
+
+/* Chegada pelo simulador (#regra-…): a linha se destaca por um instante. */
+.row:target {
+  animation: rowArrive var(--motion-arrival) ease-out;
+}
+
+@keyframes rowArrive {
+  from {
+    background: color-mix(in srgb, var(--positive) 16%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row:target {
+    animation: none;
+    background: color-mix(in srgb, var(--positive) 10%, transparent);
+  }
+}
+
+.tableEmpty {
+  padding: var(--space-5);
+  border-top: 1px solid var(--line);
+  color: var(--muted);
 }
 
 .rowMain {
@@ -70,27 +575,26 @@
 
 /* O valor comparado e a categoria são o que distingue uma regra da outra. */
 .value {
-  padding: 1px 6px;
-  border-radius: var(--radius-control);
-  background: var(--surface-sunken);
   color: var(--foreground);
   font-weight: 700;
-  box-decoration-break: clone;
 }
 
 .category {
   color: var(--foreground);
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .arrow {
   color: var(--muted);
 }
 
-/* Removida fica secundária, mas legível; o status também aparece em texto. */
-.row[data-removed] .sentence,
-.row[data-removed] .category,
-.row[data-removed] .value {
+.row[data-status="inactive"] .sentence,
+.row[data-status="removed"] .sentence {
+  opacity: 0.72;
+}
+
+.row[data-status="removed"] .value,
+.row[data-status="removed"] .category {
   color: var(--muted);
 }
 
@@ -99,16 +603,22 @@
   font-size: 0.75rem;
 }
 
-/* A etiqueta de status ocupa só o próprio texto, não a coluna. */
-.row > :nth-child(3) {
-  justify-self: start;
+.priority {
+  text-align: center;
 }
 
-.priority {
+.priorityPill {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
   color: var(--foreground);
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
+  font-size: 0.8125rem;
+  font-weight: 700;
 }
 
 /* O rótulo "Prioridade" fica só para leitores de tela enquanto a coluna tem cabeçalho. */
@@ -119,10 +629,105 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
-  color: var(--muted);
-  font-weight: 600;
 }
 
+/* Status em texto com um ponto: o texto diz, o ponto só reforça. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--body-text);
+  font-size: 0.875rem;
+}
+
+.status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--line-strong);
+}
+
+.status[data-status="active"]::before {
+  background: var(--positive);
+}
+
+.status[data-status="removed"]::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+
+@media (max-width: 52rem) {
+  .tableHead {
+    display: none;
+  }
+
+  .row {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    align-items: start;
+    padding: 10px var(--space-4);
+  }
+
+  .row > .rowMain {
+    grid-column: 2 / -1;
+  }
+
+  .priority {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: left;
+  }
+
+  .priorityLabel {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    color: var(--muted);
+    font-size: 0.8125rem;
+  }
+
+  .status {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .row > :nth-child(5) {
+    grid-column: 3;
+    grid-row: 2 / span 2;
+    align-self: center;
+  }
+}
+
+/* ---------- Removidas ---------- */
+.removed > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.removed > summary::-webkit-details-marker {
+  display: none;
+}
+
+.removedSummary {
+  border-radius: var(--radius-frame);
+}
+
+.removed .removedSummary > span:first-child {
+  color: var(--muted);
+}
+
+.removedChevron {
+  color: var(--muted);
+  transition: transform var(--motion-reveal) ease;
+}
+
+.removed[open] .removedChevron {
+  transform: rotate(180deg);
+}
+
+/* ---------- Formulário e carregamento ---------- */
 .preview {
   display: flex;
   flex-direction: column;
@@ -140,143 +745,10 @@
   font-weight: 700;
 }
 
-@media (max-width: 52rem) {
-  .listHead {
-    display: none;
-  }
-
-  .row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 8px 16px;
-  }
-
-  .row > .rowMain {
-    grid-column: 1 / -1;
-  }
-
-  .priority {
-    grid-column: 1;
-    grid-row: 2;
-    font-size: 0.8125rem;
-    text-align: left;
-  }
-
-  .priorityLabel {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
-  }
-
-  /* Status e ações dividem a última linha. */
-  .row > :nth-child(3) {
-    grid-column: 1;
-    grid-row: 3;
-    justify-self: start;
-  }
-
-  .row > :nth-child(4) {
-    grid-column: 2;
-    grid-row: 2 / span 2;
-  }
-}
-
 .skeletonRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 12px 16px;
-}
-
-/* Pacote de regras sugeridas (dentro de um Disclosure recolhido). */
-.pack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: var(--space-3) 0;
-}
-
-.packGroup {
-  display: grid;
-  grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
-  gap: var(--space-3);
-}
-
-.packCategory {
-  color: var(--foreground);
-  font-weight: 650;
-}
-
-.packValues {
-  color: var(--muted);
-  overflow-wrap: anywhere;
-}
-
-.packAction {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-@media (max-width: 40rem) {
-  .packGroup {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2px;
-  }
-}
-
-.listTitle {
-  font-size: 1rem;
-  font-weight: 650;
-  color: var(--foreground);
-}
-
-.listCount {
-  color: var(--muted);
-  font-weight: 600;
-}
-
-/* Grupos por categoria dentro de "Regras sugeridas". */
-.packGroups {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-
-.packCategoryGroup > summary {
-  list-style: none;
-}
-
-.packCategoryGroup > summary::-webkit-details-marker {
-  display: none;
-}
-
-.packCategorySummary {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 40px;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  background: var(--surface-soft);
-  color: var(--foreground);
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.packCategorySummary::before {
-  content: "▸";
-  color: var(--muted);
-}
-
-.packCategoryGroup[open] > .packCategorySummary {
-  margin-bottom: var(--space-2);
-}
-
-.packCategoryGroup[open] > .packCategorySummary::before {
-  content: "▾";
 }

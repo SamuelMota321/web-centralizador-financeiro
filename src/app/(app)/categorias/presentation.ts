@@ -1,4 +1,3 @@
-import { CATEGORY_OTHER } from "@/components/charts/category-colors";
 import { formatShare, fromCents, toCents } from "@/components/charts/model";
 import type { Transaction } from "@/lib/transactions/types";
 import { monthsBefore, PERIOD_PRESETS, type PeriodPreset } from "../movimentacoes/presentation";
@@ -71,6 +70,8 @@ export interface PeriodUsage {
   /** Despesas sem categoria: entram no total e aparecem na composição, nunca somem. */
   uncategorizedExpense: bigint;
   uncategorizedCount: number;
+  /** Das despesas a revisar: quantas não têm categoria e quantas ficaram incertas. */
+  reviewKinds: { unclassified: number; uncertain: number };
 }
 
 function daysBetween(since: string, until: string): number {
@@ -96,6 +97,7 @@ export function periodUsage(transactions: readonly Transaction[], since: string,
   let totalExpense = BigInt(0);
   let uncategorizedExpense = BigInt(0);
   let uncategorizedCount = 0;
+  const reviewKinds = { unclassified: 0, uncertain: 0 };
 
   for (const transaction of transactions) {
     if (transaction.status !== "posted" || transaction.type === "transfer") continue;
@@ -107,6 +109,8 @@ export function periodUsage(transactions: readonly Transaction[], since: string,
       if (transaction.type === "expense") {
         uncategorizedExpense += cents;
         uncategorizedCount += 1;
+        if (transaction.categorizationStatus === "unclassified") reviewKinds.unclassified += 1;
+        else reviewKinds.uncertain += 1;
       }
       continue;
     }
@@ -130,7 +134,7 @@ export function periodUsage(transactions: readonly Transaction[], since: string,
     const series = downsample(flow.map((value) => fromCents((running += value))));
     byCategory.set(categoryId, { expense, income, count: entry.count, series });
   }
-  return { byCategory, totalExpense, uncategorizedExpense, uncategorizedCount };
+  return { byCategory, totalExpense, uncategorizedExpense, uncategorizedCount, reviewKinds };
 }
 
 /** Texto do cartão: gasto quando há despesa; recebido quando só há receita. */
@@ -146,47 +150,23 @@ export function usageFigure(usage: CategoryUsage | undefined, totalExpense: bigi
   return { kind: "recebido", value: fromCents(usage.income), share: null };
 }
 
-// ---------- Composição das despesas ----------
-
-export interface CompositionItem {
-  id: string;
-  label: string;
-  value: string;
-  share: string;
-  color: string;
-  /** "Sem categoria": hachurado, sempre por último, nunca diluído em "Outras". */
-  uncategorized?: boolean;
-}
+// ---------- A revisar ----------
 
 /**
- * Maiores despesas por categoria; o restante vira "Outras" (neutra) e as despesas sem categoria
- * ficam visíveis à parte. As partes somam o total de despesas do período.
+ * Filtro de Movimentações que mostra exatamente as despesas a revisar do período: só sem
+ * categoria, só incertas, ou todas as despesas quando há das duas (não existe filtro que junte).
  */
-export function composition(
-  usage: PeriodUsage,
-  names: ReadonlyMap<string, string>,
-  colors: ReadonlyMap<string, string>,
-  top = 5,
-): CompositionItem[] {
-  if (usage.totalExpense <= BigInt(0)) return [];
-  const total = fromCents(usage.totalExpense);
-  const ranked = [...usage.byCategory.entries()]
-    .filter(([, item]) => item.expense > BigInt(0))
-    .sort((a, b) => (b[1].expense > a[1].expense ? 1 : b[1].expense < a[1].expense ? -1 : 0));
-  const head = ranked.slice(0, top);
-  const rest = ranked.slice(top).reduce((sum, [, item]) => sum + item.expense, BigInt(0));
-  const item = (id: string, label: string, cents: bigint, color: string, uncategorized?: boolean): CompositionItem => ({
-    id,
-    label,
-    value: fromCents(cents),
-    share: formatShare(fromCents(cents), total) ?? "0,0%",
-    color,
-    uncategorized,
-  });
-  const items = head.map(([id, value]) => item(id, names.get(id) ?? "Categoria indisponível", value.expense, colors.get(id) ?? CATEGORY_OTHER));
-  if (rest > BigInt(0)) items.push(item("outras", "Outras", rest, CATEGORY_OTHER));
-  if (usage.uncategorizedExpense > BigInt(0)) items.push(item("sem-categoria", "Sem categoria", usage.uncategorizedExpense, CATEGORY_OTHER, true));
-  return items;
+export function reviewHref(kinds: { unclassified: number; uncertain: number }, period: PeriodPreset): string {
+  const query = new URLSearchParams({ tipo: "despesas" });
+  if (kinds.uncertain === 0) query.set("situacao", "sem-categoria");
+  else if (kinds.unclassified === 0) query.set("situacao", "incertas");
+  if (period !== DEFAULT_PERIOD) query.set("periodo", period);
+  return `/movimentacoes?${query.toString()}`;
+}
+
+/** Parte das despesas, com uma casa ("22,0%"); null sem despesa no período. */
+export function expenseShare(cents: bigint, totalExpense: bigint): string | null {
+  return totalExpense > BigInt(0) ? formatShare(fromCents(cents), fromCents(totalExpense)) : null;
 }
 
 // ---------- Lista ----------

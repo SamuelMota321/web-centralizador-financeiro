@@ -1,40 +1,42 @@
 import Link from "next/link";
-import { ListToolbar, SegmentedLinks } from "@/components/list-toolbar";
 import { categoryColors } from "@/components/charts/category-colors";
-import { fromCents } from "@/components/charts/model";
+import { CategoryMark } from "@/components/category-mark";
 import { HeroBanner } from "@/components/hero-banner";
-import { IconCategories, IconRules } from "@/components/icons";
+import { IconArrowRight, IconChevronDown, IconLightbulb, IconSparkles, IconTag } from "@/components/icons";
 import { UrlNoticeToast } from "@/components/interactive";
+import { ListToolbar, SegmentedLinks } from "@/components/list-toolbar";
 import { PanelSection, PanelToggle } from "@/components/panel";
-import { SectionHeader } from "@/components/section-header";
-import { EmptyState, Notice, PageHeader, ui } from "@/components/ui";
+import { SectionPanel } from "@/components/section-panel";
+import { Notice, PageHeader, ui } from "@/components/ui";
 import { listAllPages, SELECTOR_ITEM_LIMIT } from "@/lib/api/pagination";
 import { auth0 } from "@/lib/auth0";
 import { listCategories } from "@/lib/categories/api";
-import { categoriesToCreate } from "@/lib/categories/suggestions";
+import { categoriesToCreate, SUGGESTED_CATEGORIES } from "@/lib/categories/suggestions";
 import { listCategoryRules } from "@/lib/category-rules/api";
 import { todayCivilDate } from "@/lib/civil-date";
+import { formatMoney } from "@/lib/money";
 import { listTransactionsSince, PERIOD_SCAN_LIMIT } from "@/lib/transactions/api";
+import { fromCents } from "@/components/charts/model";
 import { PERIOD_PRESETS, type PeriodPreset } from "../movimentacoes/presentation";
-import { CategoryCard } from "./category-card";
 import { CategoryForm } from "./category-form";
-import { Composition } from "./composition";
+import { CategoryRow } from "./category-row";
 import { isNoticeKey, NOTICES } from "./notices";
 import {
   arrangeCategories,
   categoriesHref,
-  composition,
   DEFAULT_PERIOD,
+  expenseShare,
   parseCategoryParams,
   periodLabel,
   periodRange,
   periodUsage,
+  reviewHref,
   rulesPerCategory,
   SORTS,
   usageFigure,
 } from "./presentation";
-import { SuggestedCategories } from "./suggested-categories";
-import { SuggestedChips } from "./suggested-chips";
+import { RulesIllustration } from "./rules-illustration";
+import { AddMissingButton, SuggestedTiles, type SuggestionTile } from "./suggested-tiles";
 import styles from "./categorias.module.css";
 
 export default async function CategoriasPage({
@@ -51,7 +53,7 @@ export default async function CategoriasPage({
   const { token } = await auth0.getAccessToken();
   const context = { accessToken: token };
 
-  // Categorias são o conteúdo; regras e lançamentos só enriquecem os cartões. Falha parcial
+  // Categorias são o conteúdo; regras e lançamentos só enriquecem as linhas. Falha parcial
   // esconde o enriquecimento, nunca a lista.
   const [categoriesResult, rulesResult, scanResult] = await Promise.allSettled([
     listAllPages((query) => listCategories(query, context)),
@@ -62,33 +64,42 @@ export default async function CategoriasPage({
 
   const { items: categories, truncated } = categoriesResult.value;
   const total = categories.length;
-  // Cor fixa pela ordem de criação (arquivadas incluídas), a mesma de Movimentações.
+  // Cor fixa pela ordem de criação (arquivadas incluídas), a mesma de Movimentações e Regras.
   const colors = categoryColors([...categories].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((c) => c.id));
-  const names = new Map(categories.map((category) => [category.id, category.name]));
   const ruleCounts = rulesResult.status === "fulfilled" ? rulesPerCategory(rulesResult.value.items) : null;
 
   // Valores só com o período lido por inteiro (regra do PRODUCT.md): nunca um número parcial.
   const scan = scanResult.status === "fulfilled" ? scanResult.value : null;
   const covered = Boolean(scan && (scan.complete || scan.items.some((item) => item.occurredOn < range.since)));
   const usage = scan && covered ? periodUsage(scan.items, range.since, range.until) : null;
-  const parts = usage ? composition(usage, names, colors) : [];
 
   const active = categories.filter((category) => category.status === "active");
   const archived = categories.filter((category) => category.status === "archived");
   const shown = arrangeCategories(active, usage?.byCategory ?? null, params.search, params.sort);
   const shownArchived = arrangeCategories(archived, usage?.byCategory ?? null, params.search, "nome");
-  const missing = total > 0 ? categoriesToCreate(categories) : [];
+  const missing = categoriesToCreate(categories);
   const withoutRules = ruleCounts ? active.filter((category) => !ruleCounts.get(category.id)).length : 0;
   const periodName = periodLabel(params.period);
   const filtering = params.search !== "" || params.sort !== "uso";
 
+  // As 12 sugeridas com o estado de cada uma (o nome exato, como o índice único do banco).
+  const byName = new Map(categories.map((category) => [category.name, category]));
+  const tiles: SuggestionTile[] = SUGGESTED_CATEGORIES.map((name) => {
+    const found = byName.get(name);
+    return {
+      name,
+      color: found ? (colors.get(found.id) ?? null) : null,
+      state: !found ? "missing" : found.status === "archived" ? "archived" : "added",
+    };
+  });
+
   const movementsHref = (id: string) =>
     `/movimentacoes?categoria=${id.toLowerCase()}${params.period !== DEFAULT_PERIOD ? `&periodo=${params.period}` : ""}`;
-  const card = (category: (typeof categories)[number]) => {
+  const row = (category: (typeof categories)[number]) => {
     const figure = usage ? usageFigure(usage.byCategory.get(category.id), usage.totalExpense) : null;
     const entry = usage?.byCategory.get(category.id);
     return (
-      <CategoryCard
+      <CategoryRow
         key={`${category.id}:${category.updatedAt}`}
         category={category}
         color={colors.get(category.id) ?? null}
@@ -106,10 +117,67 @@ export default async function CategoriasPage({
 
       <PageHeader
         title="Categorias"
-        context={total === 0 ? "Organize suas movimentações com categorias pessoais." : "Para onde vai o seu dinheiro, categoria por categoria."}
+        context="Organize seus gastos e veja para onde seu dinheiro vai."
+        actions={<PanelToggle flag="nova">Nova categoria</PanelToggle>}
+      />
+
+      <PanelSection
+        flag="nova"
+        title="Nova categoria"
+        description="Use nomes que façam sentido para você. As sugeridas são só um ponto de partida."
+        closeLabel="Fechar o painel de nova categoria"
+      >
+        <CategoryForm />
+      </PanelSection>
+
+      {missing.length > 0 ? (
+        <HeroBanner
+          icon={<IconLightbulb size={24} />}
+          title={
+            total === 0
+              ? "Comece com as categorias sugeridas"
+              : `Ainda ${missing.length === 1 ? "falta 1 categoria sugerida" : `faltam ${missing.length} categorias sugeridas`}`
+          }
+          action={<AddMissingButton count={missing.length} />}
+        >
+          {total === 0
+            ? "Um conjunto básico para começar: alimentação, moradia, transporte, saúde e mais. Depois, elas são suas para renomear ou arquivar."
+            : "Adicione as que faltam para ter uma visão mais completa das suas finanças."}
+        </HeroBanner>
+      ) : null}
+
+      <details className={`${ui.sectionPanel} ${styles.suggested}`} open={missing.length > 0 || undefined}>
+        <summary className={`${ui.sectionPanelHead} ${styles.suggestedSummary}`}>
+          <span className={ui.sectionPanelIcon} aria-hidden>
+            <IconSparkles size={22} />
+          </span>
+          <span className={ui.sectionPanelText}>
+            <span className={ui.sectionPanelTitle}>
+              Categorias sugeridas <span className={ui.countPill}>{SUGGESTED_CATEGORIES.length}</span>
+            </span>
+            <span className={ui.sectionPanelHint}>
+              {missing.length === 0 ? "Todas adicionadas." : "Um toque adiciona a categoria."}
+            </span>
+          </span>
+          <span className={styles.suggestedToggle}>
+            <span data-closed>Ver todas</span>
+            <span data-open>Recolher</span>
+            <IconChevronDown size={16} />
+          </span>
+        </summary>
+        <SuggestedTiles tiles={tiles} />
+      </details>
+
+      {truncated ? <Notice tone="info">Você tem mais de {SELECTOR_ITEM_LIMIT} categorias: a lista mostra só as primeiras.</Notice> : null}
+
+      <SectionPanel
+        id="suas-categorias"
+        icon={<IconTag size={22} />}
+        title="Suas categorias"
+        count={active.length}
         actions={
-          <>
-            {total > 0 ? (
+          total > 0 ? (
+            <>
               <SegmentedLinks
                 label="Período"
                 options={(Object.entries(PERIOD_PRESETS) as [PeriodPreset, string][]).map(([value, label]) => ({
@@ -118,111 +186,122 @@ export default async function CategoriasPage({
                   current: params.period === value,
                 }))}
               />
-            ) : null}
-            <PanelToggle flag="nova" forceOpen={total === 0}>
-              Nova categoria
-            </PanelToggle>
-          </>
+              <ListToolbar
+                action="/categorias"
+                label="Buscar categorias"
+                search={params.search}
+                placeholder="Buscar categoria…"
+                active={filtering}
+                hidden={params.period !== DEFAULT_PERIOD ? { periodo: params.period } : {}}
+                filters={[
+                  {
+                    name: "ordem",
+                    label: "Ordenar",
+                    value: params.sort,
+                    options: Object.entries(SORTS).map(([value, label]) => ({ value, label })),
+                  },
+                ]}
+              />
+            </>
+          ) : undefined
         }
-      />
-
-      <PanelSection
-        flag="nova"
-        forceOpen={total === 0}
-        title="Nova categoria"
-        description="Use nomes que façam sentido para você. As sugeridas são só um ponto de partida."
-        closeLabel="Fechar o painel de nova categoria"
       >
-        <CategoryForm />
-      </PanelSection>
-
-      {total === 0 ? (
-        <EmptyState icon={<IconCategories size={22} />} title="Nenhuma categoria ainda" action={<SuggestedCategories />}>
-          Categorias ajudam a entender para onde vai o dinheiro. Crie a sua no painel acima ou use um conjunto básico
-          pronto.
-        </EmptyState>
-      ) : (
-        <>
-          {usage && parts.length > 0 ? (
-            <Composition items={parts} total={fromCents(usage.totalExpense)} periodName={periodName} />
-          ) : scan && !covered ? (
+        {scan && !covered ? (
+          <div className={styles.tableNotice}>
             <Notice tone="info">
               Este período tem mais de {PERIOD_SCAN_LIMIT} lançamentos: escolha um período menor para ver os valores por categoria.
             </Notice>
-          ) : usage ? (
-            <Notice tone="info">Nenhuma despesa em {periodName}. Os cartões mostram as receitas, quando houver.</Notice>
-          ) : null}
+          </div>
+        ) : null}
 
-          {missing.length > 0 ? <SuggestedChips missing={missing} /> : null}
+        {total === 0 ? (
+          <p className={styles.tableEmpty}>Nenhuma categoria ainda. Adicione as sugeridas acima ou crie a sua em “Nova categoria”.</p>
+        ) : shown.length === 0 ? (
+          <p className={styles.tableEmpty}>
+            Nenhuma categoria ativa combina com a busca.{" "}
+            <Link className={ui.inlineLink} href={categoriesHref(params, { search: "" })}>
+              Limpar busca
+            </Link>
+          </p>
+        ) : (
+          <>
+            <div className={styles.tableHead} aria-hidden>
+              <span />
+              <span>Categoria</span>
+              <span>Evolução em {periodName}</span>
+              <span>Valor</span>
+              <span>% despesas</span>
+              <span />
+            </div>
+            <ul className={styles.table}>
+              {shown.map(row)}
+              {usage && usage.uncategorizedExpense > BigInt(0) && !params.search ? (
+                <li className={styles.row} data-review>
+                  <CategoryMark kind="review" />
+                  <div className={styles.rowName}>
+                    <p className={styles.rowTitle}>A revisar</p>
+                    <p className={styles.rowMeta}>
+                      {usage.uncategorizedCount} {usage.uncategorizedCount === 1 ? "despesa sem categoria ou incerta" : "despesas sem categoria ou incertas"}
+                    </p>
+                  </div>
+                  <div className={styles.rowSpark} />
+                  <p className={`${styles.rowValue} tabular`}>{formatMoney(fromCents(usage.uncategorizedExpense))}</p>
+                  <p className={`${styles.rowShare} tabular`}>{expenseShare(usage.uncategorizedExpense, usage.totalExpense)}</p>
+                  <div className={styles.rowMenu}>
+                    <Link className={ui.inlineLink} href={reviewHref(usage.reviewKinds, params.period)}>
+                      Revisar
+                    </Link>
+                  </div>
+                </li>
+              ) : null}
+            </ul>
+            {usage && usage.totalExpense > BigInt(0) ? (
+              <p className={styles.tableFoot}>
+                Total de despesas em {periodName}: <strong className="tabular">{formatMoney(fromCents(usage.totalExpense))}</strong> · sem
+                transferências
+              </p>
+            ) : usage ? (
+              <p className={styles.tableFoot}>Nenhuma despesa em {periodName}.</p>
+            ) : null}
+          </>
+        )}
+      </SectionPanel>
 
-          {truncated ? <Notice tone="info">Você tem mais de {SELECTOR_ITEM_LIMIT} categorias: a lista mostra só as primeiras.</Notice> : null}
-
-          <section className={styles.listSection} aria-labelledby="suas-categorias">
-            <SectionHeader
-              id="suas-categorias"
-              title="Suas categorias"
-              count={active.length}
-              actions={
-                <ListToolbar
-                  action="/categorias"
-                  label="Buscar categorias"
-                  search={params.search}
-                  placeholder="Buscar categoria"
-                  active={filtering}
-                  hidden={params.period !== DEFAULT_PERIOD ? { periodo: params.period } : {}}
-                  filters={[
-                    {
-                      name: "ordem",
-                      label: "Ordenar",
-                      value: params.sort,
-                      options: Object.entries(SORTS).map(([value, label]) => ({ value, label })),
-                    },
-                  ]}
-                />
-              }
-            />
-            {shown.length > 0 ? (
-              <ul className={styles.grid}>{shown.map(card)}</ul>
-            ) : (
-              <EmptyState
-                icon={<IconCategories size={22} />}
-                title="Nenhuma categoria encontrada"
-                action={
-                  <Link className={`${ui.button} ${ui.secondary}`} href={categoriesHref(params, { search: "" })}>
-                    Limpar busca
-                  </Link>
-                }
-              >
-                Nenhuma categoria ativa combina com a busca.
-              </EmptyState>
-            )}
-          </section>
-
-          {shownArchived.length > 0 ? (
-            <details className={styles.archived}>
-              <summary className={styles.archivedSummary}>
+      {shownArchived.length > 0 ? (
+        <details className={`${ui.sectionPanel} ${styles.archived}`}>
+          <summary className={`${ui.sectionPanelHead} ${styles.suggestedSummary}`}>
+            <span className={ui.sectionPanelText}>
+              <span className={ui.sectionPanelTitle}>
                 Arquivadas <span className={ui.countPill}>{shownArchived.length}</span>
-              </summary>
-              <ul className={styles.grid}>{shownArchived.map(card)}</ul>
-            </details>
-          ) : null}
+              </span>
+            </span>
+            <span className={styles.suggestedToggle}>
+              <span data-closed>Ver</span>
+              <span data-open>Recolher</span>
+              <IconChevronDown size={16} />
+            </span>
+          </summary>
+          <ul className={styles.table}>{shownArchived.map(row)}</ul>
+        </details>
+      ) : null}
 
-          {ruleCounts && active.length > 0 ? (
-            <HeroBanner
-              icon={<IconRules size={20} />}
-              tone="neutral"
-              title={withoutRules > 0 ? `${withoutRules} ${withoutRules === 1 ? "categoria ainda não tem" : "categorias ainda não têm"} regra` : "Todas as suas categorias têm regras"}
-              action={
-                <Link className={`${ui.button} ${ui.secondary}`} href="/regras">
-                  Gerenciar regras
-                </Link>
-              }
-            >
-              Regras categorizam sozinhas as próximas movimentações, como “se a descrição contém uber, use Transporte”.
-            </HeroBanner>
-          ) : null}
-        </>
-      )}
+      {ruleCounts && active.length > 0 ? (
+        <HeroBanner
+          media={<RulesIllustration />}
+          title="Automatize ainda mais com regras"
+          action={
+            <Link className={`${ui.button} ${ui.secondary}`} href="/regras">
+              Gerenciar regras
+              <IconArrowRight size={16} />
+            </Link>
+          }
+        >
+          {withoutRules > 0
+            ? `${withoutRules} ${withoutRules === 1 ? "categoria ainda não tem" : "categorias ainda não têm"} regra. `
+            : "Todas as suas categorias têm regra. "}
+          Regras categorizam sozinhas os lançamentos novos, como “se a descrição contém Uber, use Transporte”.
+        </HeroBanner>
+      ) : null}
     </div>
   );
 }

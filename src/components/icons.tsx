@@ -210,12 +210,6 @@ export const IconTicket = (p: IconProps) => (
   </Icon>
 );
 
-export const IconBook = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H19v14H6.5A1.5 1.5 0 0 0 5 19.5Zm0 14A1.5 1.5 0 0 0 6.5 21H19" />
-  </Icon>
-);
-
 export const IconShoppingBag = (p: IconProps) => (
   <Icon {...p}>
     <path d="M5.5 8h13l-1 12h-11Z" />
@@ -223,15 +217,71 @@ export const IconShoppingBag = (p: IconProps) => (
   </Icon>
 );
 
-export const IconBolt = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="M13 3 5 13.5h6L10 21l8-10.5h-6Z" />
-  </Icon>
-);
-
 export const IconQuestion = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="8.5" />
     <path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4M12 16.5h.01" />
+  </Icon>
+);
+
+export const IconCart = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 4h2.2l2.1 10.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.1" />
+    <circle cx="9.5" cy="19.5" r="1.2" />
+    <circle cx="17" cy="19.5" r="1.2" />
+  </Icon>
+);
+
+export const IconFlower = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 20c-4.4 0-7.5-3-7.5-6.5 2.6 0 5.2 1 7.5 3.3 2.3-2.3 4.9-3.3 7.5-3.3C19.5 17 16.4 20 12 20Z" />
+    <path d="M12 16.8c-2-1.8-2.8-4.2-2.8-6.3C9.2 7.7 12 4 12 4s2.8 3.7 2.8 6.5c0 2.1-.8 4.5-2.8 6.3Z" />
+  </Icon>
+);
+
+export const IconReceipt = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 3.5h12v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-2 1.3Z" />
+    <path d="M9 8h6M9 11.5h6M9 15h3.5" />
+  </Icon>
+);
+
+export const IconBriefcase = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3.5" y="7.5" width="17" height="12" rx="1.5" />
+    <path d="M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5M3.5 12.5h17M11 12.5v1.5h2v-1.5" />
+  </Icon>
+);
+
+export const IconStar = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 16.4l-4.8 2.5.9-5.4-3.9-3.8 5.4-.8Z" />
+  </Icon>
+);
+
+export const IconGraduation = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M2.5 9.5 12 5l9.5 4.5L12 14Z" />
+    <path d="M6.5 11.6V16c1.4 1.4 3.4 2.2 5.5 2.2s4.1-.8 5.5-2.2v-4.4M21.5 9.5V15" />
+  </Icon>
+);
+
+export const IconPencil = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17Z" />
+    <path d="m14.5 7.5 3 3" />
+  </Icon>
+);
+
+export const IconSparkles = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M10 4.5 11.6 9 16 10.5 11.6 12 10 16.5 8.4 12 4 10.5 8.4 9Z" />
+    <path d="M17.5 14.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8ZM17.5 3.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6Z" />
+  </Icon>
+);
+
+export const IconLightbulb = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 17.5h6M10 20.5h4M12 3.5a5.5 5.5 0 0 0-3.3 9.9c.5.4.8 1 .8 1.6v.5h5v-.5c0-.6.3-1.2.8-1.6A5.5 5.5 0 0 0 12 3.5Z" />
   </Icon>
 );

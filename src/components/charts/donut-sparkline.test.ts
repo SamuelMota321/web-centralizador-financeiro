@@ -28,13 +28,14 @@ describe("fromCents e sumValues", () => {
 });
 
 describe("categoryColors", () => {
-  const ids = ["a", "b", "c", "d", "e", "f", "g"];
+  const ids = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"];
 
-  it("dá a cor pela ordem estável e neutra da sétima em diante", () => {
+  it("dá a cor pela ordem estável e neutra da 13ª em diante", () => {
     const colors = categoryColors(ids);
     expect(colors.get("a")).toBe("var(--cat-1)");
     expect(colors.get("f")).toBe("var(--cat-6)");
-    expect(colors.get("g")).toBe(CATEGORY_OTHER);
+    expect(colors.get("l")).toBe("var(--cat-12)");
+    expect(colors.get("m")).toBe(CATEGORY_OTHER);
   });
 
   it("mantém a cor quando o ranking do mês muda", () => {
