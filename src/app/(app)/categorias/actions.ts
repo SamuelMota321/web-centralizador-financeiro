@@ -19,6 +19,7 @@ import type { NoticeKey } from "./notices";
 
 const CATEGORIAS_PATH = "/categorias";
 const MOVIMENTACOES_PATH = "/movimentacoes";
+const REGRAS_PATH = "/regras";
 const REAUTH_MESSAGE = "Sua sessão expirou. Entre novamente para continuar.";
 
 export type CategoryFormState =
@@ -55,11 +56,13 @@ export async function createSuggestedCategoriesAction(): Promise<SuggestionState
     }
     revalidatePath(CATEGORIAS_PATH);
     revalidatePath(MOVIMENTACOES_PATH);
+    revalidatePath(REGRAS_PATH);
     return { status: "done", created, skipped: SUGGESTED_CATEGORIES.length - names.length };
   } catch (error) {
     if (created > 0) {
       revalidatePath(CATEGORIAS_PATH);
       revalidatePath(MOVIMENTACOES_PATH);
+      revalidatePath(REGRAS_PATH);
     }
     if (isAuthFailure(error)) return { status: "error", created, message: REAUTH_MESSAGE, reauth: true };
     return {
@@ -68,6 +71,33 @@ export async function createSuggestedCategoriesAction(): Promise<SuggestionState
       message: `Não foi possível criar todas as categorias sugeridas. ${created > 0 ? `${created} entraram; ` : ""}tente de novo para criar as que faltam.`,
     };
   }
+}
+
+/**
+ * Adiciona uma única categoria sugerida (chip "+ Saúde"). O nome precisa estar na lista de
+ * sugeridas: o cliente não escolhe texto livre por aqui.
+ */
+export async function createOneSuggestedCategoryAction(name: string): Promise<SuggestionState> {
+  if (!(SUGGESTED_CATEGORIES as readonly string[]).includes(name)) {
+    return { status: "error", created: 0, message: "Esta sugestão não existe." };
+  }
+  const token = await accessTokenOrNull();
+  if (!token) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };
+  const context = { accessToken: token };
+  try {
+    if (await nameTaken(name, context)) return { status: "done", created: 0, skipped: 1 };
+    await createCategory({ name }, context);
+  } catch (error) {
+    if (isAuthFailure(error)) return { status: "error", created: 0, message: REAUTH_MESSAGE, reauth: true };
+    if (error instanceof ProblemDetailsError && error.code === PROBLEM_CODES.categoryAlreadyExists) {
+      return { status: "done", created: 0, skipped: 1 };
+    }
+    return { status: "error", created: 0, message: `Não foi possível adicionar “${name}”. Tente de novo.` };
+  }
+  revalidatePath(CATEGORIAS_PATH);
+  revalidatePath(MOVIMENTACOES_PATH);
+  revalidatePath(REGRAS_PATH);
+  return { status: "done", created: 1, skipped: 0 };
 }
 
 export async function createCategoryAction(
@@ -93,6 +123,7 @@ export async function createCategoryAction(
 
   revalidatePath(CATEGORIAS_PATH);
   revalidatePath(MOVIMENTACOES_PATH);
+  revalidatePath(REGRAS_PATH);
   return { status: "success" };
 }
 
@@ -209,5 +240,6 @@ function formFailure(error: unknown, name: string, fallback: string): CategoryFo
 function goToCategorias(notice: NoticeKey): never {
   revalidatePath(CATEGORIAS_PATH);
   revalidatePath(MOVIMENTACOES_PATH);
+  revalidatePath(REGRAS_PATH);
   redirect(`${CATEGORIAS_PATH}?aviso=${notice}`, RedirectType.replace);
 }

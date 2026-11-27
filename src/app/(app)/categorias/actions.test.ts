@@ -9,7 +9,7 @@ import {
   renameCategory,
 } from "@/lib/categories/api";
 import type { Category } from "@/lib/categories/types";
-import { archiveCategoryAction, createCategoryAction, createSuggestedCategoriesAction, renameCategoryAction } from "./actions";
+import { archiveCategoryAction, createCategoryAction, createOneSuggestedCategoryAction, createSuggestedCategoriesAction, renameCategoryAction } from "./actions";
 import { SUGGESTED_CATEGORIES } from "@/lib/categories/suggestions";
 import { DUPLICATE_NAME_MESSAGE } from "./category-names";
 
@@ -254,6 +254,29 @@ describe("createSuggestedCategoriesAction", () => {
   it("pede para entrar de novo sem sessão", async () => {
     vi.mocked(auth0.getAccessToken).mockRejectedValue(new Error("sem sessão"));
     expect(await createSuggestedCategoriesAction()).toMatchObject({ status: "error", reauth: true, created: 0 });
+    expect(createCategory).not.toHaveBeenCalled();
+  });
+});
+
+describe("createOneSuggestedCategoryAction", () => {
+  beforeEach(() => {
+    vi.mocked(createCategory).mockReset().mockResolvedValue(category());
+    vi.mocked(listCategories).mockReset().mockResolvedValue({ items: [], page: 1, pageSize: 100, total: 0 });
+  });
+
+  it("cria a sugerida pedida", async () => {
+    expect(await createOneSuggestedCategoryAction("Saúde")).toEqual({ status: "done", created: 1, skipped: 0 });
+    expect(createCategory).toHaveBeenCalledWith({ name: "Saúde" }, { accessToken: "token-ficticio" });
+  });
+
+  it("recusa nome fora da lista sem chamar a API", async () => {
+    expect(await createOneSuggestedCategoryAction("Qualquer coisa")).toMatchObject({ status: "error" });
+    expect(createCategory).not.toHaveBeenCalled();
+  });
+
+  it("pula quando o nome já existe", async () => {
+    vi.mocked(listCategories).mockResolvedValue({ items: [category({ name: "Saúde" })], page: 1, pageSize: 100, total: 1 });
+    expect(await createOneSuggestedCategoryAction("Saúde")).toEqual({ status: "done", created: 0, skipped: 1 });
     expect(createCategory).not.toHaveBeenCalled();
   });
 });
