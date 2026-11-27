@@ -21,7 +21,7 @@ export default function ConectarError({ reset }: { reset: () => void }) {
         </span>
       }
     >
-      Pode ser uma falha momentânea de conexão. Nenhuma autorização foi alterada.
+      Pode ser uma falha momentânea de conexão ou o servidor ainda acordando, o que pode levar até 1 minuto. Tente de novo em alguns segundos. Nenhuma autorização foi alterada.
     </EmptyState>
   );
 }

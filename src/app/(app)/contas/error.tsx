@@ -21,7 +21,7 @@ export default function ContasError({ reset }: { reset: () => void }) {
         </span>
       }
     >
-      Pode ser uma falha momentânea de conexão. Suas contas não foram alteradas.
+      Pode ser uma falha momentânea de conexão ou o servidor ainda acordando, o que pode levar até 1 minuto. Tente de novo em alguns segundos. Suas contas não foram alteradas.
     </EmptyState>
   );
 }

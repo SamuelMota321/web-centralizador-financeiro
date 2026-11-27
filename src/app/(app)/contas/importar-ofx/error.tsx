@@ -21,7 +21,7 @@ export default function ImportarOfxError({ reset }: { reset: () => void }) {
         </span>
       }
     >
-      Pode ser uma falha momentânea de conexão. Nenhum dado foi alterado.
+      Pode ser uma falha momentânea de conexão ou o servidor ainda acordando, o que pode levar até 1 minuto. Tente de novo em alguns segundos. Nenhum dado foi alterado.
     </EmptyState>
   );
 }

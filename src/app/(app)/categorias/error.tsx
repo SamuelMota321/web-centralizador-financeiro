@@ -21,7 +21,7 @@ export default function CategoriasError({ reset }: { reset: () => void }) {
         </span>
       }
     >
-      Pode ser uma falha momentânea de conexão. Suas categorias não foram alteradas.
+      Pode ser uma falha momentânea de conexão ou o servidor ainda acordando, o que pode levar até 1 minuto. Tente de novo em alguns segundos. Suas categorias não foram alteradas.
     </EmptyState>
   );
 }
