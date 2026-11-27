@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { type ReactNode, ViewTransition } from "react";
+import { Backdrop } from "@/components/backdrop";
 import { BrandLockup, BrandSymbol } from "@/components/brand";
 import { IconPlus } from "@/components/icons";
 import { AppToaster } from "@/components/interactive";
@@ -29,28 +30,32 @@ export function AppFrame({
       </a>
 
       <aside className={shell.sidebar}>
-        <Link href="/movimentacoes" className={shell.brand} aria-label="Coinciente, ir para movimentações">
-          <span className={shell.brandFull}>
-            <BrandLockup />
-          </span>
-          <span className={shell.brandCompact}>
-            <BrandSymbol size={30} />
-          </span>
-        </Link>
+        <Backdrop zone="side" />
+        {/* A rolagem fica nesta camada interna; a decoração, no aside, não rola junto. */}
+        <div className={shell.sidebarScroll}>
+          <Link href="/movimentacoes" className={shell.brand} aria-label="Coinciente, ir para movimentações">
+            <span className={shell.brandFull}>
+              <BrandLockup />
+            </span>
+            <span className={shell.brandCompact}>
+              <BrandSymbol size={30} />
+            </span>
+          </Link>
 
-        <RegisterShortcut className={shell.register} label="Registrar movimentação">
-          <IconPlus size={18} />
-          <span className={shell.registerLabel}>Registrar movimentação</span>
-        </RegisterShortcut>
+          <RegisterShortcut className={shell.register} label="Registrar movimentação">
+            <IconPlus size={18} />
+            <span className={shell.registerLabel}>Registrar movimentação</span>
+          </RegisterShortcut>
 
-        <SideNav showOverview={showOverview} />
+          <SideNav showOverview={showOverview} />
 
-        <div className={shell.sidebarFooter}>
-          <div className={shell.accountFull}>
-            <AccountMenu identity={identity} />
-          </div>
-          <div className={shell.accountRail}>
-            <AccountMenu identity={identity} compact />
+          <div className={shell.sidebarFooter}>
+            <div className={shell.accountFull}>
+              <AccountMenu identity={identity} />
+            </div>
+            <div className={shell.accountRail}>
+              <AccountMenu identity={identity} compact />
+            </div>
           </div>
         </div>
       </aside>
@@ -72,6 +77,7 @@ export function AppFrame({
       </header>
 
       <main id="conteudo" className={shell.main} tabIndex={-1}>
+        <Backdrop zone="top" />
         <div className={shell.content}>
           {/* Só a navegação marcada com "nav" faz crossfade: salvar dados na página não pisca. */}
           <ViewTransition default="none" update={{ nav: "page", default: "none" }}>

@@ -36,16 +36,22 @@
   top: 0;
   align-self: start;
   z-index: var(--z-nav);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
   height: 100dvh;
-  padding: 16px 12px 12px;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--nav-bg);
   box-shadow: inset -1px 0 0 var(--nav-line);
   color: var(--nav-fg);
+}
+
+/* Camada que rola: a decoração de fundo fica no aside e não acompanha a rolagem. */
+.sidebarScroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  height: 100%;
+  padding: 16px 12px 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .brand {
@@ -284,6 +290,9 @@
 
 /* ---------- Conteúdo ---------- */
 .main {
+  position: relative;
+  /* Contexto próprio: a decoração (z-index -1) fica atrás do conteúdo, sem sair de .main. */
+  isolation: isolate;
   min-width: 0;
   padding: 32px 40px 96px;
 }
@@ -308,7 +317,7 @@
     grid-template-columns: 72px minmax(0, 1fr);
   }
 
-  .sidebar {
+  .sidebarScroll {
     align-items: center;
     gap: var(--space-5);
     padding: 16px 8px 12px;
