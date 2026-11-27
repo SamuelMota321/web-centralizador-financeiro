@@ -7,7 +7,8 @@ import { listAllPages } from "@/lib/api/pagination";
 import { auth0 } from "@/lib/auth0";
 import { todayCivilDate } from "@/lib/civil-date";
 import { listPatrimony } from "@/lib/patrimony/api";
-import { PATRIMONY_COLLECTIONS, type PatrimonyCollection, type PatrimonyItem } from "@/lib/patrimony/types";
+import { patrimonyPreviewEnabled, patrimonyPreviewPage } from "@/lib/patrimony/preview";
+import { PATRIMONY_COLLECTIONS, type PatrimonyCollection, type PatrimonyItem, type PatrimonyPage } from "@/lib/patrimony/types";
 import { ItemRow } from "./item-rows";
 import { PatrimonyForm } from "./patrimony-form";
 import { PAGE_PARAMS, PAGE_SIZE, parsePageParam, SECTIONS, sectionHref, totalPages } from "./presentation";
@@ -31,17 +32,30 @@ export default async function PatrimonioPage({
     PATRIMONY_COLLECTIONS.map((collection) => [collection, parsePageParam(query[PAGE_PARAMS[collection]])]),
   ) as Record<PatrimonyCollection, number>;
 
-  const { token } = await auth0.getAccessToken();
-  const context = { accessToken: token };
-
-  // Cada seção é independente: a falha de uma não esconde as outras.
-  const [assets, financings, liabilities, allAssets] = await Promise.allSettled([
-    listPatrimony("assets", { page: pages.assets, pageSize: PAGE_SIZE }, context),
-    listPatrimony("financings", { page: pages.financings, pageSize: PAGE_SIZE }, context),
-    listPatrimony("liabilities", { page: pages.liabilities, pageSize: PAGE_SIZE }, context),
-    // Todos os bens, para o seletor do financiamento e para nomear o bem associado.
-    listAllPages((page) => listPatrimony("assets", page, context)),
-  ]);
+  const preview = patrimonyPreviewEnabled();
+  const now = new Date();
+  let assets: PromiseSettledResult<PatrimonyPage<"assets">>;
+  let financings: PromiseSettledResult<PatrimonyPage<"financings">>;
+  let liabilities: PromiseSettledResult<PatrimonyPage<"liabilities">>;
+  let allAssets: PromiseSettledResult<{ items: PatrimonyPage<"assets">["items"]; truncated: boolean }>;
+  if (preview) {
+    const sample = patrimonyPreviewPage("assets", now);
+    assets = { status: "fulfilled", value: sample };
+    financings = { status: "fulfilled", value: patrimonyPreviewPage("financings", now) };
+    liabilities = { status: "fulfilled", value: patrimonyPreviewPage("liabilities", now) };
+    allAssets = { status: "fulfilled", value: { items: sample.items, truncated: false } };
+  } else {
+    const { token } = await auth0.getAccessToken();
+    const context = { accessToken: token };
+    // Cada seção é independente: a falha de uma não esconde as outras.
+    [assets, financings, liabilities, allAssets] = await Promise.allSettled([
+      listPatrimony("assets", { page: pages.assets, pageSize: PAGE_SIZE }, context),
+      listPatrimony("financings", { page: pages.financings, pageSize: PAGE_SIZE }, context),
+      listPatrimony("liabilities", { page: pages.liabilities, pageSize: PAGE_SIZE }, context),
+      // Todos os bens, para o seletor do financiamento e para nomear o bem associado.
+      listAllPages((page) => listPatrimony("assets", page, context)),
+    ]);
+  }
   const results = { assets, financings, liabilities };
   const assetOptions =
     allAssets.status === "fulfilled"
@@ -55,6 +69,10 @@ export default async function PatrimonioPage({
         title="Bens e dívidas"
         context="Registre seus bens, financiamentos e dívidas. Os valores são informados por você."
       />
+
+      {preview ? (
+        <Notice tone="info">Prévia com dados de exemplo (PATRIMONY_PREVIEW). Nada aqui foi informado por você.</Notice>
+      ) : null}
 
       {allAssets.status === "fulfilled" && allAssets.value.truncated ? (
         <Notice tone="info">Você tem mais de 500 bens: o seletor de financiamento mostra só os primeiros.</Notice>
@@ -75,24 +93,26 @@ export default async function PatrimonioPage({
             icon={<SectionIcon size={22} />}
             title={section.title}
             count={result.status === "fulfilled" ? result.value.total : undefined}
-            actions={<PanelToggle flag={section.flag}>{section.create}</PanelToggle>}
+            actions={preview ? null : <PanelToggle flag={section.flag}>{section.create}</PanelToggle>}
           >
-            <div className={styles.inner}>
-              <PanelSection
-                flag={section.flag}
-                title={section.create}
-                description={
-                  collection === "assets"
-                    ? "Informe o valor que você estima e de onde ele veio. Você pode atualizar depois; cada mudança fica no histórico."
-                    : collection === "financings"
-                      ? "Informe o saldo devedor atual. Se o financiamento pagou um bem, associe-o."
-                      : "Empréstimos, parcelamentos e outras dívidas, com o saldo devedor atual."
-                }
-                closeLabel={`Fechar o painel de ${section.create.toLowerCase()}`}
-              >
-                <PatrimonyForm collection={collection} assets={assetOptions} />
-              </PanelSection>
-            </div>
+            {preview ? null : (
+              <div className={styles.inner}>
+                <PanelSection
+                  flag={section.flag}
+                  title={section.create}
+                  description={
+                    collection === "assets"
+                      ? "Informe o valor que você estima e de onde ele veio. Você pode atualizar depois; cada mudança fica no histórico."
+                      : collection === "financings"
+                        ? "Informe o saldo devedor atual. Se o financiamento pagou um bem, associe-o."
+                        : "Empréstimos, parcelamentos e outras dívidas, com o saldo devedor atual."
+                  }
+                  closeLabel={`Fechar o painel de ${section.create.toLowerCase()}`}
+                >
+                  <PatrimonyForm collection={collection} assets={assetOptions} />
+                </PanelSection>
+              </div>
+            )}
 
             {result.status === "rejected" ? (
               <div className={styles.inner}>
@@ -140,6 +160,7 @@ export default async function PatrimonioPage({
                         assets={assetOptions}
                         columns={HEADERS[collection].length}
                         today={today}
+                        readOnly={preview}
                       />
                     ))}
                   </tbody>

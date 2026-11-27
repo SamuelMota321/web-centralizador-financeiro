@@ -101,3 +101,16 @@ describe("updatePatrimonyAction", () => {
     expect(updatePatrimony).not.toHaveBeenCalled();
   });
 });
+
+describe("prévia ligada", () => {
+  it("recusa criar e editar sem chamar a API", async () => {
+    vi.stubEnv("PATRIMONY_PREVIEW", "true");
+    const form = new FormData();
+    const created = await createPatrimonyAction("liabilities", { status: "idle" }, form);
+    const updated = await updatePatrimonyAction("liabilities", "x", { status: "idle" }, form);
+    expect(created.status).toBe("error");
+    expect(updated.status).toBe("error");
+    expect(createPatrimony).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+});

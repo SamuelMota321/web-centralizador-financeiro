@@ -10,6 +10,7 @@ import {
   PATRIMONY_COLLECTIONS,
   type PatrimonyCollection,
 } from "@/lib/patrimony/types";
+import { PATRIMONY_PREVIEW_BLOCKED, patrimonyPreviewEnabled } from "@/lib/patrimony/preview";
 import { accessTokenOrNull, isAuthFailure } from "@/lib/session";
 
 const PATH = "/patrimonio";
@@ -80,6 +81,7 @@ export async function createPatrimonyAction(
   formData: FormData,
 ): Promise<PatrimonyFormState> {
   const values = readValues(formData);
+  if (patrimonyPreviewEnabled()) return { status: "error", values, message: PATRIMONY_PREVIEW_BLOCKED };
   if (!isCollection(collection)) return { status: "error", values, message: "Seção inválida." };
   const parsed = parsePatrimonyForm(collection, values);
   if (!parsed.ok) return { status: "invalid", values, errors: parsed.errors };
@@ -104,6 +106,7 @@ export async function updatePatrimonyAction(
   formData: FormData,
 ): Promise<PatrimonyFormState> {
   const values = readValues(formData);
+  if (patrimonyPreviewEnabled()) return { status: "error", values, message: PATRIMONY_PREVIEW_BLOCKED };
   if (!isCollection(collection)) return { status: "error", values, message: "Seção inválida." };
   const parsed = parsePatrimonyForm(collection, values);
   if (!parsed.ok) return { status: "invalid", values, errors: parsed.errors };

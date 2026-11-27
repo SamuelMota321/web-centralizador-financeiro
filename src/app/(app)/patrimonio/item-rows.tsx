@@ -17,6 +17,7 @@ export function ItemRow({
   assets,
   columns,
   today,
+  readOnly = false,
 }: {
   collection: PatrimonyCollection;
   item: PatrimonyItem;
@@ -24,6 +25,8 @@ export function ItemRow({
   columns: number;
   /** Hoje (AAAA-MM-DD), vindo do servidor: o texto "há N meses" não muda entre servidor e navegador. */
   today: string;
+  /** Prévia com dados de exemplo: sem editar nem histórico. */
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const close = useCallback(() => setEditing(false), []);
@@ -68,17 +71,21 @@ export function ItemRow({
           </>
         ) : null}
         <td className={styles.actions}>
-          <button
-            className={`${ui.button} ${ui.ghost} ${ui.small}`}
-            type="button"
-            aria-expanded={editing}
-            onClick={() => setEditing(!editing)}
-          >
-            Editar<span className="visually-hidden"> {item.description}</span>
-          </button>
-          <Link className={`${ui.button} ${ui.ghost} ${ui.small}`} href={`/patrimonio/${SLUGS[collection]}/${item.id}`}>
-            Histórico<span className="visually-hidden"> de {item.description}</span>
-          </Link>
+          {readOnly ? null : (
+            <>
+            <button
+              className={`${ui.button} ${ui.ghost} ${ui.small}`}
+              type="button"
+              aria-expanded={editing}
+              onClick={() => setEditing(!editing)}
+            >
+              Editar<span className="visually-hidden"> {item.description}</span>
+            </button>
+            <Link className={`${ui.button} ${ui.ghost} ${ui.small}`} href={`/patrimonio/${SLUGS[collection]}/${item.id}`}>
+              Histórico<span className="visually-hidden"> de {item.description}</span>
+            </Link>
+            </>
+          )}
         </td>
       </tr>
       {editing ? (
